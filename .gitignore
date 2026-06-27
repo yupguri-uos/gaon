@@ -1,0 +1,30 @@
+# Python (be, ai)
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Flutter (fe)
+fe/.dart_tool/
+fe/.flutter-plugins*
+fe/build/
+*.iml
+
+# 환경변수 / 시크릿
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+service-account*.json
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# 로컬 데이터 / 업로드
+/infra/data/
+uploads/
