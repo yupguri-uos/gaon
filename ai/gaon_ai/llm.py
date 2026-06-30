@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 
 class ModelTier(str, Enum):
-    FAST = "fast"        # 추출/번역 등 고빈도 → 저비용
+    FAST = "fast"  # 추출/번역 등 고빈도 → 저비용
     QUALITY = "quality"  # 경어체·문화 해설 등 품질 민감 → 상위 모델
 
 

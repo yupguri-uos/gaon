@@ -1,0 +1,21 @@
+# GAON 모노레포 루트 — 배포 패키지가 아니라 개발 도구(ruff·black·pytest) 공통 설정만 둔다.
+# 실제 패키지는 shared/python(gaon-shared)·ai(gaon-ai). 설치/실행은 README·CLAUDE.md 참조.
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]  # 줄 길이는 black이 관리
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # 패키지 재노출(re-export)은 미사용 import가 아니다
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["shared/python/tests", "ai/tests"]

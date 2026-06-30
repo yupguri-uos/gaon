@@ -1,0 +1,16 @@
+# gaon-shared — shared-schema(Python 정본). 프로젝트 루트 = shared/python, 패키지 = gaon_shared.
+# 변경 순서: 노션 SSOT → /shared → 코드 (CLAUDE.md). 여기엔 패키징 메타만 둔다.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gaon-shared"
+version = "0.1.0"
+description = "GAON shared-schema — FE·BE·AI 공통 I/O 타입의 단일 출처 (Pydantic v2 정본)"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["gaon_shared"]

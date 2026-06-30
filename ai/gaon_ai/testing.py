@@ -47,7 +47,13 @@ class FakeLLMClient:
         if output_model is TranslatedContent:
             return TranslatedContent(  # type: ignore[return-value]
                 summary_native="(모국어 요약)",
-                terms=[Term(term_ko="현장학습", literal_native="(직역)", explanation_native="(문화 해설)")],
+                terms=[
+                    Term(
+                        term_ko="현장학습",
+                        literal_native="(직역)",
+                        explanation_native="(문화 해설)",
+                    )
+                ],
             )
         if output_model is ActionCard:
             return ActionCard(  # type: ignore[return-value]
@@ -60,7 +66,9 @@ class FakeLLMClient:
                         # ecommerce_deeplink는 비움 → 에이전트가 채움
                     )
                 ],
-                calendar_events=[CalendarEvent(title="현장학습", date=date(2026, 7, 10), type="event")],
+                calendar_events=[
+                    CalendarEvent(title="현장학습", date=date(2026, 7, 10), type="event")
+                ],
                 reply_draft_ko="(회신 초안)",
             )
         raise NotImplementedError(f"FakeLLMClient: {output_model.__name__} 미지원")

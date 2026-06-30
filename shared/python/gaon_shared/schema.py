@@ -24,12 +24,12 @@ from pydantic import BaseModel, Field
 # A. 값 타입(Literal) — MVP 고정값
 #    안정값(status·doc_type·situation·noti_type)과 확장값(country/language/grade) 구분(§16).
 # ──────────────────────────────────────────────────────────────────────────
-OriginCountry = Literal["VN", "CN"]                  # 확장 포인트(국가 추가 시 여기 + DB CHECK)
-NativeLanguage = Literal["vi", "zh"]                 # 확장 포인트
-ChildGrade = Literal["elem_1", "elem_2", "elem_3"]   # 확장 포인트(초등 저학년)
+OriginCountry = Literal["VN", "CN"]  # 확장 포인트(국가 추가 시 여기 + DB CHECK)
+NativeLanguage = Literal["vi", "zh"]  # 확장 포인트
+ChildGrade = Literal["elem_1", "elem_2", "elem_3"]  # 확장 포인트(초등 저학년)
 
 DocStatus = Literal["uploaded", "parsing", "translating", "action", "done", "failed"]
-DocType = Literal["notice", "consent", "survey"]     # 알림장 | 동의서 | 설문·회신
+DocType = Literal["notice", "consent", "survey"]  # 알림장 | 동의서 | 설문·회신
 CalendarEventType = Literal["deadline", "event"]
 MessageSituation = Literal["absence", "sick_note", "consultation", "custom"]
 NotificationType = Literal["deadline_d2", "unreplied_consent", "event_preview"]
@@ -42,7 +42,7 @@ class User(BaseModel):
     """보호자(F-ON-1·F-ON-3). v0.6에서 UserProfile을 대체."""
 
     user_id: str
-    display_name: str | None = None          # 보호자 이름(설정에서 변경, §17.4)
+    display_name: str | None = None  # 보호자 이름(설정에서 변경, §17.4)
     origin_country: OriginCountry
     native_language: NativeLanguage
     created_at: datetime
@@ -52,11 +52,11 @@ class Child(BaseModel):
     """자녀(F-ON-4). name·class_no 는 미성년 PII → 동의 기반 저장(결정 #7-PII)."""
 
     child_id: str
-    user_id: str                             # FK → User
-    name: str | None = None                  # 미성년 PII, 동의 시에만
+    user_id: str  # FK → User
+    name: str | None = None  # 미성년 PII, 동의 시에만
     grade: ChildGrade
-    class_no: str | None = None              # 반
-    color: str | None = None                 # 캘린더 색 구분
+    class_no: str | None = None  # 반
+    color: str | None = None  # 캘린더 색 구분
     created_at: datetime
 
 
@@ -68,8 +68,8 @@ class Document(BaseModel):
 
     document_id: str
     user_id: str
-    child_id: str | None = None              # 어느 자녀 건인지(§17.4)
-    image_ref: str                           # 업로드 이미지 경로/키
+    child_id: str | None = None  # 어느 자녀 건인지(§17.4)
+    image_ref: str  # 업로드 이미지 경로/키
     status: DocStatus = "uploaded"
     created_at: datetime
 
@@ -86,7 +86,7 @@ class AmountItem(BaseModel):
 
 class Checkbox(BaseModel):
     label: str
-    bbox: list[float] | None = None          # 픽셀 좌표 — MVP 선택(§10, 우선순위 낮음)
+    bbox: list[float] | None = None  # 픽셀 좌표 — MVP 선택(§10, 우선순위 낮음)
 
 
 class ExtractedItem(BaseModel):
@@ -96,7 +96,7 @@ class ExtractedItem(BaseModel):
     title: str
     dates: list[DateItem] = Field(default_factory=list)
     amounts: list[AmountItem] = Field(default_factory=list)
-    supplies: list[str] = Field(default_factory=list)   # 준비물 원문(한국어)
+    supplies: list[str] = Field(default_factory=list)  # 준비물 원문(한국어)
     deadline: date | None = None
     requires_reply: bool = False
     checkboxes: list[Checkbox] = Field(default_factory=list)
@@ -108,14 +108,14 @@ class ExtractedItem(BaseModel):
 # ──────────────────────────────────────────────────────────────────────────
 class Term(BaseModel):
     term_ko: str
-    literal_native: str                      # 직역(모국어)
-    explanation_native: str                  # 문화맥락 해설(모국어)
+    literal_native: str  # 직역(모국어)
+    explanation_native: str  # 문화맥락 해설(모국어)
 
 
 class TranslatedContent(BaseModel):
     """Cultural & Contextual Translation Agent 출력(F-DOC-5)."""
 
-    summary_native: str                      # 전체 요약(모국어)
+    summary_native: str  # 전체 요약(모국어)
     terms: list[Term] = Field(default_factory=list)
 
 
@@ -123,16 +123,16 @@ class Supply(BaseModel):
     name_ko: str
     name_native: str
     explanation_native: str
-    spec: str | None = None                  # 규격(예: 175mm)
-    ecommerce_keyword: str                   # 모국어 검색 키워드
-    ecommerce_deeplink: str | None = None    # 쿠팡 검색 URL (자동결제 X)
+    spec: str | None = None  # 규격(예: 175mm)
+    ecommerce_keyword: str  # 모국어 검색 키워드
+    ecommerce_deeplink: str | None = None  # 쿠팡 검색 URL (자동결제 X)
 
 
 class CalendarEvent(BaseModel):
     title: str
     date: date
     type: CalendarEventType
-    child_id: str | None = None              # §17.4
+    child_id: str | None = None  # §17.4
 
 
 class ActionCard(BaseModel):
@@ -140,7 +140,7 @@ class ActionCard(BaseModel):
 
     supplies: list[Supply] = Field(default_factory=list)
     calendar_events: list[CalendarEvent] = Field(default_factory=list)
-    reply_draft_ko: str | None = None        # requires_reply=true 일 때만(F-DOC-8)
+    reply_draft_ko: str | None = None  # requires_reply=true 일 때만(F-DOC-8)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -151,8 +151,8 @@ class TeacherMessage(BaseModel):
 
     situation: MessageSituation
     input_native: str
-    output_ko: str                           # 경어체 한국어
-    admin_guide_native: str                  # 행정 절차 안내(모국어)
+    output_ko: str  # 경어체 한국어
+    admin_guide_native: str  # 행정 절차 안내(모국어)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -195,8 +195,8 @@ class DocParsingInput(BaseModel):
     """1) Document Parsing: 이미지 → 구조화. out: ExtractedItem"""
 
     image_ref: str
-    user_profile: User                       # §8 필드명 유지, 타입은 §17.4로 User
-    received_date: date                       # 상대 날짜 해석 기준일(=Document.created_at, §8 v0.6.1)
+    user_profile: User  # §8 필드명 유지, 타입은 §17.4로 User
+    received_date: date  # 상대 날짜 해석 기준일(=Document.created_at, §8 v0.6.1)
 
 
 class CulturalTranslationInput(BaseModel):

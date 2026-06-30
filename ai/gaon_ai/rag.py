@@ -17,7 +17,7 @@ from gaon_shared import ExtractedItem
 
 class RetrievedChunk(BaseModel):
     content: str
-    source: str | None = None   # 출처(예: 교육부 가이드라인) — kb_embeddings.source
+    source: str | None = None  # 출처(예: 교육부 가이드라인) — kb_embeddings.source
     score: float | None = None  # 코사인 유사도(선택)
 
 

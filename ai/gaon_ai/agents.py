@@ -50,7 +50,9 @@ class Agent(ABC, Generic[InT, OutT]):
             return AgentResponse(agent=self.name, status="ok", data=out, latency_ms=latency)
         except Exception as exc:  # LLM/검증 실패 포함 — 체인이 일관되게 처리하도록 봉투로 감싼다
             latency = int((perf_counter() - start) * 1000)
-            return AgentResponse(agent=self.name, status="error", data=None, error=str(exc), latency_ms=latency)
+            return AgentResponse(
+                agent=self.name, status="error", data=None, error=str(exc), latency_ms=latency
+            )
 
 
 # ── 1) Document Parsing (이미지 → 구조화) ───────────────────────────────────
@@ -68,6 +70,7 @@ PARSING_SYSTEM = """당신은 한국 초등학교의 가정통신문·알림장 
 - checkboxes: 선택/체크 항목 라벨. 좌표(bbox)는 생략 가능.
 - raw_text: 이미지의 전체 텍스트(원문).
 - 환각 금지: 이미지에 없는 정보를 만들지 말 것. 불확실하면 비워둔다."""
+
 
 class DocumentParsingAgent(Agent[DocParsingInput, ExtractedItem]):
     name = "document_parsing"

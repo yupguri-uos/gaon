@@ -1,0 +1,27 @@
+# gaon-ai — 에이전트 4종 + RAG. 프로젝트 루트 = ai, 패키지 = gaon_ai. gaon-shared에 의존.
+# 설치 순서 중요: shared 먼저(README 참조). dev 추가물은 [project.optional-dependencies].dev.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gaon-ai"
+version = "0.1.0"
+description = "GAON AI — 에이전트 4종 + RAG (Chain A 코어)"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2",
+    "gaon-shared",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "black",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["gaon_ai"]
