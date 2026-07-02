@@ -12,10 +12,13 @@ _ROOT_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 class Settings(BaseSettings):
     app_env: str = "development"
     session_secret: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 10080
     database_url: str = "postgresql://gaon:password@localhost:5432/gaon"
 
     kakao_rest_api_key: str = ""
     kakao_redirect_uri: str = ""
+    kakao_client_secret: str = ""
 
     s3_endpoint: str = "http://localhost:9000"
     s3_access_key: str = ""
