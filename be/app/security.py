@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta, timezone 
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -20,7 +21,6 @@ from app.config import settings
 from app.db import get_db
 from app.models import User
 
-_ALGORITHM = "HS256"
 
 _bearer_scheme = HTTPBearer()
 
@@ -45,3 +45,18 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="사용자를 찾을 수 없습니다"
         )
     return user
+
+
+def create_access_token(user_id: uuid.UUID) -> str:
+    now = datetime.now(timezone.utc)
+    
+    payload = {
+            "sub":str(user_id),
+            "iat":now,
+            "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
+        }
+    return jwt.encode(
+        payload, 
+        settings.session_secret,
+        algorithm=settings.jwt_algorithm,
+        ) 
