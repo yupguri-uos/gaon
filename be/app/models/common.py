@@ -14,6 +14,7 @@ from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, Text,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+from gaon_shared import Child as ChildSchema
 from gaon_shared import Document as DocumentSchema
 from gaon_shared import User as UserSchema
 
@@ -92,6 +93,17 @@ class Child(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
+
+    def to_schema(self) -> ChildSchema:
+        return ChildSchema(
+            child_id=str(self.id),
+            user_id=str(self.user_id),
+            name=self.name,
+            grade=self.grade,
+            class_no=self.class_no,
+            color=self.color,
+            created_at=self.created_at,
+        )
 
 
 class Document(Base):
