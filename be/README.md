@@ -6,4 +6,4 @@
 - **타입**: shared-schema(`../shared`)대로 Pydantic 모델 1:1. ad-hoc dict 금지.
 - **비동기**: BackgroundTasks (Celery/Redis 미사용)
 - **DB**: PostgreSQL + pgvector, 마이그레이션 Alembic (스키마 SSOT 15절)
-- **분담**: 이지수 = 문서/라우팅·캘린더·Kakao 인증 / 박수빈 = Proactive(스케줄러·푸시)·교사소통·로그
+- **분담**: 이지수 = 문서/라우팅·캘린더 / 박수빈 = Proactive(스케줄러·푸시)·교사소통·로그· Kakao 인증
