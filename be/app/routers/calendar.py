@@ -1,15 +1,19 @@
 """앱 내 캘린더 = F-DOC-7 (SSOT §11·§12). document_results.calendar_events(ActionCard 결과,
 §15 보강분)를 실제 calendar_events 테이블로 옮겨 담는다. 재호출 시 이 문서로 만든 기존
-이벤트를 지우고 다시 채워서 중복 생성(버튼 중복 클릭 등)을 막는다."""
+이벤트를 지우고 다시 채워서 중복 생성(버튼 중복 클릭 등)을 막는다.
+
+GET /calendar/events는 SSOT §11 원문엔 없다 — §13 ②홈 '다가오는 일정'과
+v0.6 §17.5 ⑨전용 캘린더 페이지(F-CAL-1) 둘 다 목록 조회가 필요해서 추가했다."""
 
 from __future__ import annotations
 
+import calendar as _calendar_module
 import uuid
 from datetime import date as date_type
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -31,6 +35,19 @@ class CreatedEvent(BaseModel):
 
 class CalendarEventsResponse(BaseModel):
     created: list[CreatedEvent]
+
+
+class CalendarEventItem(BaseModel):
+    id: str
+    document_id: str | None
+    child_id: str | None
+    title: str
+    date: str
+    type: str
+
+
+class CalendarEventListResponse(BaseModel):
+    events: list[CalendarEventItem]
 
 
 @router.post("/calendar/events", response_model=CalendarEventsResponse)
@@ -64,3 +81,46 @@ def create_calendar_events(
 
     db.commit()
     return CalendarEventsResponse(created=created)
+
+
+@router.get("/calendar/events", response_model=CalendarEventListResponse)
+def list_calendar_events(
+    month: str | None = Query(
+        default=None,
+        description="YYYY-MM. 지정 시 해당 월 전체(캘린더 페이지), 생략 시 오늘 이후 예정 일정(홈)",
+    ),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CalendarEventListResponse:
+    stmt = select(CalendarEventRow).where(CalendarEventRow.user_id == current_user.id)
+
+    if month is not None:
+        try:
+            year, mon = (int(part) for part in month.split("-"))
+            start = date_type(year, mon, 1)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="month는 YYYY-MM 형식이어야 합니다"
+            ) from exc
+        _, days_in_month = _calendar_module.monthrange(year, mon)
+        end = date_type(year, mon, days_in_month)
+        stmt = stmt.where(CalendarEventRow.event_date.between(start, end))
+    else:
+        stmt = stmt.where(CalendarEventRow.event_date >= date_type.today())
+
+    stmt = stmt.order_by(CalendarEventRow.event_date)
+    rows = db.execute(stmt).scalars().all()
+
+    return CalendarEventListResponse(
+        events=[
+            CalendarEventItem(
+                id=str(row.id),
+                document_id=str(row.document_id) if row.document_id else None,
+                child_id=str(row.child_id) if row.child_id else None,
+                title=row.title,
+                date=row.event_date.isoformat(),
+                type=row.type,
+            )
+            for row in rows
+        ]
+    )
