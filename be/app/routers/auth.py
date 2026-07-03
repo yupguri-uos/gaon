@@ -63,6 +63,50 @@ async def kakao_callback(
     ),  # 쿠키에서 STATE_COOKIE_NAME이라는 이름의 값이 있으면 str을 넣고 없으면 None을 넣어라
     db: Session = Depends(get_db),
 ) -> LoginResponse:
-    # TODO(박수빈, WIP): state 검증 → exchange_code_for_access_token → fetch_kakao_user
-    #   → User upsert(kakao_id) → create_access_token 순서로 구현 예정
-    raise NotImplementedError("카카오 콜백 로직 구현 중(WIP)")
+    if (
+        kakao_oauth_state is None
+        or not secrets.compare_digest(state, kakao_oauth_state) #state1 == state2해도되지만 compare_digest를 하는것이 타이밍 공격을 막을 수 있다 
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail = "유효하지 않은 OAuth state입니다",
+        )
+
+    try:
+        kakao_access_token = await exchange_code_for_access_token(code)
+        kakao_user = await fetch_kakao_user(kakao_access_token)
+    except KakaoAPIError as exc: 
+        raise HTTPException(
+            status_code = status.HTTP_502_BAD_GATEWAY,
+            detail = str(exc),
+        ) from exc
+        
+    user = db.execute(
+        select(User).where(User.kakao_id == kakao_user.kakao_id)
+    ).scalar_one_or_none()
+    
+    if user is None:
+        user = User(
+            kakao_id = kakao_user.kakao_id,
+            display_name = kakao_user.nickname,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    
+    elif user.display_name is None and kakao_user.nickname:
+        user.display_name = kakao_user.nickname
+        db.commit()
+        db.refresh(user)
+        
+    gaon_access_token = create_access_token(user.id)
+    
+    response.delete_cookie(STATE_COOKIE_NAME) #검증이 끝나면 일회성 쿠키는 지움
+    
+    return LoginResponse(
+        access_token=gaon_access_token,
+        user_id = str(user.id),
+        needs_onboarding=user.needs_onboarding,
+    )
+    
+    
