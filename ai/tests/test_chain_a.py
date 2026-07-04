@@ -7,19 +7,22 @@ gaon_ai.agents.coupang_search_url 를 쓴다. 실제 LLM 호출은 하지 않는
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime, timezone
 
 import pytest
 
 from gaon_ai.agents import LifestyleActionAgent, coupang_search_url
 from gaon_ai.chain_a import ChainError, run_chain_a_core
-from gaon_ai.llm import LLMClient
+from gaon_ai.llm import LLMClient, ModelTier, TextPart
 from gaon_ai.rag import Retriever
 from gaon_ai.testing import FailingLLMClient, FakeLLMClient, FakeRetriever
 from gaon_shared import (
+    ActionCard,
+    CalendarEvent,
     Document,
     ExtractedItem,
     LifestyleActionInput,
+    Supply,
     Term,
     TranslatedContent,
     User,
@@ -35,14 +38,65 @@ def build_user() -> User:
     )
 
 
-def build_document(child_id: str | None = "child-1") -> Document:
+def build_document(
+    child_id: str | None = "child-1",
+    created_at: datetime = datetime(2026, 6, 30, 9, 0),
+) -> Document:
     return Document(
         document_id="doc-1",
         user_id="u1",
         child_id=child_id,
         image_ref="minio://bucket/doc-1.jpg",
-        created_at=datetime(2026, 6, 30, 9, 0),
+        created_at=created_at,
     )
+
+
+class HallucinatingLLMClient(FakeLLMClient):
+    """결정적 필드(child_id·딥링크)를 LLM이 환각으로 채워 오는 상황 재현 — 코드 덮어쓰기 검증용."""
+
+    async def generate_structured(self, *, messages, output_model, tier=ModelTier.FAST):
+        if output_model is ActionCard:
+            return ActionCard(
+                supplies=[
+                    Supply(
+                        name_ko="돗자리",
+                        name_native="(모국어명)",
+                        explanation_native="(설명)",
+                        ecommerce_keyword="돗자리",
+                        ecommerce_deeplink="https://evil.example/phish",  # 환각 URL
+                    )
+                ],
+                calendar_events=[
+                    CalendarEvent(
+                        title="현장학습",
+                        date=date(2026, 7, 10),
+                        type="event",
+                        child_id="hallucinated-child",  # 환각 child_id
+                    )
+                ],
+            )
+        return await super().generate_structured(
+            messages=messages, output_model=output_model, tier=tier
+        )
+
+
+class RecordingLLMClient(FakeLLMClient):
+    """파싱 단계의 user 텍스트를 캡처 — 기준일(ISO)이 프롬프트에 박히는지 검증용."""
+
+    def __init__(self) -> None:
+        self.parsing_texts: list[str] = []
+
+    async def generate_structured(self, *, messages, output_model, tier=ModelTier.FAST):
+        if output_model is ExtractedItem:
+            self.parsing_texts += [
+                part.text
+                for message in messages
+                for part in message.content
+                if isinstance(part, TextPart)
+            ]
+        return await super().generate_structured(
+            messages=messages, output_model=output_model, tier=tier
+        )
 
 
 def test_fakes_satisfy_protocols():
@@ -123,6 +177,35 @@ async def test_reply_draft_cleared_when_no_reply_required():
     assert resp.status == "ok"
     assert resp.data is not None
     assert resp.data.reply_draft_ko is None
+
+
+async def test_hallucinated_child_id_and_deeplink_overwritten_by_code():
+    # 진단 프로브 실증분 고정: LLM이 child_id·딥링크를 환각으로 채워도 코드가 무조건 덮어쓴다
+    document = build_document(child_id="child-7")
+    result = await run_chain_a_core(
+        document,
+        build_user(),
+        llm=HallucinatingLLMClient(),
+        retriever=FakeRetriever(),
+    )
+    event = result.action_card.calendar_events[0]
+    supply = result.action_card.supplies[0]
+    assert event.child_id == document.child_id == "child-7"  # "hallucinated-child" 차단
+    assert supply.ecommerce_deeplink == coupang_search_url(supply.ecommerce_keyword)
+
+
+async def test_received_date_uses_kst_for_utc_created_at():
+    # UTC 6/30 16:00 == KST 7/1 01:00 → 상대날짜 해석 기준일은 2026-07-01이어야 한다
+    llm = RecordingLLMClient()
+    await run_chain_a_core(
+        build_document(created_at=datetime(2026, 6, 30, 16, 0, tzinfo=timezone.utc)),
+        build_user(),
+        llm=llm,
+        retriever=FakeRetriever(),
+    )
+    parsing_prompt = "\n".join(llm.parsing_texts)
+    assert "2026-07-01" in parsing_prompt
+    assert "2026-06-30" not in parsing_prompt
 
 
 async def test_failing_llm_raises_chain_error_at_parsing():
