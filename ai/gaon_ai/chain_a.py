@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Callable
+from zoneinfo import ZoneInfo
 
 from gaon_shared import (
     ActionCard,
@@ -31,6 +32,8 @@ from gaon_ai.agents import (
 )
 from gaon_ai.llm import LLMClient
 from gaon_ai.rag import Retriever, build_rag_queries, chunks_to_context
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class ChainError(RuntimeError):
@@ -67,11 +70,15 @@ async def run_chain_a_core(
 
     # 1) 파싱
     emit("parsing")
+    # created_at은 timestamptz(UTC) → 그대로 .date()하면 KST 00~09시 업로드가 하루 밀린다.
+    # 상대날짜("다음 주") 해석 기준일이므로 KST 날짜로 확정. naive면 그대로(테스트 호환).
+    created = document.created_at
+    received = (created.astimezone(KST) if created.tzinfo is not None else created).date()
     parse = await DocumentParsingAgent(llm).run(
         DocParsingInput(
             image_ref=document.image_ref,
             user_profile=user,
-            received_date=document.created_at.date(),  # 상대 날짜 해석 기준일(§8 v0.6.1)
+            received_date=received,  # 상대 날짜 해석 기준일(§8 v0.6.1)
         )
     )
     if parse.status != "ok" or parse.data is None:
@@ -107,10 +114,10 @@ async def run_chain_a_core(
         raise ChainError(act.agent, act.error)
     action_card = act.data
 
-    # child_id 백필(§17.4): 에이전트는 child를 모르므로 체인이 Document.child_id로 채운다
+    # child_id 확정(§17.4): 에이전트는 자녀를 모르므로 문서 귀속이 정본.
+    # LLM이 무엇을 주든 덮어쓴다 — 환각 child_id가 다른 자녀 캘린더로 새는 것 차단(진단 실증).
     for event in action_card.calendar_events:
-        if event.child_id is None:
-            event.child_id = document.child_id
+        event.child_id = document.child_id
 
     emit("done")
     return ChainAResult(extracted=extracted, translated=trans.data, action_card=action_card)
