@@ -10,8 +10,10 @@ from gaon_ai.agents import (
     CulturalTranslationAgent,
     DocumentParsingAgent,
     LifestyleActionAgent,
+    TeacherCommunicationAgent,
 )
 from gaon_ai.chain_a import ChainAResult, ChainError, run_chain_a_core
+from gaon_ai.chain_b import run_chain_b
 from gaon_ai.llm import LLMClient, ModelTier
 from gaon_ai.rag import Retriever, RetrievedChunk, build_rag_queries
 
@@ -20,7 +22,9 @@ __all__ = [
     "DocumentParsingAgent",
     "CulturalTranslationAgent",
     "LifestyleActionAgent",
+    "TeacherCommunicationAgent",
     "run_chain_a_core",
+    "run_chain_b",
     "ChainAResult",
     "ChainError",
     "LLMClient",

@@ -24,6 +24,8 @@ from gaon_shared import (
     DocParsingInput,
     ExtractedItem,
     LifestyleActionInput,
+    TeacherCommInput,
+    TeacherMessage,
     TranslatedContent,
 )
 
@@ -250,3 +252,76 @@ class LifestyleActionAgent(Agent[LifestyleActionInput, ActionCard]):
             if not supply.ecommerce_deeplink:
                 supply.ecommerce_deeplink = coupang_search_url(supply.ecommerce_keyword)
         return card
+
+
+# ── 4) Teacher Communication (모국어 입력 → 경어체 + 행정 안내) ──────────────
+# Chain B(§9): 단독 에이전트, RAG 없음. 전송은 하지 않고 생성까지만(결정 #2, F-TCH-3).
+# out=TeacherMessage이나 situation·input_native는 입력 에코라 LLM에 재생성시키지 않고
+# 코드가 입력에서 채운다(ReplyDraft·딥링크와 같은 '결정적 필드는 코드' 불변식).
+# LLM은 아래 TeacherDraft(output_ko·admin_guide_native)만 생성한다.
+TEACHER_COMM_SYSTEM = """당신은 한국어가 익숙하지 않은 이주배경 학부모가 자녀의 담임 교사에게 보낼 메시지를,
+학부모의 모국어 입력을 바탕으로 (1) 학교에 그대로 보낼 수 있는 정중한 한국어(경어체) 메시지와
+(2) 관련 행정 절차의 모국어 안내로 만드는 시스템입니다. 전송은 하지 않습니다 — 생성까지만 합니다.
+
+규칙:
+- output_ko: 학부모가 복사해 바로 보낼 수 있는 완결된 경어체 한국어 메시지 한 편.
+  · 상황별 격식·내용: 'absence'=결석 사유·기간 통지, 'sick_note'=병결/진단서 관련,
+    'consultation'=상담 요청, 'custom'=학부모가 쓴 내용을 정중하게 다듬기.
+  · 자녀 정보(학년·반·이름이 주어지면)를 자연스럽게 반영하되, 주어지지 않은 정보는 지어내지 않는다.
+  · 학부모 입력에 담긴 사실(날짜·사유 등)만 사용한다. 원문에 없는 사실을 추가하지 않는다.
+- admin_guide_native: 이 상황에서 학부모가 알아야 할 한국 학교의 행정 절차를 모국어(__LANG__)로 간결히 안내.
+  · 예: 결석 시 결석계·증빙 제출 방법과 기한, 병결 시 진단서·영수증 보관, 상담 신청 방법 등(F-TCH-4).
+  · 실제 한국 학교 관행에 근거하고, 불확실하면 단정하지 않는다.
+- 출력 언어: output_ko는 한국어 경어체, admin_guide_native는 모국어(__LANG__).
+- 환각 금지: 입력에 없는 사실·수치를 만들지 않는다."""
+
+
+# ReplyDraft와 같은 AI 내부 전용 모델 — shared-schema(FE·BE I/O) 아님.
+class TeacherDraft(BaseModel):
+    output_ko: str  # 경어체 한국어 메시지
+    admin_guide_native: str  # 행정 절차 안내(모국어)
+
+
+def _render_teacher_user(data: TeacherCommInput) -> str:
+    lang = LANG_NAME.get(data.native_language, data.native_language)
+    ci = data.child_info
+    child_desc = str(ci.grade)
+    if ci.class_no:
+        child_desc += f" {ci.class_no}반"
+    if ci.name:
+        child_desc += f" · 이름 {ci.name}"
+    lines = [
+        f"[상황] {data.situation}",
+        f"[자녀 정보] {child_desc}",
+        f"[학부모 모국어 입력] {data.input_native}",
+        "",
+        f"위 내용으로 (1) 경어체 한국어 메시지(output_ko)와 "
+        f"(2) {lang} 행정 절차 안내(admin_guide_native)를 생성하세요.",
+    ]
+    return "\n".join(lines)
+
+
+class TeacherCommunicationAgent(Agent[TeacherCommInput, TeacherMessage]):
+    name = "teacher_communication"
+
+    def __init__(self, llm: LLMClient, *, tier: ModelTier = ModelTier.QUALITY) -> None:
+        self._llm = llm
+        self._tier = tier  # 결정 #4: 경어체 = 품질 민감 → 기본 QUALITY
+
+    async def _run(self, data: TeacherCommInput) -> TeacherMessage:
+        lang = LANG_NAME.get(data.native_language, data.native_language)
+        draft = await self._llm.generate_structured(
+            messages=[
+                system(TEACHER_COMM_SYSTEM.replace("__LANG__", lang)),
+                user_text(_render_teacher_user(data)),
+            ],
+            output_model=TeacherDraft,
+            tier=self._tier,
+        )
+        # situation·input_native은 입력 에코 → 코드가 채운다(원문 보존·상황 고정, LLM 재생성 금지)
+        return TeacherMessage(
+            situation=data.situation,
+            input_native=data.input_native,
+            output_ko=draft.output_ko,
+            admin_guide_native=draft.admin_guide_native,
+        )

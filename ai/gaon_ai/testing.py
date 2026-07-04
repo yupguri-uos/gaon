@@ -22,7 +22,7 @@ from gaon_shared import (
     TranslatedContent,
 )
 
-from gaon_ai.agents import ReplyDraft
+from gaon_ai.agents import ReplyDraft, TeacherDraft
 from gaon_ai.llm import LLMMessage, ModelTier
 from gaon_ai.rag import RetrievedChunk
 
@@ -74,6 +74,11 @@ class FakeLLMClient:
             )
         if output_model is ReplyDraft:
             return ReplyDraft(reply_draft_ko="(경어체 회신 초안)")  # type: ignore[return-value]
+        if output_model is TeacherDraft:
+            return TeacherDraft(  # type: ignore[return-value]
+                output_ko="(경어체 한국어 메시지)",
+                admin_guide_native="(모국어 행정 절차 안내)",
+            )
         raise NotImplementedError(f"FakeLLMClient: {output_model.__name__} 미지원")
 
 
