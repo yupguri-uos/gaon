@@ -22,6 +22,7 @@ from gaon_shared import (
     TranslatedContent,
 )
 
+from gaon_ai.agents import ReplyDraft
 from gaon_ai.llm import LLMMessage, ModelTier
 from gaon_ai.rag import RetrievedChunk
 
@@ -69,8 +70,10 @@ class FakeLLMClient:
                 calendar_events=[
                     CalendarEvent(title="현장학습", date=date(2026, 7, 10), type="event")
                 ],
-                reply_draft_ko="(회신 초안)",
+                # reply_draft_ko는 비움 → 회신 필요 시 별도 QUALITY 호출이 채움
             )
+        if output_model is ReplyDraft:
+            return ReplyDraft(reply_draft_ko="(경어체 회신 초안)")  # type: ignore[return-value]
         raise NotImplementedError(f"FakeLLMClient: {output_model.__name__} 미지원")
 
 
