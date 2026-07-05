@@ -1,0 +1,3 @@
+# 셸 스크립트는 항상 LF로 저장/체크아웃 (Linux 미니PC에서 실행되므로).
+# CRLF로 커밋되면 clone 시 `bad interpreter: /usr/bin/env bash^M`로 깨진다.
+*.sh text eol=lf
