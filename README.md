@@ -11,7 +11,7 @@
 ## 개발
 - 상시 규칙: `CLAUDE.md`
 - 전체 기획·명세: 노션 SSOT "GAON 개발 계획"
-- 셋업: `env.example` → `.env` 복사 후 값 채우기
+- 셋업: `.env.example` → `.env` 복사 후 값 채우기 (로컬용은 루트, 배포용은 `infra/.env.example`)
 
 ### 로컬 개발 셋업 (Python: shared·ai·be)
 설치 순서가 중요하다 — `gaon-ai`는 `gaon-shared`에, `gaon-be`는 `gaon-shared`·`gaon-ai`에 의존한다.
