@@ -1,3 +1,6 @@
 # 셸 스크립트는 항상 LF로 저장/체크아웃 (Linux 미니PC에서 실행되므로).
 # CRLF로 커밋되면 clone 시 `bad interpreter: /usr/bin/env bash^M`로 깨진다.
 *.sh text eol=lf
+# 커밋되는 env 템플릿도 LF 고정 (로컬 .env는 .gitignore 대상이라 여기 대상 아님).
+# 실제 방어는 파일 속성이 아니라 규율: env.example(LF) 복사 + `grep -c $'\r' .env`로 CR=0 확인.
+env.example text eol=lf
