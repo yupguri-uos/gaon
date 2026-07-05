@@ -1,0 +1,84 @@
+# GAON 배포 스택 — FastAPI(app) + 마이그레이션(migrate) + PostgreSQL+pgvector + MinIO
+# 위치: repo /infra/docker-compose.yml. 미니PC는 이 repo를 clone 후 /infra 에서 실행.
+# 토폴로지: 살아있음(tailscaled·sshd·cloudflared)=호스트 systemd / 이 스택=Compose.
+# 포트는 tailnet IP에만 바인딩(공개/LAN 미노출). 데이터=named volume(clone 위치와 무관하게 영속).
+#
+# ⚠️ app/migrate는 repo 코드(/be·/shared·/ai)를 빌드한다 → build.context=repo 루트(..).
+#    설치 순서는 shared → ai → be (be가 gaon-shared·gaon-ai에 의존). 상세는 Dockerfile 참조.
+name: gaon
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${TAILNET_IP}:5432:5432"          # tailnet 전용
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro   # 최초 1회 CREATE EXTENSION vector
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    env_file: .env
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "${TAILNET_IP}:9000:9000"          # S3 API (tailnet 전용)
+      - "${TAILNET_IP}:9001:9001"          # 콘솔 (tailnet 전용)
+    volumes:
+      - miniodata:/data
+
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    env_file: .env
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do echo waiting-for-minio; sleep 2; done;
+      mc mb --ignore-existing local/$$S3_BUCKET;
+      echo bucket-ready:$$S3_BUCKET
+      "
+
+  # DB 스키마 적용 전용 — 앱 기동 전 1회. 이미지를 여기서 빌드하고 app이 재사용.
+  migrate:
+    build:
+      context: ..                          # repo 루트
+      dockerfile: infra/Dockerfile
+    image: gaon-be:latest
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  # FastAPI 앱 — migrate가 성공적으로 끝난 뒤 기동
+  app:
+    image: gaon-be:latest                  # migrate가 빌드한 이미지 재사용
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${TAILNET_IP}:8000:8000"          # 지금은 tailnet 전용, 공개 노출은 본가 cloudflared
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  pgdata:
+  miniodata:
