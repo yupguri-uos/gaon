@@ -1,4 +1,7 @@
-"""교사 소통 = Chain B 결과 ORM(SSOT §15 + §11): messages. 생성만 저장 — 전송 없음(결정 #2)."""
+"""교사 소통 = Chain B 결과 ORM(SSOT §15 + §11): messages. 생성만 저장 — 전송 없음(결정 #2).
+
+child_id는 SSOT §15 DDL엔 없지만 documents·calendar_events·notifications와 패턴을 맞추려
+추가했다(§17.6) — 자녀별 메시지 이력 조회(F-LOG)에 필요. SSOT 갱신 필요."""
 
 from __future__ import annotations
 
@@ -32,6 +35,9 @@ class MessageRow(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    child_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("children.id", ondelete="SET NULL")
     )
     situation: Mapped[str] = mapped_column(MsgSituation, nullable=False)
     input_native: Mapped[str] = mapped_column(Text, nullable=False)

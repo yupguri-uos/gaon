@@ -64,6 +64,7 @@ async def create_teacher_message(
     db.add(
         MessageRow(
             user_id=current_user.id,
+            child_id=child.id,
             situation=result.situation,
             input_native=result.input_native,
             output_ko=result.output_ko,
