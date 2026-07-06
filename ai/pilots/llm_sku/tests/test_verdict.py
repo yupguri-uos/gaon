@@ -1,8 +1,9 @@
 """판정 규칙(조사 페이지 §11 v2, 2026-07-06 사전등록) 회귀 테스트 — 순수 함수, 실 API 없음.
 
 경로별 고정 케이스: ③ 조합 4경로(i~iv) / 편측 수렴 양방향 / Gemini 내부 타이브레이커
-(차 ≥2 승자·차 ≤1 → 3 Flash) / 게이트 티어 귀속(존대 오류는 FAST 무영향) /
-handwritten 0건 미발동 / 3-way 집계 / 전 후보 탈락=판정 불가 / 수동 입력 부재=pending.
+(차 ≥3 승자·차 ≤2 → 3 Flash) / 결정승 경계(차 2=근소·차 3=결정승, §11 개정 2026-07-06) /
+게이트 티어 귀속(존대 오류는 FAST 무영향) / handwritten 0건 미발동 / 3-way 집계 /
+전 후보 탈락=판정 불가 / 수동 입력 부재=pending.
 실행: pytest ai/pilots/llm_sku/tests
 """
 
@@ -118,7 +119,7 @@ def test_path_iii_fast_decisive_quality_narrow_converges():
 
 
 def test_path_iii_quality_decisive_fast_narrow_converges():
-    # FAST: 최고 후보 차 ≤1 = 근소 / QUALITY: claude 만장일치급 → (iii) 단일 claude로 수렴
+    # FAST: 최고 후보 차 0 = 근소 / QUALITY: claude 만장일치급 → (iii) 단일 claude로 수렴
     v = decide(_fast3(1, 2, 1), _quality(), ab_results=_ab(*AB_CLAUDE_UNANIMOUS), ab_key=AB_KEY)
     assert (v.path, v.composition) == ("(iii)", "단일")
     assert v.fast_sku == HAIKU and v.quality_sku == SONNET
@@ -134,17 +135,17 @@ def test_path_iv_both_narrow_gemini_single():
 
 
 # ── ① Gemini 내부 타이브레이커 ──────────────────────────────────────────────
-def test_gemini_internal_two_or_more_gap_picks_winner_sku():
-    # 내부 차 3(≥2) → 3.5 Flash 승자, 이후 vs claude 차 7 → FAST 결정승 gemini(3.5)
+def test_gemini_internal_three_or_more_gap_picks_winner_sku():
+    # 내부 차 3(≥3, 개정 경계) → 3.5 Flash 승자, 이후 vs claude 차 7 → FAST 결정승 gemini(3.5)
     v = decide(_fast3(5, 2, 9), _quality(), ab_results=_ab(*AB_ALL_TIES), ab_key=AB_KEY)
     assert v.path == "(iii)"  # QUALITY 근소 → FAST 결정승 벤더(gemini)로 수렴
     assert v.fast_sku == G35_FLASH
     assert v.quality_sku == G_PRO
 
 
-def test_gemini_internal_narrow_gap_prefers_3_flash():
-    # 내부 차 1(≤1) → 3.5가 더 적어도 3 Flash(단가 1/3·무료 티어) 선택
-    v = decide(_fast3(1, 0, 9), _quality(), ab_results=_ab(*AB_ALL_TIES), ab_key=AB_KEY)
+def test_gemini_internal_gap_of_two_prefers_3_flash():
+    # 내부 차 2(≤2, 개정 경계 — 구 기준이면 승자) → 3.5가 더 적어도 3 Flash 선택
+    v = decide(_fast3(2, 0, 9), _quality(), ab_results=_ab(*AB_ALL_TIES), ab_key=AB_KEY)
     assert v.fast_sku == G_FLASH
     assert any("단가 1/3" in r for r in v.rationale)
 
@@ -210,10 +211,25 @@ def test_fast_vendor_disqualified_gives_gate_decisive_win():
     assert (v.path, v.fast_sku) == ("(i)", HAIKU)
 
 
+# ── ① 결정승 경계(§11 개정 2026-07-06: 차 3부터 결정승, 차 2는 근소) ────────
+def test_fast_gap_of_two_is_now_narrow():
+    # 벤더 간 차 2 = 근소(구 기준이면 결정승) → 양측 근소 → (iv) Gemini 단일
+    v = decide(_fast3(0, 1, 2), _quality(), ab_results=_ab(*AB_ALL_TIES), ab_key=AB_KEY)
+    assert (v.path, v.composition) == ("(iv)", "단일")
+    assert any("차 2(≤2) → 근소" in r for r in v.rationale)
+
+
+def test_fast_gap_of_three_is_decisive():
+    # 벤더 간 차 3 = 결정승(개정 경계) → QUALITY 근소 수렴 → (iii) Gemini 단일
+    v = decide(_fast3(0, 1, 3), _quality(), ab_results=_ab(*AB_ALL_TIES), ab_key=AB_KEY)
+    assert (v.path, v.fast_sku) == ("(iii)", G_FLASH)
+    assert any("차 3(≥3) → 결정승: gemini" in r for r in v.rationale)
+
+
 # ── 3-way 집계 ──────────────────────────────────────────────────────────────
 def test_three_way_aggregation_uses_best_per_vendor():
-    # 후보 3개 각각 집계 → gemini 최고(내부 결정승 4) vs claude 6 — 차 2 → FAST 결정승 gemini
-    v = decide(_fast3(9, 4, 6), _quality(), ab_results=_ab(*AB_GEMINI_UNANIMOUS), ab_key=AB_KEY)
+    # 후보 3개 각각 집계 → gemini 최고(내부 결정승 4) vs claude 7 — 차 3 → FAST 결정승 gemini
+    v = decide(_fast3(9, 4, 7), _quality(), ab_results=_ab(*AB_GEMINI_UNANIMOUS), ab_key=AB_KEY)
     assert (v.path, v.composition) == ("(i)", "단일")
     assert v.fast_sku == G35_FLASH and v.quality_sku == G_PRO
 

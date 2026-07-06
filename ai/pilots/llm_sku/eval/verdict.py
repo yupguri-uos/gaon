@@ -11,8 +11,10 @@
           (b) dates·amounts 환각(골드에 없는 값) 합계 3건 이상 [자동]
    QUALITY — 존대 오류(반말 혼입·비문 존대) [수동, manual_review.json 후보별]
    티어의 전 후보 탈락 → 판정 불가(사람 에스컬레이션).
-① FAST: 후보 크리티컬 미스 집계 → 벤더별 최고 후보끼리 차 ≥2=결정승 / ≤1=근소.
-   Gemini 내부 SKU: 두 SKU 차 ≥2면 승자, ≤1이면 3 Flash(단가 1/3·무료 티어).
+① FAST: 후보 크리티컬 미스 집계 → 벤더별 최고 후보끼리 차 ≥3=결정승 / ≤2=근소.
+   Gemini 내부 SKU: 두 SKU 차 ≥3이면 승자, ≤2이면 3 Flash(단가 1/3·무료 티어).
+   (임계값은 §11 개정 2026-07-06: 입력셋 19장 확정, 채점 포인트 배증 ~40→~76에 비례해
+    구 기준 대비 +1 상향. 환각 결격 게이트 ≥3은 의도적으로 불변)
 ② QUALITY: A/B 만장일치급(무승부 제외 전승 + 승 ≥3)=결정승 / 미만=근소.
 ③ 조합: (i) 양측 결정승·동일 벤더→단일 (ii) 양측 결정승·교차→혼합
    (iii) 편측 결정승→근소 티어는 결정승 벤더로 수렴 (iv) 양측 근소→Gemini 단일
@@ -54,7 +56,11 @@ from eval.scorer import DocScore, score_document  # noqa: E402
 _MANIFEST_DEFAULT = _LLM_SKU_DIR / "dataset" / "manifest.json"
 
 _VENDORS = ("gemini", "claude")
-# ① 내부 타이브레이크: 두 Gemini SKU 차 ≤1이면 이 SKU(단가 1/3·무료 티어, §11 v2)
+# ① 결정승 임계값(§11 개정 2026-07-06, 입력셋 19장 확정): 차 ≥3=결정승 / ≤2=근소.
+#    FAST 벤더 간 비교와 Gemini 내부 타이브레이크 두 곳에 동일 적용(사전등록 고정 — 인자화 금지).
+#    주의: ⓪ 환각 결격 게이트(≥3)는 비대칭 치명 결함이라 표본 비례 완화하지 않는 별개 값.
+_FAST_DECISIVE_GAP = 3
+# ① 내부 타이브레이크: 두 Gemini SKU 차 ≤2이면 이 SKU(단가 1/3·무료 티어, §11 v2)
 _GEMINI_FAST_TIEBREAK_SKU = "gemini-3-flash-preview"
 
 
@@ -216,27 +222,30 @@ def _fmt_pol(v: int | None) -> str:
 
 # ── ① FAST 티어 ─────────────────────────────────────────────────────────────
 def _best_gemini_fast(survivors: list[FastCandidate], lines: list[str]) -> FastCandidate:
-    """Gemini 내부 SKU 규칙: 두 SKU 차 ≥2면 승자, ≤1이면 3 Flash(단가 1/3·무료 티어)."""
+    """Gemini 내부 SKU 규칙: 두 SKU 차 ≥3이면 승자, ≤2이면 3 Flash(단가 1/3·무료 티어)."""
     if len(survivors) == 1:
         return survivors[0]
     ordered = sorted(survivors, key=lambda c: c.stats.total_critical)
     a, b = ordered[0], ordered[1]
     diff = b.stats.total_critical - a.stats.total_critical
-    if diff >= 2:
+    if diff >= _FAST_DECISIVE_GAP:
         lines.append(
             f"[FAST] Gemini 내부 SKU: {a.sku} {a.stats.total_critical} vs "
-            f"{b.sku} {b.stats.total_critical} — 차 {diff}(≥2) → {a.sku}"
+            f"{b.sku} {b.stats.total_critical} — 차 {diff}(≥{_FAST_DECISIVE_GAP}) → {a.sku}"
         )
         return a
     preferred = [c for c in survivors if c.sku == _GEMINI_FAST_TIEBREAK_SKU]
     if preferred:
         lines.append(
-            f"[FAST] Gemini 내부 SKU: 차 {diff}(≤1) → {_GEMINI_FAST_TIEBREAK_SKU}"
-            "(단가 1/3·무료 티어)"
+            f"[FAST] Gemini 내부 SKU: 차 {diff}(≤{_FAST_DECISIVE_GAP - 1}) → "
+            f"{_GEMINI_FAST_TIEBREAK_SKU}(단가 1/3·무료 티어)"
         )
         return preferred[0]
     # 기본 SKU가 후보에 없으면(모델 미기록·env 교체 등) 크리티컬 최소 후보로 폴백
-    lines.append(f"[FAST] Gemini 내부 SKU: 차 {diff}(≤1)·기본 SKU 부재 → 크리티컬 최소 {a.sku}")
+    lines.append(
+        f"[FAST] Gemini 내부 SKU: 차 {diff}(≤{_FAST_DECISIVE_GAP - 1})·기본 SKU 부재 → "
+        f"크리티컬 최소 {a.sku}"
+    )
     return a
 
 
@@ -295,11 +304,11 @@ def _judge_fast(candidates: list[FastCandidate]) -> TierOutcome:
         f"[FAST] 벤더 최고 후보 비교: gemini {g_total}({g_best.sku}) vs "
         f"claude {c_total}({c_best.sku}) — 차 {diff}"
     )
-    if diff >= 2:
+    if diff >= _FAST_DECISIVE_GAP:
         winner = "gemini" if g_total < c_total else "claude"
-        lines.append(f"{compare}(≥2) → 결정승: {winner}")
+        lines.append(f"{compare}(≥{_FAST_DECISIVE_GAP}) → 결정승: {winner}")
         return TierOutcome(winner, sku_by_vendor, lines, [], None)
-    lines.append(f"{compare}(≤1) → 근소")
+    lines.append(f"{compare}(≤{_FAST_DECISIVE_GAP - 1}) → 근소")
     return TierOutcome(None, sku_by_vendor, lines, [], None)
 
 
