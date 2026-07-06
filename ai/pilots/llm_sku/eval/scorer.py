@@ -51,7 +51,8 @@ class DocScore:
     amounts: SetScore
     supplies: SupplyScore
     critical_misses: int
-    hallucination_count: int  # dates+amounts 환각 합 — 판정 규칙 §7-3용
+    # dates+amounts 환각 합 — 결격 게이트 ⓪-(ii)용(조사 페이지 §11, 2026-07-06 사전등록)
+    hallucination_count: int
 
 
 def normalize_supply(s: str) -> str:

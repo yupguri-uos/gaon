@@ -243,7 +243,7 @@ async def run_ab(clients: dict[str, Any], out_dir: Path) -> bool:
         "",
         "평가자 안내: 벤더명은 제거됐고 문항별로 A/B가 무작위 배정됐다.",
         "배정표는 ab_key.json에 있으니 평가 완료 전에는 열지 말 것.",
-        "vi 문항의 admin_guide_native 원문은 §7-5 육안 점검 대상.",
+        "vi 문항의 admin_guide_native 원문은 육안 점검 대상(조사 페이지 §11, 2026-07-06 사전등록).",
         "",
     ]
     key: dict[str, dict[str, str]] = {}
@@ -305,11 +305,17 @@ def render_verdict(
         lines.append(f"**판정({status}): {verdict.winner.upper()} 채택**")
     if verdict.revision_needed:
         lines.append("")
-        lines.append("**[개정 필요 플래그]** 규칙 개정이 필요해 보임 — 개정 결정은 탕지수(§7-4).")
+        lines.append(
+            "**[개정 필요 플래그]** 규칙 개정이 필요해 보임 — "
+            "개정 결정은 탕지수(조사 페이지 §11, 2026-07-06 사전등록)."
+        )
     lines += ["", "## 근거 수치"]
     lines += [f"- {r}" for r in verdict.rationale]
     if not ab_ran:
-        lines.append("- 경어체 A/B: 미실행(--skip-ab 또는 벤더 부족) — §7-2 확정 불가.")
+        lines.append(
+            "- 경어체 A/B: 미실행(--skip-ab 또는 벤더 부족) — "
+            "조사 페이지 §11-②(2026-07-06 사전등록) 확정 불가."
+        )
     lines += ["", "## 리스크"]
     lines += [f"- {r}" for r in verdict.risks]
     lines += ["", "## 신뢰성·비용 요약 (재시도·토큰·지연시간)", ""]
@@ -357,7 +363,8 @@ async def _amain(args: argparse.Namespace) -> int:
     else:
         ab_ran = await run_ab(clients, args.out)
 
-    verdict = decide(stats.get("gemini"), stats.get("claude"), ab="pending")
+    # 수동 입력(manual_review.json·ab_key.json)은 verdict가 결과 디렉토리에서 직접 읽는다
+    verdict = decide(stats.get("gemini"), stats.get("claude"), results_dir=args.out)
     report = render_verdict(verdict, clients, stats, ab_ran)
     (args.out / "verdict.md").write_text(report, encoding="utf-8")
     print()

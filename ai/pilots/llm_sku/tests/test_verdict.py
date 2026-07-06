@@ -81,6 +81,16 @@ def test_gate_handwritten_requires_all_docs_missed():
     assert not any(r.startswith("[결격]") for r in v.rationale)
 
 
+def test_gate_handwritten_not_triggered_when_no_tagged_docs():
+    # handwritten tag 문서가 0건이면 ⓪-(i)은 공허참으로 발동하지 않는다 — ①로 정상 판정
+    gemini = _stats("gemini", [1, 1])  # 태그 없음 + 크리티컬 미스 존재
+    claude = _stats("claude", [0, 0])
+    v = decide(gemini, claude, manual_review=_manual(), ab_key=AB_KEY)
+    assert not any(r.startswith("[결격]") for r in v.rationale)
+    assert v.winner == "claude"  # ①: 2 vs 0
+    assert any("handwritten 게이트: gemini=대상 문서 없음" in r for r in v.rationale)
+
+
 def test_gate_hallucination_three_or_more_disqualifies():
     gemini = _stats("gemini", [0, 0])
     claude = _stats("claude", [0, 0], hallucs=[2, 1])  # 합계 3건 → ⓪-(ii)

@@ -171,7 +171,6 @@ def _fmt_pol(v: int | None) -> str:
 def decide(
     gemini: VendorStats | None,
     claude: VendorStats | None,
-    ab: str = "pending",  # 구 인터페이스 하위호환(run_pilot 호출부 무수정) — §11에선 미사용
     *,
     results_dir: Path | None = None,
     manual_review: ManualReview | None = None,  # None이면 results_dir에서 파일 로드 시도
