@@ -1,0 +1,18 @@
+{
+  "documents": [
+    {
+      "doc_id": "001",
+      "image": "images/001.jpg",
+      "received_date": "2026-07-01",
+      "tags": ["print", "relative-date"],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": "2026-07-05",
+        "requires_reply": true,
+        "dates": ["2026-07-10"],
+        "amounts": [15000],
+        "supplies": ["도시락", "물통", "돗자리"]
+      }
+    }
+  ]
+}

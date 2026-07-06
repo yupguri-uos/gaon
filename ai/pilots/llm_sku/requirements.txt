@@ -1,0 +1,6 @@
+# LLM SKU 파일럿 전용 의존성 — ai pyproject에 넣지 않는다(오염 금지).
+# 설치: pip install -r ai/pilots/llm_sku/requirements.txt
+# (gaon-shared·gaon-ai는 이미 editable 설치돼 있다고 가정)
+google-genai  # Gemini 신 SDK — google-generativeai(구 SDK) 아님
+anthropic  # Claude SDK — structured output(messages.parse) 지원 버전 필요
+minio  # image_ref가 minio:// 일 때만 사용(지연 import) — 로컬 파일만 쓰면 미설치여도 동작
