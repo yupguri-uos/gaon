@@ -33,7 +33,7 @@ from gaon_shared import DocParsingInput, ExtractedItem, User  # noqa: E402
 
 from eval.ab_fixtures import AB_FIXTURES  # noqa: E402
 from eval.scorer import DocScore, score_document  # noqa: E402
-from eval.verdict import VendorStats, Verdict, decide  # noqa: E402
+from eval.verdict import VendorStats  # noqa: E402
 
 VENDORS = ("gemini", "claude")
 INSTALL_HINT = "pip install -r ai/pilots/llm_sku/requirements.txt"
@@ -293,31 +293,22 @@ async def run_ab(clients: dict[str, Any], out_dir: Path) -> bool:
     return True
 
 
-# ── 4) 잠정 판정 + 신뢰성·비용 요약 ─────────────────────────────────────────
-def render_verdict(
-    verdict: Verdict, clients: dict[str, Any], stats: dict[str, VendorStats], ab_ran: bool
-) -> str:
-    lines = ["# 잠정 판정 (verdict.md)", ""]
-    if verdict.winner is None:
-        lines.append("**판정: 보류/불가**")
-    else:
-        status = "잠정" if verdict.provisional else "확정 조건 충족"
-        lines.append(f"**판정({status}): {verdict.winner.upper()} 채택**")
-    if verdict.revision_needed:
-        lines.append("")
+# ── 4) 실행 리포트(신뢰성·비용 요약) — 판정은 전 시퀀스 후 eval/verdict.py로 ──
+def render_run_report(clients: dict[str, Any], stats: dict[str, VendorStats], ab_ran: bool) -> str:
+    lines = ["# 실행 리포트 (run_report.md)", ""]
+    lines += [
+        "## 파싱 집계(이 실행분 — 상세 매트릭스는 scores.md)",
+        "",
+        "| 벤더 | 크리티컬 미스 | 환각(날짜+금액) | 파싱 실패 |",
+        "|---|---|---|---|",
+    ]
+    for vendor, vs in stats.items():
         lines.append(
-            "**[개정 필요 플래그]** 규칙 개정이 필요해 보임 — "
-            "개정 결정은 탕지수(조사 페이지 §11, 2026-07-06 사전등록)."
+            f"| {vendor} | {vs.total_critical} | {vs.total_hallucination} "
+            f"| {len(vs.failed_docs)} |"
         )
-    lines += ["", "## 근거 수치"]
-    lines += [f"- {r}" for r in verdict.rationale]
     if not ab_ran:
-        lines.append(
-            "- 경어체 A/B: 미실행(--skip-ab 또는 벤더 부족) — "
-            "조사 페이지 §11-②(2026-07-06 사전등록) 확정 불가."
-        )
-    lines += ["", "## 리스크"]
-    lines += [f"- {r}" for r in verdict.risks]
+        lines += ["", "- 경어체 A/B: 이 실행에서는 미실행(--skip-ab 또는 벤더 부족)."]
     lines += ["", "## 신뢰성·비용 요약 (재시도·토큰·지연시간)", ""]
     lines += [
         "| 벤더 | 재시도 | 호출 수 | 입력 토큰 | 출력 토큰 | 평균 지연(ms) |",
@@ -331,7 +322,12 @@ def render_verdict(
             f"| {m.total_input_tokens} | {m.total_output_tokens} | {avg} |"
         )
     scored = {vendor: len(vs.doc_scores) for vendor, vs in stats.items()}
-    lines += ["", f"- 채점 문서 수: {scored}"]
+    lines += ["", f"- 채점 문서 수: {scored}", "- 사용 모델(티어별): run_meta.json 참조"]
+    lines += [
+        "",
+        "판정: 전체 실행 시퀀스(run1·run2)와 블라인드 평가(manual_review.json 작성) 완료 후",
+        "`python ai/pilots/llm_sku/eval/verdict.py`로 산출 — 조사 페이지 §11 v2, README 참조.",
+    ]
     return "\n".join(lines) + "\n"
 
 
@@ -350,6 +346,19 @@ async def _amain(args: argparse.Namespace) -> int:
     docs = manifest["documents"]
     args.out.mkdir(parents=True, exist_ok=True)
 
+    # 후보 식별 메타데이터(§11 v2의 전제): 이 실행이 실제 사용한 티어별 모델 ID를 기록.
+    # 파일럿 한정으로 클라이언트 내부 매핑(_models)을 그대로 읽는다(clients/는 수정 범위 밖).
+    run_meta = {
+        "models": {
+            vendor: {tier.value: model for tier, model in client._models.items()}
+            for vendor, client in clients.items()
+        }
+    }
+    (args.out / "run_meta.json").write_text(
+        json.dumps(run_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"사용 모델 기록(run_meta.json): {run_meta['models']}")
+
     print(f"파싱 실행 — 벤더: {', '.join(clients)} / 문서 {len(docs)}건")
     stats, outputs = await run_parsing(clients, docs, args.out)
 
@@ -363,10 +372,9 @@ async def _amain(args: argparse.Namespace) -> int:
     else:
         ab_ran = await run_ab(clients, args.out)
 
-    # 수동 입력(manual_review.json·ab_key.json)은 verdict가 결과 디렉토리에서 직접 읽는다
-    verdict = decide(stats.get("gemini"), stats.get("claude"), results_dir=args.out)
-    report = render_verdict(verdict, clients, stats, ab_ran)
-    (args.out / "verdict.md").write_text(report, encoding="utf-8")
+    # 판정(§11 v2)은 다중 run 입력이 필요해 이 실행에서 내리지 않는다 — verdict CLI로 산출
+    report = render_run_report(clients, stats, ab_ran)
+    (args.out / "run_report.md").write_text(report, encoding="utf-8")
     print()
     print(report)
     return 0
