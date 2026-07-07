@@ -28,3 +28,5 @@ service-account*.json
 # 로컬 데이터 / 업로드
 /infra/data/
 uploads/
+
+.personal/
