@@ -172,8 +172,11 @@ class Notification(BaseModel):
 
 
 class WeeklyActivity(BaseModel):
-    week: int
-    count: int
+    week_start: date
+    week_end: date
+    processed_count: int = 0
+    event_participation_count: int = 0
+    missed_count: int = 0
 
 
 class ActivityLog(BaseModel):
