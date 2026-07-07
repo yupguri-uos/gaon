@@ -7,6 +7,9 @@ GAON AI — 테스트용 가짜 구현 (실제 LLM/DB 없이 체인·에이전�
 
 from __future__ import annotations
 
+import hashlib
+import math
+import re
 from datetime import date
 from typing import TypeVar
 
@@ -23,6 +26,7 @@ from gaon_shared import (
 )
 
 from gaon_ai.agents import ReplyDraft, TeacherDraft
+from gaon_ai.ingest import EmbeddedChunk
 from gaon_ai.llm import LLMMessage, ModelTier
 from gaon_ai.rag import RetrievedChunk
 
@@ -95,3 +99,77 @@ class FakeRetriever:
             RetrievedChunk(content=f"[근거] '{q}' 관련 학교 관행 설명", source="fixture", score=0.9)
             for q in queries[:top_k]
         ]
+
+
+# ── RAG 스캐폴딩용 fake(F-CORE-2) — 실 임베딩·pgvector 없이 계약 검증 ─────────
+def _tokenize(text: str) -> list[str]:
+    return re.findall(r"\w+", text.lower())
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a)) or 1.0
+    norm_b = math.sqrt(sum(x * x for x in b)) or 1.0
+    return dot / (norm_a * norm_b)
+
+
+def _to_retrieved(chunk: EmbeddedChunk, score: float) -> RetrievedChunk:
+    """저장된 EmbeddedChunk → 검색 결과. 프로비넌스·content_hash를 그대로 실어 보낸다."""
+    return RetrievedChunk(
+        content=chunk.content,
+        source=chunk.source,
+        score=score,
+        content_hash=chunk.content_hash,
+        title=chunk.title,
+        section=chunk.section,
+        doc_type=chunk.doc_type,
+    )
+
+
+class FakeEmbedder:
+    """해시 시드로 결정적 단위벡터를 만드는 가짜 임베더(모델 불요)."""
+
+    def __init__(self, dim: int = 1024) -> None:
+        self.dim = dim
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        return [self._vector(text) for text in texts]
+
+    def _vector(self, text: str) -> list[float]:
+        # text#i 해시 바이트를 성분으로 채우고 L2 정규화 → 결정적 단위벡터
+        raw: list[float] = []
+        block = 0
+        while len(raw) < self.dim:
+            digest = hashlib.sha256(f"{text}#{block}".encode()).digest()
+            raw.extend(byte - 127.5 for byte in digest)
+            block += 1
+        raw = raw[: self.dim]
+        norm = math.sqrt(sum(x * x for x in raw)) or 1.0
+        return [x / norm for x in raw]
+
+
+class FakeKbStore:
+    """인메모리 kb_embeddings(dict[content_hash → EmbeddedChunk]). 멱등 업서트."""
+
+    def __init__(self) -> None:
+        self._store: dict[str, EmbeddedChunk] = {}
+
+    async def upsert(self, chunks: list[EmbeddedChunk]) -> int:
+        for chunk in chunks:
+            self._store[chunk.content_hash] = chunk  # 동일 hash 덮어씀(멱등)
+        return len(chunks)
+
+    async def dense_search(self, vector: list[float], *, top_k: int) -> list[RetrievedChunk]:
+        scored = [(_cosine(vector, chunk.embedding), chunk) for chunk in self._store.values()]
+        scored.sort(key=lambda pair: pair[0], reverse=True)
+        return [_to_retrieved(chunk, score) for score, chunk in scored[:top_k]]
+
+    async def sparse_search(self, query: str, *, top_k: int) -> list[RetrievedChunk]:
+        query_tokens = set(_tokenize(query))
+        scored: list[tuple[float, EmbeddedChunk]] = []
+        for chunk in self._store.values():
+            overlap = len(query_tokens & set(_tokenize(chunk.content)))
+            if overlap:
+                scored.append((float(overlap), chunk))
+        scored.sort(key=lambda pair: pair[0], reverse=True)
+        return [_to_retrieved(chunk, score) for score, chunk in scored[:top_k]]

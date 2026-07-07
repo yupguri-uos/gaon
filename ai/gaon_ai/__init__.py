@@ -14,8 +14,17 @@ from gaon_ai.agents import (
 )
 from gaon_ai.chain_a import ChainAResult, ChainError, run_chain_a_core
 from gaon_ai.chain_b import run_chain_b
+from gaon_ai.ingest import Chunk, EmbeddedChunk, SourceDoc, chunk_document, ingest
 from gaon_ai.llm import LLMClient, ModelTier
-from gaon_ai.rag import Retriever, RetrievedChunk, build_rag_queries
+from gaon_ai.rag import (
+    Embedder,
+    HybridRetriever,
+    KbStore,
+    Retriever,
+    RetrievedChunk,
+    build_rag_queries,
+    reciprocal_rank_fusion,
+)
 
 __all__ = [
     "Agent",
@@ -32,5 +41,15 @@ __all__ = [
     "Retriever",
     "RetrievedChunk",
     "build_rag_queries",
+    # F-CORE-2 RAG 스캐폴딩
+    "Embedder",
+    "KbStore",
+    "HybridRetriever",
+    "reciprocal_rank_fusion",
+    "ingest",
+    "chunk_document",
+    "SourceDoc",
+    "Chunk",
+    "EmbeddedChunk",
 ]
 __version__ = "0.1.0"

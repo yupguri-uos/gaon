@@ -247,10 +247,10 @@ class LifestyleActionAgent(Agent[LifestyleActionInput, ActionCard]):
             card = await structuring
             card.reply_draft_ko = None  # 불변식: 회신 불필요 시 비움
 
-        # 시스템이 채우는 값: 쿠팡 딥링크(키워드 기반 결정적 조립)
+        # 딥링크는 항상 코드가 키워드로 결정적 조립(자동결제 X, 결정 고정).
+        # LLM 환각 URL(피싱 위험) 차단 — if 조건 없이 무조건 덮어쓴다(진단 실증).
         for supply in card.supplies:
-            if not supply.ecommerce_deeplink:
-                supply.ecommerce_deeplink = coupang_search_url(supply.ecommerce_keyword)
+            supply.ecommerce_deeplink = coupang_search_url(supply.ecommerce_keyword)
         return card
 
 
