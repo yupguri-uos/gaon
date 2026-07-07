@@ -6,14 +6,12 @@ child_id는 SSOT §15 DDL 원문엔 없는 컬럼이다. documents·calendar_eve
 SSOT §15도 이 컬럼을 반영해 갱신이 필요하다(document_results.calendar_events와 같은 케이스,
 chain_a.py 참고).
 
-down_revision=0003: 이 브랜치(feat/teacher-message)는 0004(kb_embeddings, 별도 브랜치)와
-독립적으로 9e20a7b에서 갈라져나왔다. kb_embeddings와 messages는 서로 무관한 변경이라
-머지 순서 아무 쪽이든 상관없이 적용돼야 하므로 0003을 부모로 둔다 — 두 브랜치를 합칠 때
-alembic이 멀티헤드(0004, 0005 둘 다 0003의 자식)로 보게 되면, 합치는 쪽에서
-`alembic merge`로 머지 리비전을 만들거나 둘 중 하나의 down_revision을 재배선해야 한다.
+합의된 마이그레이션 순서(2026-07-08): 0004=activity_events(박수빈, feat/log) ·
+0005=kb_embeddings(feat/kb-embeddings-migration) · 0006=messages(이 파일). 셋 다 원래
+0003에서 각자 독립적으로 갈라져나와 번호가 겹쳤던 걸 팀이 이 순서로 정리하기로 함.
 
-Revision ID: 0005
-Revises: 0003
+Revision ID: 0006
+Revises: 0005
 Create Date: 2026-07-07
 """
 
@@ -25,8 +23,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import UUID
 
-revision: str = "0005"
-down_revision: Union[str, None] = "0003"
+revision: str = "0006"
+down_revision: Union[str, None] = "0005"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
