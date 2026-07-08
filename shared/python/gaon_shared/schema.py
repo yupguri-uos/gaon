@@ -26,7 +26,20 @@ from pydantic import BaseModel, Field
 # ──────────────────────────────────────────────────────────────────────────
 OriginCountry = Literal["VN", "CN"]  # 확장 포인트(국가 추가 시 여기 + DB CHECK)
 NativeLanguage = Literal["vi", "zh"]  # 확장 포인트
-ChildGrade = Literal["elem_1", "elem_2", "elem_3"]  # 확장 포인트(초등 저학년)
+ChildGrade = Literal[
+    "elem_1",
+    "elem_2",
+    "elem_3",
+    "elem_4",
+    "elem_5",
+    "elem_6",
+    "mid_1",
+    "mid_2",
+    "mid_3",
+    "high_1",
+    "high_2",
+    "high_3",
+]  # 확장 포인트(초1~고3)
 
 DocStatus = Literal["uploaded", "parsing", "translating", "action", "done", "failed"]
 DocType = Literal["notice", "consent", "survey"]  # 알림장 | 동의서 | 설문·회신
