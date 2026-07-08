@@ -77,8 +77,7 @@ class Child(Base):
     __tablename__ = "children"
     __table_args__ = (
         CheckConstraint(
-            "grade IN ('elem_1','elem_2','elem_3','elem_4','elem_5','elem_6',"
-            "'mid_1','mid_2','mid_3','high_1','high_2','high_3')",
+            "grade IN ('elem_1','elem_2','elem_3','elem_4','elem_5','elem_6')",
             name="ck_children_grade",
         ),
         Index("idx_children_user", "user_id"),
