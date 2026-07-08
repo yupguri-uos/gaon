@@ -89,6 +89,7 @@ class Child(Base):
     name: Mapped[str | None] = mapped_column(Text)
     grade: Mapped[str | None] = mapped_column(Text)
     class_no: Mapped[str | None] = mapped_column(Text)
+    school_name: Mapped[str | None] = mapped_column(Text)
     color: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
@@ -101,6 +102,7 @@ class Child(Base):
             name=self.name,
             grade=self.grade,
             class_no=self.class_no,
+            school_name=self.school_name,
             color=self.color,
             created_at=self.created_at,
         )

@@ -56,6 +56,7 @@ class Child(BaseModel):
     name: str | None = None  # 미성년 PII, 동의 시에만
     grade: ChildGrade
     class_no: str | None = None  # 반
+    school_name: str | None = None  # 학교명(PII 아님 — 동의 불필요, grade와 동일 취급)
     color: str | None = None  # 캘린더 색 구분
     created_at: datetime
 
