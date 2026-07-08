@@ -71,6 +71,22 @@ void main() {
     });
   });
 
+  group('자녀 등록 (F-ON-4)', () {
+    test('addChild 후 getChildren이 등록한 자녀를 반환 (데모 자녀 대체)', () async {
+      final repo = MockRepository(latency: Duration.zero);
+      // 등록 전 = 데모 자녀
+      expect((await repo.getChildren()).first.name, '이서준');
+
+      await repo.addChild(
+          grade: ChildGrade.elem3, name: '김하늘', classNo: '2');
+      final children = await repo.getChildren();
+      expect(children, hasLength(1));
+      expect(children.single.name, '김하늘');
+      expect(children.single.classNo, '2');
+      expect(children.single.color, isNotNull); // 캘린더 색 자동 배정
+    });
+  });
+
   group('캘린더 저장 (F-DOC-7)', () {
     test('saveCalendarEvents가 저장된 이벤트 목록을 반환', () async {
       final repo = MockRepository(latency: Duration.zero);

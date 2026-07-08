@@ -1,11 +1,11 @@
 {
-    "name": "fe",
-    "short_name": "fe",
+    "name": "가온 GAON",
+    "short_name": "가온",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#E6FFF8",
+    "theme_color": "#E6FFF8",
+    "description": "GAON 가온 — 다문화 부모를 위한 능동형 AI 에이전트",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

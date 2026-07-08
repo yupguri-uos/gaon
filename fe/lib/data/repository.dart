@@ -30,6 +30,14 @@ abstract interface class GaonRepository {
 
   Future<List<Child>> getChildren();
 
+  /// 자녀 등록(F-ON-4) = POST /children 대응.
+  /// 온보딩·설정에서 호출. name은 미성년 PII — 동의 시에만 전달(결정 #7-PII).
+  Future<Child> addChild({
+    required ChildGrade grade,
+    String? name,
+    String? classNo,
+  });
+
   /// Chain A 시작(F-DOC-1). Document 생성 후 status가 비동기로 진행된다.
   Future<Document> uploadDocument({required String imageRef, String? childId});
 
