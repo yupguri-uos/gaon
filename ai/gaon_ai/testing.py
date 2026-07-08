@@ -121,6 +121,7 @@ def _to_retrieved(chunk: EmbeddedChunk, score: float) -> RetrievedChunk:
         score=score,
         content_hash=chunk.content_hash,
         title=chunk.title,
+        url=chunk.url,
         section=chunk.section,
         doc_type=chunk.doc_type,
     )
@@ -158,6 +159,12 @@ class FakeKbStore:
         for chunk in chunks:
             self._store[chunk.content_hash] = chunk  # 동일 hash 덮어씀(멱등)
         return len(chunks)
+
+    async def delete_by_source(self, source: str) -> int:
+        keys = [key for key, chunk in self._store.items() if chunk.source == source]
+        for key in keys:
+            del self._store[key]
+        return len(keys)
 
     async def dense_search(self, vector: list[float], *, top_k: int) -> list[RetrievedChunk]:
         scored = [(_cosine(vector, chunk.embedding), chunk) for chunk in self._store.values()]

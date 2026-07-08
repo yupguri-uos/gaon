@@ -19,3 +19,6 @@ target-version = ["py311"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["shared/python/tests", "ai/tests", "be/tests"]
+markers = [
+    "integration: 실 KURE 모델·실 pgvector DB 필요 — 기본 스킵, GAON_INTEGRATION=1로 실행",
+]
