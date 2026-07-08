@@ -1,8 +1,0 @@
-{
-  "models": {
-    "gemini": {
-      "fast": "gemini-3.5-flash",
-      "quality": "gemini-3.1-pro-preview"
-    }
-  }
-}

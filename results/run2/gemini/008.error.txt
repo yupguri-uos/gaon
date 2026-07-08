@@ -1,3 +1,0 @@
-1 validation error for ExtractedItem
-  Invalid JSON: EOF while parsing a string at line 59 column 2999 [type=json_invalid, input_value='{\n  "doc_type": "consen...n우유급식 희망여', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.13/v/json_invalid
