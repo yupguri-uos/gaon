@@ -4,7 +4,6 @@ from .chain_a import DocumentResultRow, ExtractedItemRow
 from .common import Child, Document, User
 from .messages import MessageRow
 
-
 __all__ = [
     "User",
     "Child",
@@ -13,4 +12,5 @@ __all__ = [
     "DocumentResultRow",
     "CalendarEventRow",
     "MessageRow",
+    "ActivityEventRow",
 ]
