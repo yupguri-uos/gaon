@@ -1,0 +1,35 @@
+{
+    "name": "가온 GAON",
+    "short_name": "가온",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#E6FFF8",
+    "theme_color": "#E6FFF8",
+    "description": "GAON 가온 — 다문화 부모를 위한 능동형 AI 에이전트",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
