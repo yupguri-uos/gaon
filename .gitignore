@@ -30,3 +30,9 @@ service-account*.json
 uploads/
 
 .personal/
+
+# 배포 정적 산출물 (빌드 결과물은 추적 안 함, 폴더는 유지)
+infra/landing/*
+infra/app-web/*
+!infra/landing/.gitkeep
+!infra/app-web/.gitkeep
