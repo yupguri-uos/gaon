@@ -26,6 +26,7 @@ class RetrievedChunk(BaseModel):
     # ── 프로비넌스·식별(F-CORE-2): 검색 결과에도 출처를 보존한다 ──────────────
     content_hash: str | None = None  # RRF 동일 청크 식별 키(인제스트 멱등키와 동일)
     title: str | None = None
+    url: str | None = None
     section: str | None = None
     doc_type: str | None = None
 
@@ -62,13 +63,19 @@ class Embedder(Protocol):
 
 @runtime_checkable
 class KbStore(Protocol):
-    """kb_embeddings 읽기/쓰기. dense=벡터, sparse=키워드, upsert=멱등 적재."""
+    """kb_embeddings 읽기/쓰기. dense=벡터, sparse=키워드, upsert=멱등 적재.
+
+    delete_by_source: source 단위 전체 삭제(반환=삭제 건수). 코퍼스 갱신 시 내용이 줄어든
+    문서의 고아(orphan) 청크를 제거하는 재적재 훅(§17.9) — ingest(replace_source=True)가 쓴다.
+    """
 
     async def dense_search(self, vector: list[float], *, top_k: int) -> list[RetrievedChunk]: ...
 
     async def sparse_search(self, query: str, *, top_k: int) -> list[RetrievedChunk]: ...
 
     async def upsert(self, chunks: list[EmbeddedChunk]) -> int: ...
+
+    async def delete_by_source(self, source: str) -> int: ...
 
 
 def reciprocal_rank_fusion(

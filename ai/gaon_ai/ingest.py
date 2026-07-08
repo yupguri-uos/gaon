@@ -123,8 +123,16 @@ async def ingest(
     embedder: Embedder,
     store: KbStore,
     splitter: SentenceSplitter = simple_splitter,
+    replace_source: bool = False,
 ) -> int:
-    """docs → 청킹 → 임베딩 → KbStore.upsert(멱등). 반환=업서트 건수."""
+    """docs → 청킹 → 임베딩 → KbStore.upsert(멱등). 반환=업서트 건수.
+
+    replace_source=True면 적재 전에 배치의 distinct source를 모아 delete_by_source로
+    전부 지운다 — 내용이 줄어든 코퍼스 갱신에서 남는 고아 청크 방지(§17.9).
+    """
+    if replace_source:
+        for source in dict.fromkeys(doc.source for doc in docs):
+            await store.delete_by_source(source)
     chunks: list[Chunk] = []
     for doc in docs:
         chunks.extend(chunk_document(doc, splitter=splitter))
