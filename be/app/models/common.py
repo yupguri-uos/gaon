@@ -76,7 +76,10 @@ class Child(Base):
 
     __tablename__ = "children"
     __table_args__ = (
-        CheckConstraint("grade IN ('elem_1','elem_2','elem_3')", name="ck_children_grade"),
+        CheckConstraint(
+            "grade IN ('elem_1','elem_2','elem_3','elem_4','elem_5','elem_6')",
+            name="ck_children_grade",
+        ),
         Index("idx_children_user", "user_id"),
     )
 
@@ -89,6 +92,7 @@ class Child(Base):
     name: Mapped[str | None] = mapped_column(Text)
     grade: Mapped[str | None] = mapped_column(Text)
     class_no: Mapped[str | None] = mapped_column(Text)
+    school_name: Mapped[str | None] = mapped_column(Text)
     color: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
@@ -101,6 +105,7 @@ class Child(Base):
             name=self.name,
             grade=self.grade,
             class_no=self.class_no,
+            school_name=self.school_name,
             color=self.color,
             created_at=self.created_at,
         )

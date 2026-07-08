@@ -1,0 +1,386 @@
+import 'package:flutter/material.dart';
+
+import '../data/locator.dart';
+import '../models/display.dart';
+import '../models/schema.dart';
+import '../theme/tokens.dart';
+import 'profile_edit_screen.dart';
+
+/// S13 설정 — 프로필 히어로 + 섹션 리스트, S15 탈퇴 확인 다이얼로그.
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late final Future<(User, List<Child>)> _future = () async {
+    final user = repository.getCurrentUser();
+    final children = repository.getChildren();
+    return (await user, await children);
+  }();
+
+  bool _pushEnabled = true;
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // ── S15: 회원탈퇴 확인 다이얼로그 ──
+  void _showDeleteDialog() {
+    showDialog<void>(
+      context: context,
+      barrierColor: const Color(0x80011D14),
+      builder: (context) => Dialog(
+        backgroundColor: GaonColors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GaonRadius.xxl)),
+        child: Padding(
+          padding: const EdgeInsets.all(GaonSpace.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: GaonColors.warningLight,
+                ),
+                child: const Icon(Icons.delete_outline_rounded,
+                    size: 26, color: GaonColors.warning),
+              ),
+              const SizedBox(height: GaonSpace.sm),
+              Text('정말 탈퇴하시겠어요?',
+                  textAlign: TextAlign.center,
+                  style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
+              const SizedBox(height: 6),
+              Text('Bạn có chắc chắn muốn xóa tài khoản?',
+                  textAlign: TextAlign.center,
+                  style: GaonType.label
+                      .copyWith(color: GaonColors.textSecondary)),
+              const SizedBox(height: GaonSpace.md),
+              for (final w in const [
+                '모든 번역 기록이 삭제됩니다',
+                '캘린더 저장 항목이 사라집니다',
+                '이 작업은 되돌릴 수 없습니다',
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: GaonColors.warning,
+                        ),
+                      ),
+                      const SizedBox(width: GaonSpace.xs),
+                      Text(w,
+                          style: GaonType.label
+                              .copyWith(color: GaonColors.textPrimary)),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: GaonSpace.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _dialogButton(
+                      label: '취소 · Hủy',
+                      bg: GaonColors.primaryLight,
+                      fg: GaonColors.textPrimary,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: GaonSpace.xs),
+                  Expanded(
+                    child: _dialogButton(
+                      label: '탈퇴 · Xóa',
+                      bg: GaonColors.warning,
+                      fg: Colors.white,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _snack('회원탈퇴는 BE 연동 후 동작합니다 (데모)');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogButton({
+    required String label,
+    required Color bg,
+    required Color fg,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(GaonRadius.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GaonRadius.pill),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          child: Text(label,
+              style: GaonType.body
+                  .copyWith(fontWeight: FontWeight.w700, color: fg)),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: FutureBuilder(
+        future: _future,
+        builder: (context, snap) {
+          if (!snap.hasData) {
+            return const Center(
+                child: CircularProgressIndicator(
+                    color: GaonColors.textSecondary));
+          }
+          final (user, children) = snap.data!;
+          final name = user.displayName ?? '';
+          final child = children.firstOrNull;
+          final childDesc = child == null
+              ? ''
+              : ' · ${child.name ?? '자녀'} '
+                  '(${child.grade.wire.split('_').last}-${child.classNo ?? '?'})';
+
+          return Column(
+            children: [
+              // 프로필 히어로
+              Container(
+                width: double.infinity,
+                color: GaonColors.textPrimary,
+                padding: const EdgeInsets.symmetric(
+                    vertical: GaonSpace.lg, horizontal: GaonSpace.md),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: GaonColors.primary,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                          name.isEmpty ? '?' : name[0].toUpperCase(),
+                          style: GaonType.h1
+                              .copyWith(color: GaonColors.textPrimary)),
+                    ),
+                    const SizedBox(width: GaonSpace.sm),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('$name 님',
+                            style: GaonType.h2
+                                .copyWith(color: GaonColors.onPrimary)),
+                        Text(
+                            '${user.originCountry.label.split(' ').last} '
+                            '${user.nativeLanguage.label}$childDesc',
+                            style: GaonType.caption
+                                .copyWith(color: GaonColors.primary)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(GaonSpace.sm),
+                  children: [
+                    _section('프로필', [
+                      _row(
+                        icon: Icons.person_outline_rounded,
+                        label: '개인정보 수정',
+                        sub: 'Chỉnh sửa hồ sơ',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const ProfileEditScreen()),
+                        ),
+                      ),
+                      _row(
+                        icon: Icons.family_restroom_rounded,
+                        label: '자녀 관리',
+                        sub: 'Quản lý con',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const ProfileEditScreen()),
+                        ),
+                      ),
+                    ]),
+                    _section('알림', [
+                      _row(
+                        icon: Icons.notifications_none_rounded,
+                        label: '푸시 알림',
+                        sub: 'Thông báo đẩy',
+                        trailing: GestureDetector(
+                          onTap: () => setState(
+                              () => _pushEnabled = !_pushEnabled),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 42,
+                            height: 24,
+                            padding: const EdgeInsets.all(3),
+                            alignment: _pushEnabled
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              color: _pushEnabled
+                                  ? GaonColors.textPrimary
+                                  : GaonColors.border,
+                              borderRadius:
+                                  BorderRadius.circular(GaonRadius.pill),
+                            ),
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: GaonColors.bg,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ]),
+                    _section('계정', [
+                      _row(
+                        icon: Icons.logout_rounded,
+                        label: '로그아웃',
+                        sub: 'Đăng xuất',
+                        onTap: () =>
+                            _snack('로그아웃은 BE 연동 후 동작합니다 (데모)'),
+                      ),
+                      _row(
+                        icon: Icons.delete_outline_rounded,
+                        label: '회원탈퇴',
+                        sub: 'Xóa tài khoản',
+                        danger: true,
+                        onTap: _showDeleteDialog,
+                      ),
+                    ]),
+                    const SizedBox(height: GaonSpace.md),
+                    Center(
+                      child: Column(
+                        children: [
+                          Text('GAON v1.0.0',
+                              style: GaonType.micro.copyWith(
+                                  color: GaonColors.textSecondary)),
+                          const SizedBox(height: 2),
+                          Text('Translation → Action',
+                              style: GaonType.micro.copyWith(
+                                  color: GaonColors.textSecondary)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _section(String title, List<Widget> rows) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: GaonSpace.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+                left: GaonSpace.xs, bottom: GaonSpace.xxs),
+            child: Text(title,
+                style: GaonType.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: GaonColors.textSecondary)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+                vertical: GaonSpace.xs, horizontal: GaonSpace.md),
+            decoration: BoxDecoration(
+              color: GaonColors.surface,
+              borderRadius: BorderRadius.circular(GaonRadius.xl),
+              boxShadow: GaonShadow.card,
+            ),
+            child: Column(children: rows),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row({
+    required IconData icon,
+    required String label,
+    required String sub,
+    Widget? trailing,
+    VoidCallback? onTap,
+    bool danger = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: danger
+                    ? GaonColors.warningLight
+                    : GaonColors.primaryLight,
+                borderRadius: BorderRadius.circular(GaonRadius.md),
+              ),
+              child: Icon(icon,
+                  size: 16,
+                  color:
+                      danger ? GaonColors.warning : GaonColors.textPrimary),
+            ),
+            const SizedBox(width: GaonSpace.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: GaonType.body.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: danger
+                              ? GaonColors.warning
+                              : GaonColors.textPrimary)),
+                  Text(sub,
+                      style: GaonType.micro
+                          .copyWith(color: GaonColors.textSecondary)),
+                ],
+              ),
+            ),
+            trailing ??
+                const Icon(Icons.chevron_right_rounded,
+                    size: 16, color: GaonColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}

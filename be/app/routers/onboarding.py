@@ -30,6 +30,7 @@ class OnboardingRequest(BaseModel):
     child_grade: ChildGrade
     child_name: str | None = None
     child_class_no: str | None = None
+    child_school_name: str | None = None
     consent_child_pii: bool = False
 
 
@@ -53,6 +54,7 @@ def onboard(
         grade=body.child_grade,
         name=body.child_name if body.consent_child_pii else None,
         class_no=body.child_class_no if body.consent_child_pii else None,
+        school_name=body.child_school_name,
     )
     db.add(child)
     db.commit()

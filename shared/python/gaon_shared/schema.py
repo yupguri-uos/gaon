@@ -26,7 +26,14 @@ from pydantic import BaseModel, Field
 # ──────────────────────────────────────────────────────────────────────────
 OriginCountry = Literal["VN", "CN"]  # 확장 포인트(국가 추가 시 여기 + DB CHECK)
 NativeLanguage = Literal["vi", "zh"]  # 확장 포인트
-ChildGrade = Literal["elem_1", "elem_2", "elem_3"]  # 확장 포인트(초등 저학년)
+ChildGrade = Literal[
+    "elem_1",
+    "elem_2",
+    "elem_3",
+    "elem_4",
+    "elem_5",
+    "elem_6",
+]  # 확장 포인트(초1~6, 팀 결정 — 중고등은 범위 밖)
 
 DocStatus = Literal["uploaded", "parsing", "translating", "action", "done", "failed"]
 DocType = Literal["notice", "consent", "survey"]  # 알림장 | 동의서 | 설문·회신
@@ -56,6 +63,7 @@ class Child(BaseModel):
     name: str | None = None  # 미성년 PII, 동의 시에만
     grade: ChildGrade
     class_no: str | None = None  # 반
+    school_name: str | None = None  # 학교명(PII 아님 — 동의 불필요, grade와 동일 취급)
     color: str | None = None  # 캘린더 색 구분
     created_at: datetime
 
@@ -215,6 +223,9 @@ class LifestyleActionInput(BaseModel):
 
     extracted_item: ExtractedItem
     translated: TranslatedContent
+    child_info: ChildInfo | None = (
+        None  # §17.10: 학년 기반 개인화. Document.child_id가 NULL이면 없음
+    )
     native_language: NativeLanguage
 
 
