@@ -24,6 +24,7 @@ class ChildCreateRequest(BaseModel):
     grade: ChildGrade
     name: str | None = None
     class_no: str | None = None
+    school_name: str | None = None
     color: str | None = None
     consent_child_pii: bool = False
 
@@ -32,6 +33,7 @@ class ChildUpdateRequest(BaseModel):
     grade: ChildGrade | None = None
     name: str | None = None
     class_no: str | None = None
+    school_name: str | None = None
     color: str | None = None
     consent_child_pii: bool = False
 
@@ -73,6 +75,7 @@ def create_child(
         grade=body.grade,
         name=body.name if body.consent_child_pii else None,
         class_no=body.class_no if body.consent_child_pii else None,
+        school_name=body.school_name,
         color=body.color,
     )
     db.add(child)
