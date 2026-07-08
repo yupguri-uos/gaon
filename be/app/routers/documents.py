@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from gaon_shared import ActionCard as ActionCardSchema
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.chain_deps import get_llm_client, get_retriever
 from app.db import SessionLocal, get_db
-from app.models import Document, DocumentResultRow, ExtractedItemRow, User
+from app.models import ActivityEventRow, Document, DocumentResultRow, ExtractedItemRow, User
 from app.security import get_current_user
 from app.storage import object_key, upload_image
 from gaon_ai.chain_a import ChainAResult, run_chain_a_core
@@ -117,6 +118,10 @@ async def _run_chain_a_and_persist(document_id: uuid.UUID) -> None:
             return
 
         def on_status(s: str) -> None:
+            # 체인이 emit하는 "done"은 여기서 무시한다 — persist 전에 커밋되면 "status=done인데
+            # 결과 행이 없는" 폴링 레이스가 생긴다(§18.4). done은 아래에서 persist 성공 후 세팅한다.
+            if s == "done":
+                return
             document.status = s
             db.commit()
 
@@ -128,16 +133,26 @@ async def _run_chain_a_and_persist(document_id: uuid.UUID) -> None:
                 retriever=get_retriever(),
                 on_status=on_status,
             )
+            _persist_chain_a_result(db, document, result)
+            document.status = "done"
+            # F-LOG-1: 처리 이력 자동 누적(SSOT §15) — /report/monthly가 이걸 집계한다.
+            db.add(
+                ActivityEventRow(
+                    user_id=document.user_id,
+                    activity_kind="document_processed",
+                    related_id=document.id,
+                    occurred_at=datetime.now(timezone.utc),
+                )
+            )
+            db.commit()
         except Exception as exc:
-            # ChainError(에이전트 실패) 외에도 retriever 등 체인 내부의 다른 실패가 여기로 올 수 있다.
-            # 여기서 안 잡으면 문서가 중간 status(parsing 등)에 멈춘 채 폴링이 영원히 끝나지 않는다.
+            # ChainError(에이전트 실패)뿐 아니라 persist 단계의 실패(제약 위반 등)도 여기로 온다.
+            # done과 persist를 한 커밋으로 묶어야 "status=done인데 결과 행이 없는" 폴링 레이스가
+            # 안 생기고(§18.4), try로 persist까지 감싸야 그 실패도 failed로 남는다.
+            db.rollback()
             document.status = "failed"
             document.error = str(exc)
             db.commit()
-            return
-
-        _persist_chain_a_result(db, document, result)
-        db.commit()
     finally:
         db.close()
 

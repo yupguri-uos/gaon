@@ -1,7 +1,9 @@
+from .activity import ActivityEventRow
 from .calendar import CalendarEventRow
 from .chain_a import DocumentResultRow, ExtractedItemRow
 from .common import Child, Document, User
-from .activity import ActivityEventRow
+from .messages import MessageRow
+
 
 __all__ = [
     "User",
@@ -10,5 +12,5 @@ __all__ = [
     "ExtractedItemRow",
     "DocumentResultRow",
     "CalendarEventRow",
-    "ActivityEventRow",
+    "MessageRow",
 ]
