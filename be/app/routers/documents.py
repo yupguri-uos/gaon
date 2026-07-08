@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from gaon_shared import ActionCard as ActionCardSchema
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.chain_deps import get_llm_client, get_retriever
 from app.db import SessionLocal, get_db
-from app.models import Document, DocumentResultRow, ExtractedItemRow, User
+from app.models import ActivityEventRow, Document, DocumentResultRow, ExtractedItemRow, User
 from app.security import get_current_user
 from app.storage import object_key, upload_image
 from gaon_ai.chain_a import ChainAResult, run_chain_a_core
@@ -134,6 +135,15 @@ async def _run_chain_a_and_persist(document_id: uuid.UUID) -> None:
             )
             _persist_chain_a_result(db, document, result)
             document.status = "done"
+            # F-LOG-1: 처리 이력 자동 누적(SSOT §15) — /report/monthly가 이걸 집계한다.
+            db.add(
+                ActivityEventRow(
+                    user_id=document.user_id,
+                    activity_kind="document_processed",
+                    related_id=document.id,
+                    occurred_at=datetime.now(timezone.utc),
+                )
+            )
             db.commit()
         except Exception as exc:
             # ChainError(에이전트 실패)뿐 아니라 persist 단계의 실패(제약 위반 등)도 여기로 온다.
