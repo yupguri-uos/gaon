@@ -19,6 +19,7 @@ from gaon_ai.testing import FailingLLMClient, FakeLLMClient, FakeRetriever
 from gaon_shared import (
     ActionCard,
     CalendarEvent,
+    ChildInfo,
     Document,
     ExtractedItem,
     LifestyleActionInput,
@@ -85,10 +86,18 @@ class RecordingLLMClient(FakeLLMClient):
 
     def __init__(self) -> None:
         self.parsing_texts: list[str] = []
+        self.lifestyle_texts: list[str] = []
 
     async def generate_structured(self, *, messages, output_model, tier=ModelTier.FAST):
         if output_model is ExtractedItem:
             self.parsing_texts += [
+                part.text
+                for message in messages
+                for part in message.content
+                if isinstance(part, TextPart)
+            ]
+        if output_model is ActionCard:
+            self.lifestyle_texts += [
                 part.text
                 for message in messages
                 for part in message.content
@@ -206,6 +215,33 @@ async def test_received_date_uses_kst_for_utc_created_at():
     parsing_prompt = "\n".join(llm.parsing_texts)
     assert "2026-07-01" in parsing_prompt
     assert "2026-06-30" not in parsing_prompt
+
+
+async def test_child_info_reaches_lifestyle_prompt():
+    # §17.10: child_info가 run_chain_a_core에 주어지면 LifestyleAction 프롬프트에 학년이 실린다
+    llm = RecordingLLMClient()
+    await run_chain_a_core(
+        build_document(),
+        build_user(),
+        llm=llm,
+        retriever=FakeRetriever(),
+        child_info=ChildInfo(grade="elem_2"),
+    )
+    lifestyle_prompt = "\n".join(llm.lifestyle_texts)
+    assert "elem_2" in lifestyle_prompt
+
+
+async def test_no_child_info_shows_unspecified_in_lifestyle_prompt():
+    # child_info=None(기본값)이면 학년 자리에 '미지정'만 들어가고 크래시하지 않는다
+    llm = RecordingLLMClient()
+    await run_chain_a_core(
+        build_document(),
+        build_user(),
+        llm=llm,
+        retriever=FakeRetriever(),
+    )
+    lifestyle_prompt = "\n".join(llm.lifestyle_texts)
+    assert "미지정" in lifestyle_prompt
 
 
 async def test_failing_llm_raises_chain_error_at_parsing():

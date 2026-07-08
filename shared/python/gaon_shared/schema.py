@@ -216,6 +216,9 @@ class LifestyleActionInput(BaseModel):
 
     extracted_item: ExtractedItem
     translated: TranslatedContent
+    child_info: ChildInfo | None = (
+        None  # §17.10: 학년 기반 개인화. Document.child_id가 NULL이면 없음
+    )
     native_language: NativeLanguage
 
 

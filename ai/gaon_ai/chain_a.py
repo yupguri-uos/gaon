@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 
 from gaon_shared import (
     ActionCard,
+    ChildInfo,
     CulturalTranslationInput,
     DocParsingInput,
     DocStatus,
@@ -60,6 +61,7 @@ async def run_chain_a_core(
     *,
     llm: LLMClient,
     retriever: Retriever,
+    child_info: ChildInfo | None = None,
     on_status: StatusCallback | None = None,
 ) -> ChainAResult:
     """문서 1건에 대해 Chain A 전체(파싱 → 번역 → 행동)를 실행한다."""
@@ -107,6 +109,7 @@ async def run_chain_a_core(
         LifestyleActionInput(
             extracted_item=extracted,
             translated=trans.data,
+            child_info=child_info,
             native_language=user.native_language,
         )
     )

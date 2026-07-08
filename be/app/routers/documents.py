@@ -6,9 +6,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from gaon_shared import ActionCard as ActionCardSchema
-from gaon_shared import AmountItem, CalendarEvent, Checkbox, DateItem
+from gaon_shared import AmountItem, CalendarEvent, Checkbox, ChildInfo, DateItem
 from gaon_shared import Document as DocumentSchema
 from gaon_shared import ExtractedItem as ExtractedItemSchema
 from gaon_shared import Supply, Term
@@ -19,7 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.chain_deps import get_llm_client, get_retriever
 from app.db import SessionLocal, get_db
-from app.models import ActivityEventRow, Document, DocumentResultRow, ExtractedItemRow, User
+from app.models import ActivityEventRow, Child, Document, DocumentResultRow, ExtractedItemRow, User
 from app.security import get_current_user
 from app.storage import object_key, upload_image
 from gaon_ai.chain_a import ChainAResult, run_chain_a_core
@@ -125,12 +134,21 @@ async def _run_chain_a_and_persist(document_id: uuid.UUID) -> None:
             document.status = s
             db.commit()
 
+        # §17.10: child_info는 Document.child_id로 Child를 조회해 BE가 구성한다(체인은
+        # DB를 모른다). grade 없는 자녀는 개인화 근거가 없으므로 미지정으로 둔다.
+        child_info: ChildInfo | None = None
+        if document.child_id is not None:
+            child = db.get(Child, document.child_id)
+            if child is not None and child.grade is not None:
+                child_info = ChildInfo(grade=child.grade, class_no=child.class_no, name=child.name)
+
         try:
             result = await run_chain_a_core(
                 document.to_schema(),
                 user.to_schema(),
                 llm=get_llm_client(),
                 retriever=get_retriever(),
+                child_info=child_info,
                 on_status=on_status,
             )
             _persist_chain_a_result(db, document, result)
@@ -161,6 +179,7 @@ async def _run_chain_a_and_persist(document_id: uuid.UUID) -> None:
 async def upload_document(
     background_tasks: BackgroundTasks,
     image: UploadFile = File(...),
+    child_id: uuid.UUID | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DocumentUploadResponse:
@@ -170,12 +189,20 @@ async def upload_document(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="이미지 파일만 업로드할 수 있습니다"
         )
+    if child_id is not None:
+        child = db.get(Child, child_id)
+        if child is None or child.user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="자녀를 찾을 수 없습니다"
+            )
 
     data = await image.read()
     key = object_key(str(current_user.id), image.filename or "upload")
     upload_image(key, data, image.content_type)
 
-    document = Document(user_id=current_user.id, image_ref=key, status="uploaded")
+    document = Document(
+        user_id=current_user.id, child_id=child_id, image_ref=key, status="uploaded"
+    )
     db.add(document)
     db.commit()
     db.refresh(document)
