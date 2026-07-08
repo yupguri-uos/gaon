@@ -613,8 +613,15 @@ class _ResultState extends StatelessWidget {
                     flex: 2,
                     child: GaonButton(
                       label: '✓ 저장하기 · Lưu',
-                      onTap: () {
+                      onTap: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.of(context).pop();
+                        // F-DOC-7: 앱 내 캘린더에 확정 저장
+                        final saved = await repository.saveCalendarEvents(
+                            documentId: analysis.document.documentId);
+                        messenger.showSnackBar(SnackBar(
+                            content: Text(
+                                '일정 ${saved.length}개를 캘린더에 저장했어요 · Đã lưu')));
                         onGoToCalendar?.call();
                       },
                     ),

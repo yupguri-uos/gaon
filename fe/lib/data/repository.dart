@@ -40,15 +40,25 @@ abstract interface class GaonRepository {
   Future<DocumentAnalysis> getDocumentAnalysis(String documentId);
 
   /// 홈·캘린더·행동 카드용 — 가장 최근 완료된 분석 결과.
+  /// BE에 대응 엔드포인트가 없음(§11) — ApiRepository는
+  /// GET /documents(이력)에서 최신 done 문서를 찾아 GET /documents/{id}/result를
+  /// 조합해 구현한다. 전용 엔드포인트 신설은 BE와 협의.
   Future<DocumentAnalysis> getLatestAnalysis();
+
+  /// 캘린더 저장(F-DOC-7) = POST /calendar/events { document_id }.
+  /// 분석 결과의 일정을 앱 내 캘린더에 확정 저장하고 생성된 이벤트를 반환.
+  Future<List<CalendarEvent>> saveCalendarEvents({required String documentId});
 
   /// 캘린더 화면용 — 저장된 전체 일정.
   Future<List<CalendarEvent>> getCalendarEvents();
 
   /// Chain B(F-TCH). 생성까지만 — 전송은 사용자 수동(결정 #2).
+  /// child_info는 §8 계약상 필수 — ApiRepository가 [childId]로 Child를 찾아
+  /// { grade, class_no?, name? }을 구성해 POST /teacher-message에 실어 보낸다.
   Future<TeacherMessage> generateTeacherMessage({
     required MessageSituation situation,
     required String inputNative,
+    required String childId,
   });
 
   /// 월간 리포트(F-LOG).

@@ -22,8 +22,22 @@ class _MessageScreenState extends State<MessageScreen> {
       TextEditingController(text: 'Ngày mai con bị sốt nên xin phép nghỉ học.');
   MessageSituation _situation = MessageSituation.absence;
   int _teacherIndex = 0;
+  List<Child> _children = const [];
+  Child? _selectedChild; // Chain B child_info(§8) 필수 — 어느 자녀 건인지
   TeacherMessage? _message;
   bool _generating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    repository.getChildren().then((children) {
+      if (!mounted) return;
+      setState(() {
+        _children = children;
+        _selectedChild = children.firstOrNull;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -31,8 +45,52 @@ class _MessageScreenState extends State<MessageScreen> {
     super.dispose();
   }
 
+  String _childLabel(Child c) {
+    final gradeNo = c.grade.wire.split('_').last;
+    return '${c.name ?? '자녀'} · $gradeNo학년 ${c.classNo ?? '?'}반';
+  }
+
+  Future<void> _pickChild() async {
+    final picked = await showModalBottomSheet<Child>(
+      context: context,
+      backgroundColor: GaonColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(GaonSpace.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('자녀 선택 · Chọn con',
+                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              const SizedBox(height: GaonSpace.sm),
+              for (final c in _children)
+                ListTile(
+                  onTap: () => Navigator.of(context).pop(c),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(GaonRadius.md)),
+                  tileColor: c.childId == _selectedChild?.childId
+                      ? GaonColors.primaryLight
+                      : null,
+                  title: Text(_childLabel(c),
+                      style: GaonType.bodyLg
+                          .copyWith(color: GaonColors.textPrimary)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked != null) setState(() => _selectedChild = picked);
+  }
+
   Future<void> _generate() async {
-    if (_generating) return;
+    final child = _selectedChild;
+    if (_generating || child == null) return;
     setState(() {
       _generating = true;
       _message = null;
@@ -40,6 +98,7 @@ class _MessageScreenState extends State<MessageScreen> {
     final message = await repository.generateTeacherMessage(
       situation: _situation,
       inputNative: _inputController.text,
+      childId: child.childId,
     );
     if (!mounted) return;
     setState(() {
@@ -212,6 +271,46 @@ class _MessageScreenState extends State<MessageScreen> {
             child: ListView(
               padding: const EdgeInsets.all(GaonSpace.md),
               children: [
+                // 자녀 선택 — Chain B child_info(§8) 필수
+                if (_selectedChild != null) ...[
+                  Row(
+                    children: [
+                      Text('자녀 · Con',
+                          style: GaonType.caption.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: GaonColors.textSecondary)),
+                      const SizedBox(width: GaonSpace.xs),
+                      Material(
+                        color: GaonColors.textPrimary,
+                        borderRadius:
+                            BorderRadius.circular(GaonRadius.pill),
+                        child: InkWell(
+                          onTap: _pickChild,
+                          borderRadius:
+                              BorderRadius.circular(GaonRadius.pill),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 5, horizontal: 12),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_childLabel(_selectedChild!),
+                                    style: GaonType.label.copyWith(
+                                        color: GaonColors.onPrimary)),
+                                const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    size: 14,
+                                    color: GaonColors.onPrimary),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: GaonSpace.md),
+                ],
+
                 // 상황 선택
                 Text('상황 선택 · Chọn tình huống',
                     style: GaonType.caption.copyWith(

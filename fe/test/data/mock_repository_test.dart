@@ -54,9 +54,13 @@ void main() {
       const input = 'Ngày mai con bị sốt nên xin phép nghỉ học.';
 
       final absence = await repo.generateTeacherMessage(
-          situation: MessageSituation.absence, inputNative: input);
+          situation: MessageSituation.absence,
+          inputNative: input,
+          childId: 'demo-child-1');
       final consult = await repo.generateTeacherMessage(
-          situation: MessageSituation.consultation, inputNative: input);
+          situation: MessageSituation.consultation,
+          inputNative: input,
+          childId: 'demo-child-1');
 
       expect(absence.situation, MessageSituation.absence);
       expect(absence.inputNative, input);
@@ -64,6 +68,16 @@ void main() {
       expect(consult.outputKo, contains('상담'));
       expect(absence.outputKo, isNot(consult.outputKo));
       expect(absence.adminGuideNative, isNotEmpty);
+    });
+  });
+
+  group('캘린더 저장 (F-DOC-7)', () {
+    test('saveCalendarEvents가 저장된 이벤트 목록을 반환', () async {
+      final repo = MockRepository(latency: Duration.zero);
+      final saved =
+          await repo.saveCalendarEvents(documentId: 'demo-doc-0');
+      expect(saved, isNotEmpty);
+      expect(saved.any((e) => e.type == CalendarEventType.deadline), isTrue);
     });
   });
 

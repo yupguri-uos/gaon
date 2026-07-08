@@ -107,9 +107,17 @@ class MockRepository implements GaonRepository {
       _delayed(demoActionCard.calendarEvents);
 
   @override
+  Future<List<CalendarEvent>> saveCalendarEvents(
+      {required String documentId}) {
+    // 데모: 최근 분석의 일정을 그대로 '저장됨'으로 반환.
+    return _delayed(demoActionCard.calendarEvents);
+  }
+
+  @override
   Future<TeacherMessage> generateTeacherMessage({
     required MessageSituation situation,
     required String inputNative,
+    required String childId,
   }) {
     // 실제 생성 지연을 흉내 — 데모에서 '생성 중' 상태가 보이도록 약간 길게.
     return Future.delayed(
