@@ -17,6 +17,8 @@ from gaon_shared import (
     DocParsingInput,
     ExtractedItem,
     User,
+    ActivityLog,
+    WeeklyActivity,
 )
 
 
@@ -83,3 +85,36 @@ def test_agent_response_roundtrip_preserves_nested_data():
     assert isinstance(restored.data.dates[0], DateItem)
     assert restored.data.dates[0].date == date(2026, 7, 10)
     assert restored.data.deadline == date(2026, 7, 5)
+
+
+def test_activity_log_weekly_activity_contract():
+    weekly = WeeklyActivity(
+        week_start=date(2026, 7, 6),
+        week_end=date(2026, 7, 12),
+        processed_count=2,
+        event_participation_count=1,
+        missed_count=0,
+    )
+
+    log = ActivityLog(
+        user_id="u1",
+        processed_count=2,
+        event_participation_count=1,
+        missed_count=0,
+        weekly_activity=[weekly],
+    )
+
+    assert log.processed_count == 2
+    assert log.event_participation_count == 1
+    assert log.missed_count == 0
+    assert log.weekly_activity[0].week_start == date(2026, 7, 6)
+    assert log.weekly_activity[0].week_end == date(2026, 7, 12)
+
+
+def test_activity_log_defaults_to_zero_counts():
+    log = ActivityLog(user_id="u1")
+
+    assert log.processed_count == 0
+    assert log.event_participation_count == 0
+    assert log.missed_count == 0
+    assert log.weekly_activity == []
