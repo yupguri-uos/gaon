@@ -4,8 +4,13 @@ vector 확장을 처음 쓰는 테이블이라 CREATE EXTENSION도 여기서 한
 아직 없으므로(§18.6) 순수 CREATE — 기존 vector(1536) 드리프트는 repo/개발 DB 얘기였고 배포
 DB와는 무관해 DROP/ALTER가 필요 없다.
 
-Revision ID: 0004
-Revises: 0003
+합의된 마이그레이션 순서(2026-07-08): 0004=activity_events(박수빈, feat/log, 그대로 유지) ·
+0005=kb_embeddings(이 파일) · 0006=messages(feat/teacher-message). kb_embeddings와
+activity_events가 둘 다 0003에서 독립적으로 갈라져나와 0004로 번호가 겹쳤던 걸
+이 순서로 정리하기로 함.
+
+Revision ID: 0005
+Revises: 0004
 Create Date: 2026-07-06
 """
 
@@ -18,8 +23,8 @@ from alembic import op
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 
-revision: str = "0004"
-down_revision: Union[str, None] = "0003"
+revision: str = "0005"
+down_revision: Union[str, None] = "0004"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
