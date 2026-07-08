@@ -28,6 +28,10 @@ lib/screens/  화면 (v2 시안: 5 Flows · 15 Screens)
 - 교사 목록(문자 받는 사람) (Teacher 엔티티 없음)
 - 온보딩 학년 초1~6 — schema ChildGrade는 elem_1~3만 (확장 시 elem_1~6, schema.py+DB CHECK 한 세트)
 
+## BE 연동 (INF 공지 2026-07-08)
+- 공개 URL https://gaon.uk — API base는 data/api_config.dart의 gaonApiBase(`https://gaon.uk/api`).
+  nginx가 /api 프리픽스를 벗겨 FastAPI로 전달. 로컬 BE는 --dart-define=GAON_API_BASE로 오버라이드.
+
 ## 명령
 - 실행:   `flutter run -d chrome` (웹) / `open -a Simulator && flutter run` (iOS)
 - 검사:   `flutter analyze`

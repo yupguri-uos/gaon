@@ -16,5 +16,12 @@ npm run build  # 정적 빌드 → dist/
 
 ## 배포
 
-정적 빌드 결과물(`dist/`)을 미니PC nginx 또는 임의의 정적 호스팅에 올리면 된다.
-배포 스크립트 연동은 `/infra` 참조.
+- 공개 경로: **https://gaon.uk/landing/** (Cloudflare 터널, INF 공지 2026-07-08)
+- base 경로 `/landing/`은 vite.config.ts에서 빌드 시 자동 적용된다 — 별도 플래그 불필요.
+  (base 없이 빌드하면 자산 404로 흰 화면이 되므로 config에 고정해 둠)
+- `npm run build` → `dist/`를 미니PC nginx에 적재. 배포 스크립트 연동은 `/infra` 참조.
+
+## 알려진 placeholder
+
+- 소개 수치("20,000+ 다문화 가정 · 15+ 언어 · 98% 만족도")는 데모용 임의값 —
+  본선/공개 전 실측 또는 근거 있는 수치로 교체 예정 (팀 공유됨, 2026-07-08).
