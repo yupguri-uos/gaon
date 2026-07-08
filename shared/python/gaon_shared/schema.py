@@ -33,13 +33,7 @@ ChildGrade = Literal[
     "elem_4",
     "elem_5",
     "elem_6",
-    "mid_1",
-    "mid_2",
-    "mid_3",
-    "high_1",
-    "high_2",
-    "high_3",
-]  # 확장 포인트(초1~고3)
+]  # 확장 포인트(초1~6, 팀 결정 — 중고등은 범위 밖)
 
 DocStatus = Literal["uploaded", "parsing", "translating", "action", "done", "failed"]
 DocType = Literal["notice", "consent", "survey"]  # 알림장 | 동의서 | 설문·회신
