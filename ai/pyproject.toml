@@ -22,6 +22,11 @@ dev = [
     "ruff",
     "black",
 ]
+# F-CORE-2 실구현(KURE in-process + pgvector) — 무겁다(torch). 단위 테스트에는 불필요.
+rag = [
+    "sentence-transformers>=3",
+    "psycopg[binary,pool]>=3.1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["gaon_ai"]
