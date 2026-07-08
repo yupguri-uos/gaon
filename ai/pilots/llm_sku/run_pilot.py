@@ -54,6 +54,20 @@ def _empty_extracted() -> ExtractedItem:
     return ExtractedItem(doc_type="notice", title="", raw_text="")
 
 
+def _classify_failure(error: str | None) -> str:
+    """실패 계열 분류 — common/retry.py의 PilotCallError 접두 마커 기반(README 신뢰성 정책).
+
+    validation(절단·스키마) ≤2 → 채점 인정 / ≥3 → 계측 결함 재실행 규칙을 계열별로
+    적용할 수 있게 run_report에서 컬럼을 분리한다.
+    """
+    if error:
+        if error.startswith("[availability]"):
+            return "availability"
+        if error.startswith("[validation]"):
+            return "validation"
+    return "other"
+
+
 def make_clients(only_vendor: str | None) -> dict[str, Any]:
     """API 키가 설정된 벤더만 생성. 없으면 명확히 경고하고 스킵(§4.2 스모크 지원)."""
     clients: dict[str, Any] = {}
@@ -88,12 +102,15 @@ def make_clients(only_vendor: str | None) -> dict[str, Any]:
 
 
 # ── 1) 파싱 실행 + 원출력 덤프 ──────────────────────────────────────────────
-async def run_parsing(
-    clients: dict[str, Any], docs: list[dict[str, Any]], out_dir: Path
-) -> tuple[dict[str, VendorStats], dict[str, dict[str, ExtractedItem | None]]]:
+async def run_parsing(clients: dict[str, Any], docs: list[dict[str, Any]], out_dir: Path) -> tuple[
+    dict[str, VendorStats],
+    dict[str, dict[str, ExtractedItem | None]],
+    dict[str, dict[str, str]],
+]:
     user = _dummy_user()
     stats: dict[str, VendorStats] = {}
     outputs: dict[str, dict[str, ExtractedItem | None]] = {}
+    failures: dict[str, dict[str, str]] = {}  # vendor → doc_id → 실패 계열(분류는 리포트용)
 
     # 이미지가 아직 투입되지 않은 문서(§5: 탕지수 투입 예정)는 API 호출 없이 채점에서 제외
     runnable: list[dict[str, Any]] = []
@@ -112,6 +129,7 @@ async def run_parsing(
         failed: list[str] = []
         tags_by_doc: dict[str, list[str]] = {}
         outputs[vendor] = {}
+        failures[vendor] = {}
 
         for doc in runnable:
             doc_id = doc["doc_id"]
@@ -138,13 +156,15 @@ async def run_parsing(
                 extracted = _empty_extracted()
                 outputs[vendor][doc_id] = None
                 failed.append(doc_id)
-                print(f"  [{vendor}] doc {doc_id}: 실패 — {resp.error}")
+                kind = _classify_failure(resp.error)
+                failures[vendor][doc_id] = kind
+                print(f"  [{vendor}] doc {doc_id}: 실패({kind}) — {resp.error}")
             doc_scores.append(score_document(doc_id, extracted, doc["gold"]))
 
         stats[vendor] = VendorStats(
             vendor=vendor, doc_scores=doc_scores, tags_by_doc=tags_by_doc, failed_docs=failed
         )
-    return stats, outputs
+    return stats, outputs, failures
 
 
 # ── 2) 채점 리포트(scores.md) ───────────────────────────────────────────────
@@ -294,31 +314,51 @@ async def run_ab(clients: dict[str, Any], out_dir: Path) -> bool:
 
 
 # ── 4) 실행 리포트(신뢰성·비용 요약) — 판정은 전 시퀀스 후 eval/verdict.py로 ──
-def render_run_report(clients: dict[str, Any], stats: dict[str, VendorStats], ab_ran: bool) -> str:
+def render_run_report(
+    clients: dict[str, Any],
+    stats: dict[str, VendorStats],
+    ab_ran: bool,
+    failures: dict[str, dict[str, str]],
+) -> str:
     lines = ["# 실행 리포트 (run_report.md)", ""]
     lines += [
         "## 파싱 집계(이 실행분 — 상세 매트릭스는 scores.md)",
         "",
-        "| 벤더 | 크리티컬 미스 | 환각(날짜+금액) | 파싱 실패 |",
-        "|---|---|---|---|",
+        "| 벤더 | 크리티컬 미스 | 환각(날짜+금액) | 실패:절단(검증) | 실패:5xx(가용성) | 실패:기타 |",
+        "|---|---|---|---|---|---|",
     ]
     for vendor, vs in stats.items():
+        kinds = list(failures.get(vendor, {}).values())
         lines.append(
             f"| {vendor} | {vs.total_critical} | {vs.total_hallucination} "
-            f"| {len(vs.failed_docs)} |"
+            f"| {kinds.count('validation')} | {kinds.count('availability')} "
+            f"| {kinds.count('other')} |"
         )
+    failed_lines = [
+        f"  - {vendor}/doc {doc_id}: {kind}"
+        for vendor, by_doc in failures.items()
+        for doc_id, kind in sorted(by_doc.items())
+    ]
+    if failed_lines:
+        lines += ["", "- 실패 문서(계열별 — 상세는 {vendor}/{doc_id}.error.txt):"] + failed_lines
+    lines += [
+        "",
+        "- 계측 결함 규칙(사전 선언): 절단(검증 실패) ≤2건 → 채점 인정 / ≥3건 → 계측 결함,",
+        "  해당 run **전체** 재실행(실패 문서만 부분 재실행 금지 — 체리피킹).",
+        "  5xx(가용성)는 인프라 노이즈로 별도 집계 — 백오프 재시도 후에도 남은 건 재실행 사유.",
+    ]
     if not ab_ran:
         lines += ["", "- 경어체 A/B: 이 실행에서는 미실행(--skip-ab 또는 벤더 부족)."]
     lines += ["", "## 신뢰성·비용 요약 (재시도·토큰·지연시간)", ""]
     lines += [
-        "| 벤더 | 재시도 | 호출 수 | 입력 토큰 | 출력 토큰 | 평균 지연(ms) |",
-        "|---|---|---|---|---|---|",
+        "| 벤더 | 재시도:가용성(백오프) | 재시도:검증(1회) | 호출 수 | 입력 토큰 | 출력 토큰 | 평균 지연(ms) |",
+        "|---|---|---|---|---|---|---|",
     ]
     for vendor, client in clients.items():
         m = client.metrics
         avg = m.total_latency_ms // len(m.calls) if m.calls else 0
         lines.append(
-            f"| {vendor} | {m.retry_count} | {len(m.calls)} "
+            f"| {vendor} | {m.availability_retries} | {m.validation_retries} | {len(m.calls)} "
             f"| {m.total_input_tokens} | {m.total_output_tokens} | {avg} |"
         )
     scored = {vendor: len(vs.doc_scores) for vendor, vs in stats.items()}
@@ -360,7 +400,7 @@ async def _amain(args: argparse.Namespace) -> int:
     print(f"사용 모델 기록(run_meta.json): {run_meta['models']}")
 
     print(f"파싱 실행 — 벤더: {', '.join(clients)} / 문서 {len(docs)}건")
-    stats, outputs = await run_parsing(clients, docs, args.out)
+    stats, outputs, failures = await run_parsing(clients, docs, args.out)
 
     scores_path = args.out / "scores.md"
     write_scores_md(stats, outputs, scores_path)
@@ -373,7 +413,7 @@ async def _amain(args: argparse.Namespace) -> int:
         ab_ran = await run_ab(clients, args.out)
 
     # 판정(§11 v2)은 다중 run 입력이 필요해 이 실행에서 내리지 않는다 — verdict CLI로 산출
-    report = render_run_report(clients, stats, ab_ran)
+    report = render_run_report(clients, stats, ab_ran, failures)
     (args.out / "run_report.md").write_text(report, encoding="utf-8")
     print()
     print(report)

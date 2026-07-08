@@ -13,14 +13,27 @@ from time import perf_counter
 from typing import TypeVar
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from common.image_loader import load_image
 from common.metrics import CallRecord, ClientMetrics
+from common.retry import call_with_retries
 from gaon_ai.llm import LLMMessage, ModelTier
 
 M = TypeVar("M", bound=BaseModel)
+
+
+def _is_availability_error(exc: Exception) -> bool:
+    # (a) 5xx(UNAVAILABLE·overloaded 포함) — google-genai는 APIError.code에 HTTP 상태를 담는다
+    return isinstance(exc, genai_errors.APIError) and (getattr(exc, "code", 0) or 0) >= 500
+
+
+def _is_validation_error(exc: Exception) -> bool:
+    # (b) 절단·스키마 불일치 — model_validate_json이 pydantic ValidationError로 드러낸다
+    return isinstance(exc, ValidationError)
+
 
 _DEFAULT_MODELS = {
     ModelTier.FAST: "gemini-2.5-flash",
@@ -30,7 +43,7 @@ _DEFAULT_MODELS = {
 
 
 class GeminiLLMClient:
-    """LLMClient 구현체. 재시도 1회, temperature=0, 호출별 토큰·지연시간 기록."""
+    """LLMClient 구현체. 이원화 재시도(가용성 3회 백오프/검증 1회), temperature=0, 호출별 계측."""
 
     def __init__(self, api_key: str | None = None) -> None:
         key = api_key or os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
@@ -52,12 +65,13 @@ class GeminiLLMClient:
     ) -> M:
         model_id = self._models[tier]
         system_text, contents = _convert(messages)
-        try:
-            return await self._attempt(model_id, system_text, contents, output_model)
-        except Exception:
-            # Pydantic 검증 실패·API 오류 시 1회 재시도 후 예외(§4.2). 횟수는 신뢰성 축으로 기록.
-            self.metrics.retry_count += 1
-            return await self._attempt(model_id, system_text, contents, output_model)
+        # 이원화 재시도(계측 결함 패치): 가용성=3회 백오프 / 검증 실패·기타=1회(common/retry.py)
+        return await call_with_retries(
+            lambda: self._attempt(model_id, system_text, contents, output_model),
+            is_availability=_is_availability_error,
+            is_validation=_is_validation_error,
+            metrics=self.metrics,
+        )
 
     async def _attempt(
         self,
@@ -73,7 +87,7 @@ class GeminiLLMClient:
             config=types.GenerateContentConfig(
                 system_instruction=system_text or None,  # system은 SDK의 시스템 프롬프트 자리로
                 temperature=0.0,  # 재현성(§4.2)
-                max_output_tokens=4096,
+                max_output_tokens=8192,  # 계측 결함 패치: 절단 방지 상향(양 벤더 동일 — 공정성)
                 response_mime_type="application/json",
                 response_schema=output_model,  # Pydantic 모델 직접 전달(SDK 공식 경로)
             ),

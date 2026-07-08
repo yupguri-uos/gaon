@@ -1,0 +1,22 @@
+{
+  "1": {
+    "A": "gemini",
+    "B": "claude"
+  },
+  "2": {
+    "A": "gemini",
+    "B": "claude"
+  },
+  "3": {
+    "A": "gemini",
+    "B": "claude"
+  },
+  "4": {
+    "A": "gemini",
+    "B": "claude"
+  },
+  "5": {
+    "A": "claude",
+    "B": "gemini"
+  }
+}

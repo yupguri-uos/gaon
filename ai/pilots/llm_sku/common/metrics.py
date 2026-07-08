@@ -1,4 +1,8 @@
-"""벤더 클라이언트 공통 계측 — 호출별 토큰·지연시간과 재시도 횟수(신뢰성 평가 축, §4.2)."""
+"""벤더 클라이언트 공통 계측 — 호출별 토큰·지연시간과 계열별 재시도 횟수(신뢰성 평가 축, §4.2).
+
+재시도 카운터는 계측 결함 패치(2026-07-08 사전 선언)로 이원화됐다:
+가용성(인프라 노이즈)과 검증 실패(능력 신호)를 합산하면 신뢰성 비교가 오염되기 때문.
+"""
 
 from __future__ import annotations
 
@@ -15,7 +19,10 @@ class CallRecord:
 
 @dataclass
 class ClientMetrics:
-    retry_count: int = 0
+    # (a) 5xx·UNAVAILABLE·overloaded — 백오프 재시도(최대 3회)
+    availability_retries: int = 0
+    # (b) 절단·스키마 불일치·기타 — 1회만(관대화 금지)
+    validation_retries: int = 0
     calls: list[CallRecord] = field(default_factory=list)
 
     @property

@@ -13,14 +13,27 @@ import os
 from time import perf_counter
 from typing import Any, TypeVar
 
+import anthropic
 from anthropic import NOT_GIVEN, AsyncAnthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from common.image_loader import load_image
 from common.metrics import CallRecord, ClientMetrics
+from common.retry import StructuredOutputParseError, call_with_retries
 from gaon_ai.llm import LLMMessage, ModelTier
 
 M = TypeVar("M", bound=BaseModel)
+
+
+def _is_availability_error(exc: Exception) -> bool:
+    # (a) 5xx·529(overloaded) — anthropic은 APIStatusError.status_code에 HTTP 상태를 담는다
+    return isinstance(exc, anthropic.APIStatusError) and getattr(exc, "status_code", 0) >= 500
+
+
+def _is_validation_error(exc: Exception) -> bool:
+    # (b) 절단·스키마 불일치 — SDK parse의 pydantic 검증 실패 또는 파일럿의 파싱 실패 예외
+    return isinstance(exc, (ValidationError, StructuredOutputParseError))
+
 
 _DEFAULT_MODELS = {
     ModelTier.FAST: "claude-haiku-4-5",
@@ -29,13 +42,13 @@ _DEFAULT_MODELS = {
 
 
 class AnthropicLLMClient:
-    """LLMClient 구현체. 재시도 1회, temperature=0, 호출별 토큰·지연시간 기록."""
+    """LLMClient 구현체. 이원화 재시도(가용성 3회 백오프/검증 1회), temperature=0, 호출별 계측."""
 
     def __init__(self, api_key: str | None = None) -> None:
         key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not key:
             raise RuntimeError("ANTHROPIC_API_KEY가 설정돼 있지 않습니다.")
-        # SDK 자체 재시도와 파일럿의 '1회 재시도' 카운트가 섞이지 않게 SDK 재시도는 끈다.
+        # SDK 자체 재시도와 파일럿의 계열별 재시도 카운트가 섞이지 않게 SDK 재시도는 끈다.
         self._client = AsyncAnthropic(api_key=key, max_retries=0)
         if not hasattr(self._client.messages, "parse"):
             raise RuntimeError(
@@ -57,12 +70,13 @@ class AnthropicLLMClient:
     ) -> M:
         model_id = self._models[tier]
         system_text, api_messages = _convert(messages)
-        try:
-            return await self._attempt(model_id, system_text, api_messages, output_model)
-        except Exception:
-            # Pydantic 검증 실패·API 오류 시 1회 재시도 후 예외(§4.2). 횟수는 신뢰성 축으로 기록.
-            self.metrics.retry_count += 1
-            return await self._attempt(model_id, system_text, api_messages, output_model)
+        # 이원화 재시도(계측 결함 패치): 가용성=3회 백오프 / 검증 실패·기타=1회(common/retry.py)
+        return await call_with_retries(
+            lambda: self._attempt(model_id, system_text, api_messages, output_model),
+            is_availability=_is_availability_error,
+            is_validation=_is_validation_error,
+            metrics=self.metrics,
+        )
 
     async def _attempt(
         self,
@@ -74,7 +88,7 @@ class AnthropicLLMClient:
         start = perf_counter()
         response = await self._client.messages.parse(
             model=model_id,
-            max_tokens=4096,
+            max_tokens=8192,  # 계측 결함 패치: 절단 방지 상향(양 벤더 동일 — 공정성)
             temperature=0.0,  # 재현성(§4.2)
             system=system_text or NOT_GIVEN,  # system은 SDK의 system 파라미터로
             messages=api_messages,
@@ -91,8 +105,10 @@ class AnthropicLLMClient:
         )
         parsed = response.parsed_output
         if not isinstance(parsed, output_model):
-            # 안전 거부(stop_reason=refusal) 등으로 파싱이 비면 예외 → 재시도 경로
-            raise RuntimeError(f"구조화 출력 파싱 실패(stop_reason={response.stop_reason})")
+            # 절단(stop_reason=max_tokens)·안전 거부 등으로 파싱이 비면 검증 실패 계열로 예외
+            raise StructuredOutputParseError(
+                f"구조화 출력 파싱 실패(stop_reason={response.stop_reason})"
+            )
         return parsed
 
 
