@@ -224,6 +224,21 @@ def chunk_document_sectioned(
 DocChunker = Callable[[SourceDoc], list[Chunk]]  # 문서 → 청크. 섹션 인식 등 청킹 전략 주입점
 
 
+def embedding_text(chunk: Chunk) -> str:
+    """임베딩 입력 전용 텍스트 — title·section 접두(§18.5 보강). 저장 content는 불변.
+
+    섹션 청커가 헤더를 section 필드로 분리하면 임베딩 본문에 용어 자체가 없는 청크가
+    생겨 용어-청크 결합이 약해진다(골드 미스 '가정통신문'). title·section을 " — "로 이어
+    접두해 결합을 복원한다. content·content_hash는 그대로 두므로 재적재 시
+    ON CONFLICT (content_hash) DO UPDATE가 기존 행의 embedding만 교체한다(멱등 유지).
+    """
+    # title == section이면 한 번만(중복 접두 방지) — dict.fromkeys로 순서 보존 중복 제거
+    labels = list(dict.fromkeys(label for label in (chunk.title, chunk.section) if label))
+    if not labels:
+        return chunk.content
+    return " — ".join(labels) + "\n" + chunk.content
+
+
 async def ingest(
     docs: list[SourceDoc],
     *,
@@ -250,7 +265,8 @@ async def ingest(
         )
     if not chunks:
         return 0
-    vectors = await embedder.embed([chunk.content for chunk in chunks])
+    # 임베딩 입력만 접두(§18.5) — EmbeddedChunk.content에는 원본 content가 그대로 실린다
+    vectors = await embedder.embed([embedding_text(chunk) for chunk in chunks])
     embedded = [
         EmbeddedChunk(**chunk.model_dump(), embedding=vector)
         for chunk, vector in zip(chunks, vectors)
