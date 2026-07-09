@@ -35,7 +35,10 @@ enum NativeLanguage {
 enum ChildGrade {
   elem1('elem_1'),
   elem2('elem_2'),
-  elem3('elem_3');
+  elem3('elem_3'),
+  elem4('elem_4'),
+  elem5('elem_5'),
+  elem6('elem_6'); // 초1~6, 팀 결정 — 중고등은 범위 밖 (마이그레이션 0009)
 
   const ChildGrade(this.wire);
   final String wire;
@@ -152,6 +155,7 @@ class Child {
     this.name,
     required this.grade,
     this.classNo,
+    this.schoolName,
     this.color,
     required this.createdAt,
   });
@@ -161,6 +165,7 @@ class Child {
   final String? name;
   final ChildGrade grade;
   final String? classNo;
+  final String? schoolName; // 학교명(PII 아님 — 동의 불필요, 마이그레이션 0007)
   final String? color;
   final DateTime createdAt;
 
@@ -170,6 +175,7 @@ class Child {
         name: json['name'] as String?,
         grade: ChildGrade.fromWire(json['grade'] as String),
         classNo: json['class_no'] as String?,
+        schoolName: json['school_name'] as String?,
         color: json['color'] as String?,
         createdAt: DateTime.parse(json['created_at'] as String),
       );
@@ -180,6 +186,7 @@ class Child {
         'name': name,
         'grade': grade.wire,
         'class_no': classNo,
+        'school_name': schoolName,
         'color': color,
         'created_at': createdAt.toIso8601String(),
       };
@@ -392,7 +399,7 @@ class Supply {
   final String nameNative;
   final String explanationNative;
   final String? spec; // 규격(예: 175mm)
-  final String ecommerceKeyword; // 모국어 검색 키워드
+  final String ecommerceKeyword; // 쿠팡 검색용 한국어 키워드(모국어 아님 — SSOT v0.7.5)
   final String? ecommerceDeeplink; // 쿠팡 검색 URL (자동결제 X)
 
   factory Supply.fromJson(Map<String, dynamic> json) => Supply(
@@ -575,17 +582,36 @@ class Notification {
 }
 
 class WeeklyActivity {
-  const WeeklyActivity({required this.week, required this.count});
+  const WeeklyActivity({
+    required this.weekStart,
+    required this.weekEnd,
+    this.processedCount = 0,
+    this.eventParticipationCount = 0,
+    this.missedCount = 0,
+  });
 
-  final int week;
-  final int count;
+  final DateTime weekStart;
+  final DateTime weekEnd;
+  final int processedCount;
+  final int eventParticipationCount;
+  final int missedCount;
 
   factory WeeklyActivity.fromJson(Map<String, dynamic> json) => WeeklyActivity(
-        week: json['week'] as int,
-        count: json['count'] as int,
+        weekStart: DateTime.parse(json['week_start'] as String),
+        weekEnd: DateTime.parse(json['week_end'] as String),
+        processedCount: json['processed_count'] as int? ?? 0,
+        eventParticipationCount:
+            json['event_participation_count'] as int? ?? 0,
+        missedCount: json['missed_count'] as int? ?? 0,
       );
 
-  Map<String, dynamic> toJson() => {'week': week, 'count': count};
+  Map<String, dynamic> toJson() => {
+        'week_start': _dateToJson(weekStart),
+        'week_end': _dateToJson(weekEnd),
+        'processed_count': processedCount,
+        'event_participation_count': eventParticipationCount,
+        'missed_count': missedCount,
+      };
 }
 
 /// Memory 결과 → 월간 리포트(F-LOG).

@@ -22,6 +22,9 @@ extension ChildGradeDisplay on ChildGrade {
         ChildGrade.elem1 => 'Lớp 1 / 초1',
         ChildGrade.elem2 => 'Lớp 2 / 초2',
         ChildGrade.elem3 => 'Lớp 3 / 초3',
+        ChildGrade.elem4 => 'Lớp 4 / 초4',
+        ChildGrade.elem5 => 'Lớp 5 / 초5',
+        ChildGrade.elem6 => 'Lớp 6 / 초6',
       };
 }
 

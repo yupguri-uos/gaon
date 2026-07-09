@@ -45,6 +45,7 @@ class MockRepository implements GaonRepository {
     required ChildGrade grade,
     String? name,
     String? classNo,
+    String? schoolName,
   }) {
     final registered = _registeredChildren ??= [];
     final child = Child(
@@ -53,6 +54,7 @@ class MockRepository implements GaonRepository {
       name: name,
       grade: grade,
       classNo: classNo,
+      schoolName: schoolName,
       color: _childColors[registered.length % _childColors.length],
       createdAt: demoToday,
     );
