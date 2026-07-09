@@ -7,6 +7,7 @@ gaon_ai.agents.coupang_search_url 를 쓴다. 실제 LLM 호출은 하지 않는
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timezone
 
 import pytest
@@ -149,6 +150,8 @@ async def test_coupang_deeplink_assembled_by_code():
     )
     supply = result.action_card.supplies[0]
     assert supply.ecommerce_deeplink == coupang_search_url(supply.ecommerce_keyword)
+    # 언어 계약 가드(SSOT v0.8.6): 쿠팡 검색어는 한국어 — mock이 모국어로 바뀌면 여기서 잡는다
+    assert re.search(r"[가-힣]", supply.ecommerce_keyword)
 
 
 async def test_calendar_event_child_id_backfilled():

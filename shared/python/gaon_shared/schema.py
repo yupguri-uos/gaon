@@ -132,7 +132,7 @@ class Supply(BaseModel):
     name_native: str
     explanation_native: str
     spec: str | None = None  # 규격(예: 175mm)
-    ecommerce_keyword: str  # 모국어 검색 키워드
+    ecommerce_keyword: str  # 쿠팡 검색용 한국어 키워드(한국어 확정 2026-07-09·팀 — 모국어 아님)
     ecommerce_deeplink: str | None = None  # 쿠팡 검색 URL (자동결제 X)
 
 
