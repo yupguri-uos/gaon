@@ -82,6 +82,39 @@ class HallucinatingLLMClient(FakeLLMClient):
         )
 
 
+class NullKeywordLLMClient(FakeLLMClient):
+    """비구매 항목(§17.11 2단-a) 재현 — keyword=None인 supply(+환각 딥링크)와 구매 실물 혼합.
+
+    공용 FakeLLMClient의 supplies[0]은 인덱스 의존 테스트가 있어 건드리지 않고 전용 fake로 둔다.
+    """
+
+    async def generate_structured(self, *, messages, output_model, tier=ModelTier.FAST):
+        if output_model is ActionCard:
+            return ActionCard(
+                supplies=[
+                    Supply(
+                        name_ko="교과서",  # 학교 배부물 → 비구매(키워드 null)
+                        name_native="(모국어명)",
+                        explanation_native="(설명)",
+                        ecommerce_keyword=None,
+                        ecommerce_deeplink="https://evil.example/phish",  # 환각 URL도 null로 청소돼야
+                    ),
+                    Supply(
+                        name_ko="돗자리",  # 구매 실물 → 키워드 유지
+                        name_native="(모국어명)",
+                        explanation_native="(설명)",
+                        ecommerce_keyword="돗자리",
+                    ),
+                ],
+                calendar_events=[
+                    CalendarEvent(title="현장학습", date=date(2026, 7, 10), type="event")
+                ],
+            )
+        return await super().generate_structured(
+            messages=messages, output_model=output_model, tier=tier
+        )
+
+
 class RecordingLLMClient(FakeLLMClient):
     """파싱 단계의 user 텍스트를 캡처 — 기준일(ISO)이 프롬프트에 박히는지 검증용."""
 
@@ -149,8 +182,9 @@ async def test_coupang_deeplink_assembled_by_code():
         retriever=FakeRetriever(),
     )
     supply = result.action_card.supplies[0]
+    assert supply.ecommerce_keyword is not None  # 공용 fake의 supplies[0]은 구매 실물(키워드 보유)
     assert supply.ecommerce_deeplink == coupang_search_url(supply.ecommerce_keyword)
-    # 언어 계약 가드(SSOT v0.8.6): 쿠팡 검색어는 한국어 — mock이 모국어로 바뀌면 여기서 잡는다
+    # 언어 계약 가드(SSOT v0.8.6, §17.11 2단-a로 optional화): 키워드는 None이 아니면 반드시 한국어
     assert re.search(r"[가-힣]", supply.ecommerce_keyword)
 
 
@@ -206,6 +240,21 @@ async def test_hallucinated_child_id_and_deeplink_overwritten_by_code():
     assert supply.ecommerce_deeplink == coupang_search_url(supply.ecommerce_keyword)
 
 
+async def test_null_keyword_supply_keeps_deeplink_null():
+    # §17.11 2단-a: keyword=None(비구매 항목)이면 deeplink도 None — 환각 URL이 와도 null로 확정
+    result = await run_chain_a_core(
+        build_document(),
+        build_user(),
+        llm=NullKeywordLLMClient(),
+        retriever=FakeRetriever(),
+    )
+    no_buy, buyable = result.action_card.supplies
+    assert no_buy.ecommerce_keyword is None
+    assert no_buy.ecommerce_deeplink is None  # "https://evil.example/phish" 잔존 금지
+    assert buyable.ecommerce_keyword == "돗자리"
+    assert buyable.ecommerce_deeplink == coupang_search_url("돗자리")
+
+
 async def test_received_date_uses_kst_for_utc_created_at():
     # UTC 6/30 16:00 == KST 7/1 01:00 → 상대날짜 해석 기준일은 2026-07-01이어야 한다
     llm = RecordingLLMClient()
@@ -246,6 +295,11 @@ async def test_lifestyle_prompt_forbids_document_supplies():
     lifestyle_prompt = "\n".join(llm.lifestyle_texts)
     assert "구매 가능한 실물만" in lifestyle_prompt
     assert "신청서·동의서·조사서" in lifestyle_prompt
+    # §17.11 2단-a: 비구매 항목(배부물·기보유·원문 불명확)은 keyword null 지시가 프롬프트에 실린다
+    assert "구매가 합리적인 실물에만" in lifestyle_prompt
+    assert "원문이 불명확한 항목은 null" in lifestyle_prompt
+    # 언어 계약(PR #23) 유지: 한국어 키워드 절이 그대로 실려 있어야 한다
+    assert "ecommerce_keyword는 반드시 한국어" in lifestyle_prompt
 
 
 async def test_no_child_info_shows_unspecified_in_lifestyle_prompt():
