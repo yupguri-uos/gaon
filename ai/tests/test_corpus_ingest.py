@@ -6,6 +6,7 @@ repo 실데이터(class_b glossary·retrieval 골드)의 스키마 정합.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -13,9 +14,11 @@ import pytest
 
 from gaon_ai.corpus import load_gold, load_manifest, manifest_to_docs
 from gaon_ai.ingest import (
+    Chunk,
     SourceDoc,
     chunk_document,
     chunk_document_sectioned,
+    embedding_text,
     ingest,
     split_sections,
 )
@@ -104,6 +107,68 @@ async def test_ingest_with_chunker_stores_section():
     )
     assert upserted > 0
     assert all(chunk.section == "섹션 제목" for chunk in store._store.values())
+
+
+# ── 임베딩 입력 접두(§18.5 보강 — 저장 content·content_hash 불변) ────────────
+class RecordingEmbedder(FakeEmbedder):
+    """임베딩 입력 텍스트를 기록하는 FakeEmbedder — 접두 적용 여부 검증용."""
+
+    def __init__(self, dim: int = 32) -> None:
+        super().__init__(dim=dim)
+        self.seen: list[str] = []
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        self.seen.extend(texts)
+        return await super().embed(texts)
+
+
+def _prefix_chunk(content: str, *, title: str | None = None, section: str | None = None) -> Chunk:
+    return Chunk(content=content, source="src", title=title, section=section, content_hash="h")
+
+
+def test_embedding_text_prefixes_title_and_section():
+    chunk = _prefix_chunk("본문입니다.", title="가정통신문", section="개요")
+    assert embedding_text(chunk) == "가정통신문 — 개요\n본문입니다."
+
+
+def test_embedding_text_title_only():
+    chunk = _prefix_chunk("본문입니다.", title="가정통신문")
+    assert embedding_text(chunk) == "가정통신문\n본문입니다."
+
+
+def test_embedding_text_without_labels_is_content():
+    assert embedding_text(_prefix_chunk("본문입니다.")) == "본문입니다."
+
+
+def test_embedding_text_dedups_equal_title_and_section():
+    # glossary 카드처럼 title == section이면 접두는 한 번만
+    chunk = _prefix_chunk("본문입니다.", title="가정통신문", section="가정통신문")
+    assert embedding_text(chunk) == "가정통신문\n본문입니다."
+
+
+async def test_ingest_embeds_prefixed_text():
+    embedder = RecordingEmbedder()
+    docs = [
+        SourceDoc(
+            source="src", title="가정통신문", doc_type="glossary", text="# 개요\n학교 안내문입니다."
+        )
+    ]
+    await ingest(docs, embedder=embedder, store=FakeKbStore(), chunker=chunk_document_sectioned)
+    assert embedder.seen == ["가정통신문 — 개요\n학교 안내문입니다."]
+
+
+async def test_ingest_prefix_keeps_stored_content_and_hash():
+    # ①의 절대 원칙 고정: 접두는 임베딩 입력에만 — 저장 content·멱등키(content_hash)는 원본 그대로
+    store = FakeKbStore()
+    docs = [
+        SourceDoc(
+            source="src", title="가정통신문", doc_type="glossary", text="# 개요\n학교 안내문입니다."
+        )
+    ]
+    await ingest(docs, embedder=RecordingEmbedder(), store=store, chunker=chunk_document_sectioned)
+    [stored] = store._store.values()
+    assert stored.content == "학교 안내문입니다."
+    assert stored.content_hash == hashlib.sha256("src|학교 안내문입니다.".encode()).hexdigest()
 
 
 # ── 매니페스트 로더 ─────────────────────────────────────────────────────────
