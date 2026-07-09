@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../data/locator.dart';
+import '../data/notification_service.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -619,6 +620,9 @@ class _ResultState extends StatelessWidget {
                         // F-DOC-7: 앱 내 캘린더에 확정 저장
                         final saved = await repository.saveCalendarEvents(
                             documentId: analysis.document.documentId);
+                        // F-PRO-2·3: 마감 D-2·행사 전날 잠금화면 리마인드 예약
+                        await NotificationService.instance
+                            .scheduleEventReminders(saved);
                         messenger.showSnackBar(SnackBar(
                             content: Text(
                                 '일정 ${saved.length}개를 캘린더에 저장했어요 · Đã lưu')));
