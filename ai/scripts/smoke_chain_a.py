@@ -77,10 +77,15 @@ def print_result(result: ChainAResult) -> bool:
     if not card.supplies:
         print("  준비물 카드: (없음)")
     for supply in card.supplies:
-        has_hangul = bool(HANGUL.search(supply.ecommerce_keyword))
+        keyword = supply.ecommerce_keyword
+        if keyword is None:
+            # §17.11 2단-a: 비구매 항목(배부물·오기 추정 등) — 키워드·딥링크 없음이 정상
+            print(f"  - {supply.name_ko} / 키워드: (없음 — 비구매) / 딥링크: (없음)")
+            continue
+        has_hangul = bool(HANGUL.search(keyword))
         all_keywords_korean = all_keywords_korean and has_hangul
         print(
-            f"  - {supply.name_ko} / 키워드: {supply.ecommerce_keyword}"
+            f"  - {supply.name_ko} / 키워드: {keyword}"
             f" / 한글여부: {'O' if has_hangul else 'X'}"
             f" / 딥링크: {supply.ecommerce_deeplink or '(없음)'}"
         )
