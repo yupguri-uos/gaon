@@ -28,3 +28,9 @@ def upload_image(key: str, data: bytes, content_type: str | None) -> None:
         Body=data,
         ContentType=content_type or "application/octet-stream",
     )
+
+
+def download_image(key: str) -> bytes:
+    """버킷 키로 이미지 바이트를 내려받는다 — Chain A LLM 이미지 로더용(chain_deps 참조)."""
+    response = _client.get_object(Bucket=settings.s3_bucket, Key=key)
+    return response["Body"].read()
