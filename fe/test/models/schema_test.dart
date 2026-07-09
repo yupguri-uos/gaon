@@ -10,6 +10,8 @@ void main() {
       expect(OriginCountry.vn.wire, 'VN');
       expect(NativeLanguage.zh.wire, 'zh');
       expect(ChildGrade.elem2.wire, 'elem_2');
+      expect(ChildGrade.elem6.wire, 'elem_6');
+      expect(ChildGrade.values, hasLength(6)); // 초1~6 (팀 결정, 0009)
       expect(DocStatus.translating.wire, 'translating');
       expect(MessageSituation.sickNote.wire, 'sick_note');
       expect(NotificationType.deadlineD2.wire, 'deadline_d2');
@@ -137,7 +139,7 @@ void main() {
   });
 
   group('ActivityLog', () {
-    test('기본값 0 + weekly_activity 왕복', () {
+    test('기본값 0 + weekly_activity(v0.7 주간 구조) 왕복', () {
       final log = ActivityLog.fromJson({'user_id': 'u1'});
       expect(log.processedCount, 0);
       expect(log.weeklyActivity, isEmpty);
@@ -148,12 +150,37 @@ void main() {
         'event_participation_count': 8,
         'missed_count': 1,
         'weekly_activity': [
-          {'week': 1, 'count': 4},
-          {'week': 2, 'count': 5},
+          {
+            'week_start': '2025-06-01',
+            'week_end': '2025-06-07',
+            'processed_count': 3,
+            'event_participation_count': 2,
+          },
         ],
       });
-      expect(full.weeklyActivity.length, 2);
+      final week = full.weeklyActivity.single;
+      expect(week.weekStart, DateTime(2025, 6, 1));
+      expect(week.processedCount, 3);
+      expect(week.missedCount, 0); // 생략 시 기본값
+      // 왕복: week_start/week_end는 yyyy-MM-dd로 직렬화
+      expect(full.toJson()['weekly_activity'][0]['week_end'], '2025-06-07');
       expect(ActivityLog.fromJson(full.toJson()).missedCount, 1);
+    });
+  });
+
+  group('Child', () {
+    test('school_name 왕복 (마이그레이션 0007)', () {
+      final child = Child.fromJson({
+        'child_id': 'c1',
+        'user_id': 'u1',
+        'grade': 'elem_5',
+        'class_no': '3',
+        'school_name': '가온초등학교',
+        'created_at': '2025-05-01T09:00:00Z',
+      });
+      expect(child.grade, ChildGrade.elem5);
+      expect(child.schoolName, '가온초등학교');
+      expect(Child.fromJson(child.toJson()).schoolName, '가온초등학교');
     });
   });
 

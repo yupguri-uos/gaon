@@ -78,11 +78,16 @@ void main() {
       expect((await repo.getChildren()).first.name, '이서준');
 
       await repo.addChild(
-          grade: ChildGrade.elem3, name: '김하늘', classNo: '2');
+          grade: ChildGrade.elem5, // 초4~6도 정본 반영(0009) — 클램프 없이 저장
+          name: '김하늘',
+          classNo: '2',
+          schoolName: '가온초등학교');
       final children = await repo.getChildren();
       expect(children, hasLength(1));
       expect(children.single.name, '김하늘');
+      expect(children.single.grade, ChildGrade.elem5);
       expect(children.single.classNo, '2');
+      expect(children.single.schoolName, '가온초등학교');
       expect(children.single.color, isNotNull); // 캘린더 색 자동 배정
     });
   });

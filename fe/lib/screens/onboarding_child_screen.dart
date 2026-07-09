@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../data/demo_data.dart';
 import '../data/locator.dart';
+import '../models/display.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'main_shell.dart';
 
 /// S3 온보딩 ② 자녀 등록 (F-ON-4) — 다자녀 지원.
-///
-/// 주의(SSOT 결정 대기 — fe/CLAUDE.md 참조):
-/// - '학교명'은 shared-schema Child에 필드가 없어 UI 전용(로컬).
-/// - 학년 초1~6은 UI 전용 — schema ChildGrade는 elem_1~3만.
-///   BE 연동 전에 SSOT → schema.py(Literal)·DB CHECK 확장 필요.
+/// 학년(초1~6)·학교명 모두 shared-schema 정본 반영 완료(마이그레이션 0007·0009).
 class OnboardingChildScreen extends StatefulWidget {
   const OnboardingChildScreen({super.key});
 
@@ -23,7 +20,7 @@ class OnboardingChildScreen extends StatefulWidget {
 class _ChildForm {
   final school = TextEditingController(text: demoSchoolName);
   final name = TextEditingController();
-  int gradeNo = 2; // 초1~6 (UI 전용 — schema 확장 대기)
+  ChildGrade grade = ChildGrade.elem2;
   String classNo = '3';
 
   void dispose() {
@@ -44,7 +41,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
   }
 
   Future<void> _pickGrade(_ChildForm form) async {
-    final picked = await showModalBottomSheet<int>(
+    final picked = await showModalBottomSheet<ChildGrade>(
       context: context,
       backgroundColor: GaonColors.surface,
       shape: const RoundedRectangleBorder(
@@ -61,14 +58,13 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
               Text('학년 · Lớp',
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: GaonSpace.sm),
-              for (var n = 1; n <= 6; n++)
+              for (final g in ChildGrade.values)
                 ListTile(
-                  onTap: () => Navigator.of(context).pop(n),
+                  onTap: () => Navigator.of(context).pop(g),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(GaonRadius.md)),
-                  tileColor:
-                      n == form.gradeNo ? GaonColors.primaryLight : null,
-                  title: Text('Lớp $n / 초$n',
+                  tileColor: g == form.grade ? GaonColors.primaryLight : null,
+                  title: Text(g.label,
                       style: GaonType.bodyLg
                           .copyWith(color: GaonColors.textPrimary)),
                 ),
@@ -77,7 +73,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
         ),
       ),
     );
-    if (picked != null) setState(() => form.gradeNo = picked);
+    if (picked != null) setState(() => form.grade = picked);
   }
 
   Future<void> _pickClassNo(_ChildForm form) async {
@@ -215,13 +211,12 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                   // 입력한 자녀들을 저장소에 등록 → 이후 화면(챗봇·설정·캘린더)에 반영
                   for (final form in _children) {
                     final name = form.name.text.trim();
+                    final school = form.school.text.trim();
                     await repository.addChild(
-                      // 초4~6은 schema(elem_1~3) 한계로 초3으로 클램프 저장 —
-                      // SSOT 학년 확장 반영 시 함께 해제(fe/CLAUDE.md 참조)
-                      grade: ChildGrade
-                          .values[(form.gradeNo.clamp(1, 3)) - 1],
+                      grade: form.grade,
                       name: name.isEmpty ? null : name,
                       classNo: form.classNo,
+                      schoolName: school.isEmpty ? null : school,
                     );
                   }
                   if (!context.mounted) return;
@@ -320,8 +315,7 @@ class _ChildCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _darkSelector(
-                    'Lớp ${form.gradeNo} / 초${form.gradeNo}', onPickGrade),
+                child: _darkSelector(form.grade.label, onPickGrade),
               ),
               const SizedBox(width: GaonSpace.xs),
               Expanded(

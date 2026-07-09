@@ -8,8 +8,7 @@ import '../models/schema.dart';
 
 final demoToday = DateTime(2025, 6, 10);
 
-/// 학교명은 schema(Child)에 필드가 없어 UI 전용 상수로 둔다.
-/// 스키마 반영은 SSOT 결정 필요 — CLAUDE.md 변경 순서 참조.
+/// 온보딩 학교명 기본값 (Child.school_name — 마이그레이션 0007로 정식 반영됨).
 const demoSchoolName = '가온초등학교';
 
 final demoUser = User(
@@ -27,6 +26,7 @@ final demoChildren = [
     name: '이서준', // PII — 동의 기반 저장 가정(결정 #7-PII)
     grade: ChildGrade.elem2,
     classNo: '3',
+    schoolName: demoSchoolName,
     color: '#011D14', // deep forest
     createdAt: DateTime(2025, 5, 1, 9),
   ),
@@ -36,6 +36,7 @@ final demoChildren = [
     name: '이민아',
     grade: ChildGrade.elem1,
     classNo: '1',
+    schoolName: demoSchoolName,
     color: '#E05A2B', // warn
     createdAt: DateTime(2025, 5, 1, 9),
   ),
@@ -124,16 +125,34 @@ final demoActionCard = ActionCard(
       '선생님, 안녕하세요. 서울대공원 현장체험학습 동의서를 제출합니다. 참가에 동의합니다. 감사합니다.',
 );
 
+// 주차 합계가 총계(12/8/1)와 일치하도록 구성 — 발표 시 숫자 안 맞는 약점 방지.
 final demoActivityLog = ActivityLog(
   userId: 'demo-user-1',
   processedCount: 12,
   eventParticipationCount: 8,
   missedCount: 1,
-  weeklyActivity: const [
-    WeeklyActivity(week: 1, count: 4),
-    WeeklyActivity(week: 2, count: 5),
-    WeeklyActivity(week: 3, count: 3),
-    WeeklyActivity(week: 4, count: 4),
+  weeklyActivity: [
+    WeeklyActivity(
+        weekStart: DateTime(2025, 6, 1),
+        weekEnd: DateTime(2025, 6, 7),
+        processedCount: 3,
+        eventParticipationCount: 2),
+    WeeklyActivity(
+        weekStart: DateTime(2025, 6, 8),
+        weekEnd: DateTime(2025, 6, 14),
+        processedCount: 4,
+        eventParticipationCount: 3,
+        missedCount: 1),
+    WeeklyActivity(
+        weekStart: DateTime(2025, 6, 15),
+        weekEnd: DateTime(2025, 6, 21),
+        processedCount: 2,
+        eventParticipationCount: 1),
+    WeeklyActivity(
+        weekStart: DateTime(2025, 6, 22),
+        weekEnd: DateTime(2025, 6, 28),
+        processedCount: 3,
+        eventParticipationCount: 2),
   ],
 );
 

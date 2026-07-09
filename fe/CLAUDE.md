@@ -24,9 +24,8 @@ lib/screens/  화면 (v2 시안: 5 Flows · 15 Screens)
 
 ## schema보다 앞서간 UI (SSOT 결정 대기 — schema 반영 전까지 UI 전용)
 - 출신국 필리핀·태국·한국 / 모국어 Filipino·태국어 (schema: VN/CN · vi/zh)
-- 자녀 학교명 필드 (Child에 없음 — 단 SSOT §17.4엔 school_name 반영됨, schema.py 대기)
 - 교사 목록(문자 받는 사람) (Teacher 엔티티 없음)
-- 온보딩 학년 초1~6 — schema ChildGrade는 elem_1~3만 (확장 시 elem_1~6, schema.py+DB CHECK 한 세트)
+- ~~학년 초1~6~~ · ~~학교명~~ → schema 정본 반영 완료(마이그레이션 0007·0009), FE 미러 동기화됨
 
 ## BE 연동 (INF 공지 2026-07-08)
 - 공개 URL https://gaon.uk — API base는 data/api_config.dart의 gaonApiBase(`https://gaon.uk/api`).

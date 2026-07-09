@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../data/demo_data.dart';
 import '../data/locator.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
@@ -144,7 +143,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                             color:
                                                 GaonColors.textPrimary)),
                                     Text(
-                                        '$demoSchoolName · '
+                                        '${child.schoolName ?? '학교 미등록'} · '
                                         '${child.grade.label.split(' / ').last} '
                                         '${child.classNo ?? '?'}반',
                                         style: GaonType.caption.copyWith(

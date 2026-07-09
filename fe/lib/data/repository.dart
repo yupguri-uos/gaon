@@ -36,6 +36,7 @@ abstract interface class GaonRepository {
     required ChildGrade grade,
     String? name,
     String? classNo,
+    String? schoolName,
   });
 
   /// Chain A 시작(F-DOC-1). Document 생성 후 status가 비동기로 진행된다.
