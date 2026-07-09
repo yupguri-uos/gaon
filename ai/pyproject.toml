@@ -28,6 +28,7 @@ dev = [
 rag = [
     "sentence-transformers>=3",
     "psycopg[binary,pool]>=3.1",
+    "kss>=5",  # 한국어 문장분할(kss_splitter) — 인제스트 배치 전용
 ]
 
 [tool.hatch.build.targets.wheel]
