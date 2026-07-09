@@ -1,9 +1,15 @@
+import 'api_repository.dart';
 import 'mock_repository.dart';
 import 'repository.dart';
 
 /// 전역 저장소 인스턴스.
-/// BE 연동 시 여기서 MockRepository → ApiRepository로 교체하면 끝
-/// (화면 코드는 GaonRepository 인터페이스만 알므로 무변경).
-/// ApiRepository의 base URL은 api_config.dart의 gaonApiBase(= https://gaon.uk/api).
+///
+/// 기본 = MockRepository(데모 데이터). 실 BE(gaon.uk/api) 연동 실행:
+///   flutter run --dart-define=GAON_USE_API=true \
+///               --dart-define=GAON_API_TOKEN=(BE 발급 토큰)
+/// Kakao 로그인(F-ON-3)이 붙으면 토큰은 로그인 플로우가 주입하고
+/// GAON_USE_API=true가 기본이 된다.
 /// 테스트에서는 이 값을 갈아끼워 화면을 격리한다.
-GaonRepository repository = MockRepository();
+const _useApi = bool.fromEnvironment('GAON_USE_API');
+
+GaonRepository repository = _useApi ? ApiRepository() : MockRepository();
