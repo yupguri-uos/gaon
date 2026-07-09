@@ -1,0 +1,39 @@
+{"query": "돌봄교실이 뭔가요", "expected_source": "gaon-glossary-v1", "expected_term": "돌봄교실"}
+{"query": "맞벌이인데 방과후에 아이를 맡길 곳이 있나요", "expected_source": "gaon-glossary-v1", "expected_term": "돌봄교실"}
+{"query": "방과후학교는 무엇인가요", "expected_source": "gaon-glossary-v1", "expected_term": "방과후학교"}
+{"query": "방과후 축구 교실을 신청하고 싶어요", "expected_source": "gaon-glossary-v1", "expected_term": "방과후학교"}
+{"query": "방과후 수업 신청은 어떻게 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "방과후 수강신청"}
+{"query": "방과후 수강신청 기간을 놓치면 어떻게 되나요", "expected_source": "gaon-glossary-v1", "expected_term": "방과후 수강신청"}
+{"query": "현장학습 갈 때 뭘 준비해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "현장체험학습"}
+{"query": "현장체험학습이 뭔가요", "expected_source": "gaon-glossary-v1", "expected_term": "현장체험학습"}
+{"query": "체험학습 신청서는 어떻게 내나요", "expected_source": "gaon-glossary-v1", "expected_term": "체험학습신청서(교외체험학습)"}
+{"query": "가족 여행으로 학교를 며칠 빠지려면 어떻게 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "체험학습신청서(교외체험학습)"}
+{"query": "현장체험학습 동의서를 안 내면 어떻게 되나요", "expected_source": "gaon-glossary-v1", "expected_term": "현장체험학습 동의서"}
+{"query": "스쿨뱅킹이 무슨 뜻이에요", "expected_source": "gaon-glossary-v1", "expected_term": "스쿨뱅킹"}
+{"query": "급식비는 어떻게 내나요", "expected_source": "gaon-glossary-v1", "expected_term": "스쿨뱅킹"}
+{"query": "생활통지표가 뭐예요", "expected_source": "gaon-glossary-v1", "expected_term": "생활통지표"}
+{"query": "통지표를 받았는데 뭘 해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "생활통지표"}
+{"query": "알림장은 어떻게 확인하나요", "expected_source": "gaon-glossary-v1", "expected_term": "알림장"}
+{"query": "가정통신문이 뭔가요", "expected_source": "gaon-glossary-v1", "expected_term": "가정통신문"}
+{"query": "학교에서 온 안내문에 회신하라는데 뭘 해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "가정통신문"}
+{"query": "학교운영위원회가 뭐 하는 곳인가요", "expected_source": "gaon-glossary-v1", "expected_term": "학교운영위원회"}
+{"query": "상담주간에는 뭘 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "상담주간"}
+{"query": "담임 선생님과 상담하고 싶어요", "expected_source": "gaon-glossary-v1", "expected_term": "상담주간"}
+{"query": "알레르기 있는 아이 급식은 어떻게 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "급식"}
+{"query": "우유급식 동의서", "expected_source": "gaon-glossary-v1", "expected_term": "우유급식"}
+{"query": "우유급식은 꼭 신청해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "우유급식"}
+{"query": "녹색어머니회는 꼭 해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "녹색어머니회"}
+{"query": "학교 앞 교통봉사 당번이 됐어요", "expected_source": "gaon-glossary-v1", "expected_term": "녹색어머니회"}
+{"query": "학부모회에 가입해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "학부모회"}
+{"query": "여름방학 동안 아이 돌봄은 어떻게 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "방학"}
+{"query": "개학날 준비물이 있나요", "expected_source": "gaon-glossary-v1", "expected_term": "개학식"}
+{"query": "재량휴업일이 무슨 날인가요", "expected_source": "gaon-glossary-v1", "expected_term": "재량휴업일"}
+{"query": "실내화주머니가 뭔가요", "expected_source": "gaon-glossary-v1", "expected_term": "실내화·실내화주머니"}
+{"query": "실내화는 무슨 색으로 사야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "실내화·실내화주머니"}
+{"query": "내일까지 색종이를 가져오라는데 준비물은 어떻게 챙기나요", "expected_source": "gaon-glossary-v1", "expected_term": "준비물 안내"}
+{"query": "아이가 아파서 결석하면 어떻게 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "결석신고서"}
+{"query": "결석신고서에 뭘 첨부해야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "결석신고서"}
+{"query": "예방접종 증명서를 내라고 해요", "expected_source": "gaon-glossary-v1", "expected_term": "예방접종 확인"}
+{"query": "외국에서 맞은 예방접종은 어떻게 인정받나요", "expected_source": "gaon-glossary-v1", "expected_term": "예방접종 확인"}
+{"query": "운동회 때 부모도 가야 하나요", "expected_source": "gaon-glossary-v1", "expected_term": "운동회"}
+{"query": "학예회 의상을 준비하라고 해요", "expected_source": "gaon-glossary-v1", "expected_term": "학예회"}
