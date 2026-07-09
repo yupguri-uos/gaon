@@ -1,0 +1,390 @@
+{
+  "documents": [
+    {
+      "doc_id": "001",
+      "image": "images/001.jpeg",
+      "received_date": "2026-03-03",
+      "tags": [
+        "print"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-03-03"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "002",
+      "image": "images/002.jpeg",
+      "received_date": "2026-04-09",
+      "tags": [
+        "print", "table"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-04-09"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "003",
+      "image": "images/003.jpeg",
+      "received_date": "2026-04-24",
+      "tags": [
+        "print", "table"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-11", "2026-05-12", "2026-04-24"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "004",
+      "image": "images/004.jpeg",
+      "received_date": "2026-04-23",
+      "tags": [
+        "print"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-04-23"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "005",
+      "image": "images/005.jpeg",
+      "received_date": "2026-07-06",
+      "tags": [
+        "print"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-07-07", "2026-07-22", "2026-07-16", "2026-07-06"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "006",
+      "image": "images/006.jpeg",
+      "received_date": "2026-06-29",
+      "tags": [
+        "print", "table"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-06-29"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "007",
+      "image": "images/007.jpeg",
+      "received_date": "2025-05-20",
+      "tags": [
+        "print", "table"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2025-05-15", "2025-05-20"
+        ],
+        "amounts": [
+          20000, 2100000
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "008",
+      "image": "images/008.jpeg",
+      "received_date": "2026-04-21",
+      "tags": [
+        "print", "table", "low-quality"
+      ],
+      "gold": {
+        "doc_type": "consent",
+        "deadline": "2026-04-24",
+        "requires_reply": true,
+        "dates": [
+          "2026-04-24", "2026-05-06", "2026-05-04", "2026-05-08", "2026-04-21"
+        ],
+        "amounts": [
+          464.98, 7900, 9290, 9760, 8360, 25550, 26020
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "009",
+      "image": "images/009.jpeg",
+      "received_date": "2025-03-31",
+      "tags": [
+        "print", "table"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2025-03-31"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "010",
+      "image": "images/010.jpeg",
+      "received_date": "2026-02-20",
+      "tags": [
+        "print", "table"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2026-03-03", "2026-03-04", "2026-03-06", "2026-03-09", "2026-02-20"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "011",
+      "image": "images/011.jpg",
+      "received_date": "2021-10-18",
+      "tags": [
+        "handwritten", "relative-date", "low-quality"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2021-10-18"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+          "줄넘기"
+        ]
+      }
+    },
+    {
+      "doc_id": "012",
+      "image": "images/012.jpg",
+      "received_date": "2016-06-14",
+      "tags": [
+        "handwritten", "relative-date"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2016-06-14", "2016-06-15"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+          "색연필", "사인펜"
+        ]
+      }
+    },
+    {
+      "doc_id": "013",
+      "image": "images/013.jpeg",
+      "received_date": "2018-03-05",
+      "tags": [
+        "print", "low-quality"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": true,
+        "dates": [
+          "2018-03-05"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "014",
+      "image": "images/014.jpg",
+      "received_date": "2021-11-30",
+      "tags": [
+        "handwritten"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2021-11-30"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "015",
+      "image": "images/015.jpeg",
+      "received_date": "2017-08-29",
+      "tags": [
+        "handwritten", "relative-date"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": "2017-08-31",
+        "requires_reply": true,
+        "dates": [
+          "2017-08-29", "2017-08-31"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "016",
+      "image": "images/016.jpg",
+      "received_date": "2022-03-07",
+      "tags": [
+        "handwritten", "low-quality"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2022-03-07"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "017",
+      "image": "images/017.jpeg",
+      "received_date": "2013-05-22",
+      "tags": [
+        "handwritten", "low-quality"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2013-05-22"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+          "체육복", "운동화"
+        ]
+      }
+    },
+    {
+      "doc_id": "018",
+      "image": "images/018.jpeg",
+      "received_date": "2025-09-22",
+      "tags": [
+        "handwritten"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": false,
+        "dates": [
+          "2025-09-22"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+        ]
+      }
+    },
+    {
+      "doc_id": "019",
+      "image": "images/019.jpg",
+      "received_date": "2017-03-06",
+      "tags": [
+        "print"
+      ],
+      "gold": {
+        "doc_type": "notice",
+        "deadline": null,
+        "requires_reply": true,
+        "dates": [
+          "2017-03-06", "2017-03-11"
+        ],
+        "amounts": [
+        ],
+        "supplies": [
+          "물통", "그림책", "알림장", "우체통", "종합장", "교과서"
+        ]
+      }
+    }
+  ]
+}
