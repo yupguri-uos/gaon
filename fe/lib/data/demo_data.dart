@@ -100,6 +100,13 @@ final demoActionCard = ActionCard(
       ecommerceDeeplink:
           'https://www.coupang.com/np/search?q=%EC%83%89%EC%97%B0%ED%95%84%2012%EC%83%89',
     ),
+    // 비구매 항목 — 키워드·딥링크 null(§17.11). 숨김 렌더 확인용.
+    Supply(
+      nameKo: '교과서',
+      nameNative: 'Sách giáo khoa',
+      explanationNative: 'Sách giáo khoa mang theo mỗi ngày — không cần mua.',
+      spec: '매일 지참',
+    ),
   ],
   calendarEvents: [
     CalendarEvent(

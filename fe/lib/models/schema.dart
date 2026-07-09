@@ -391,7 +391,7 @@ class Supply {
     required this.nameNative,
     required this.explanationNative,
     this.spec,
-    required this.ecommerceKeyword,
+    this.ecommerceKeyword,
     this.ecommerceDeeplink,
   });
 
@@ -399,7 +399,10 @@ class Supply {
   final String nameNative;
   final String explanationNative;
   final String? spec; // 규격(예: 175mm)
-  final String ecommerceKeyword; // 쿠팡 검색용 한국어 키워드(모국어 아님 — SSOT v0.7.5)
+
+  /// 쿠팡 검색용 한국어 키워드 — 구매가 합리적인 실물에만 옴.
+  /// null = 비구매 항목(예: 교과서). 이때 deeplink도 null(§17.11, 2026-07-10).
+  final String? ecommerceKeyword;
   final String? ecommerceDeeplink; // 쿠팡 검색 URL (자동결제 X)
 
   factory Supply.fromJson(Map<String, dynamic> json) => Supply(
@@ -407,7 +410,7 @@ class Supply {
         nameNative: json['name_native'] as String,
         explanationNative: json['explanation_native'] as String,
         spec: json['spec'] as String?,
-        ecommerceKeyword: json['ecommerce_keyword'] as String,
+        ecommerceKeyword: json['ecommerce_keyword'] as String?,
         ecommerceDeeplink: json['ecommerce_deeplink'] as String?,
       );
 
