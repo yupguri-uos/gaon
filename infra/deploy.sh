@@ -1,32 +1,49 @@
 #!/usr/bin/env bash
-# GAON 배포 — 미니PC에서 실행. repo clone 위치의 /infra 안에서 돌린다.
-# 전제: /infra/.env 가 이미 있어야 함(.env.example 복사 후 값 채움, 커밋 금지).
-#       tailnet·Docker는 이미 떠 있음(인계 완료).
+# GAON 미니PC 배포 스크립트
+#   pull → build → backup → (가드된) migrate → up → health
+# 순서 강제로 "호스트 git pull만 하고 이미지 재빌드를 빠뜨려 마이그레이션이 조용히 no-op" 함정을 차단한다.
+# 파괴적 마이그레이션은 migrate-guard 가 CONFIRM_DESTRUCTIVE=1 없이 막는다.
+#
+# 사용:
+#   bash infra/deploy.sh                      # 평상시
+#   CONFIRM_DESTRUCTIVE=1 bash infra/deploy.sh # 파괴적 변경을 검토·승인한 경우만
 set -euo pipefail
-cd "$(dirname "$0")"                 # /infra 로 이동
 
-if [ ! -f .env ]; then
-  echo "ERROR: /infra/.env 없음. 'cp .env.example .env' 후 값 채우고 다시 실행." >&2
+REPO="${GAON_REPO:-/opt/gaon}"
+INFRA="$REPO/infra"
+HEALTH_URL="${GAON_HEALTH_URL:-https://gaon.uk/_ok}"
+BACKUP_DIR="${GAON_BACKUP_DIR:-$HOME/gaon-backups}"
+
+echo "== 1/5 코드 최신화 =="
+cd "$REPO"
+git fetch origin
+git checkout main
+git pull --ff-only origin main
+echo "HEAD $(git rev-parse --short HEAD)"
+
+echo "== 2/5 이미지 재빌드 (호스트 pull만으론 컨테이너에 반영 안 됨) =="
+cd "$INFRA"
+docker compose build
+
+echo "== 3/5 DB 백업 (마이그레이션 전 필수) =="
+mkdir -p "$BACKUP_DIR"
+BACKUP="$BACKUP_DIR/gaon_$(date +%Y%m%d_%H%M%S).sql"
+docker compose exec -T postgres pg_dump -U gaon gaon > "$BACKUP"
+echo "backup → $BACKUP"
+
+echo "== 4/5 마이그레이션 (파괴적 변경 가드) =="
+# CONFIRM_DESTRUCTIVE 는 호출자 환경값을 그대로 migrate 컨테이너로 전달.
+if ! docker compose run --rm -e CONFIRM_DESTRUCTIVE="${CONFIRM_DESTRUCTIVE:-0}" migrate; then
+  echo "!! 마이그레이션 중단(파괴적 변경 가드 또는 오류). 위 메시지를 확인하세요." >&2
   exit 1
 fi
 
-echo "== 1) git pull =="
-git -C .. pull --ff-only
-
-echo "== 2) build =="
-docker compose build
-
-echo "== 3) migrate + up (migrate가 alembic upgrade head 후 app 기동) =="
+echo "== 5/5 재기동 + 헬스체크 =="
 docker compose up -d
-
-echo "== 4) status =="
-docker compose ps
-
-cat <<'EOF'
-
-완료. 검증:
-  docker compose logs migrate           # alembic upgrade 결과
-  docker exec -it gaon-postgres-1 psql -U gaon -d gaon -c '\dt'   # 테이블
-  sudo ss -tlnp | grep -E '5432|8000|9000|9001'                  # tailnet IP 바인딩 확인
-  curl -s http://gaon-minipc:8000/health || echo '(헬스 엔드포인트 없으면 무시)'
-EOF
+sleep 3
+if curl -fsS "$HEALTH_URL" >/dev/null; then
+  echo "✅ DEPLOY OK  ($HEALTH_URL)"
+else
+  echo "!! HEALTH FAIL: $HEALTH_URL 응답 없음" >&2
+  exit 1
+fi

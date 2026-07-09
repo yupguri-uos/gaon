@@ -72,10 +72,12 @@ services:
       dockerfile: infra/Dockerfile
     image: gaon-be:latest
     env_file: .env
+    environment:
+      CONFIRM_DESTRUCTIVE: "${CONFIRM_DESTRUCTIVE:-0}"
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["alembic", "upgrade", "head"]
+    command: ["bash", "/app/scripts/migrate-guard.sh"]
     restart: "no"
 
   # FastAPI 앱 — migrate가 성공적으로 끝난 뒤 기동
@@ -86,6 +88,8 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     ports:
       - "${TAILNET_IP}:8000:8000"          # 지금은 tailnet 전용, 공개 노출은 본가 cloudflared
     init: true
