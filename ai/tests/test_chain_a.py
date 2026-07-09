@@ -234,6 +234,20 @@ async def test_child_info_reaches_lifestyle_prompt():
     assert "elem_2" in lifestyle_prompt
 
 
+async def test_lifestyle_prompt_forbids_document_supplies():
+    # §17.11 1단: 제출 서류는 supplies 금지 — 가드 문구가 실제 LLM 호출 프롬프트에 실리는지 검증
+    llm = RecordingLLMClient()
+    await run_chain_a_core(
+        build_document(),
+        build_user(),
+        llm=llm,
+        retriever=FakeRetriever(),
+    )
+    lifestyle_prompt = "\n".join(llm.lifestyle_texts)
+    assert "구매 가능한 실물만" in lifestyle_prompt
+    assert "신청서·동의서·조사서" in lifestyle_prompt
+
+
 async def test_no_child_info_shows_unspecified_in_lifestyle_prompt():
     # child_info=None(기본값)이면 학년 자리에 '미지정'만 들어가고 크래시하지 않는다
     llm = RecordingLLMClient()
