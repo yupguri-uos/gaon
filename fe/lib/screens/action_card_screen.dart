@@ -312,32 +312,36 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: GaonSpace.sm),
-                              // 구매 검색어
-                              Text('Từ khóa mua sắm · 구매 검색어',
-                                  style: GaonType.micro.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: GaonColors.textSecondary)),
-                              const SizedBox(height: GaonSpace.xxs),
-                              _MiniAction(
-                                bg: GaonColors.primaryLight,
-                                onTap: () => _copy(supply.ecommerceKeyword,
-                                    "'${supply.ecommerceKeyword}' 복사했어요 · Đã sao chép"),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(supply.ecommerceKeyword,
-                                        style: GaonType.caption.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: GaonColors
-                                                .textSecondary)),
-                                    const Icon(Icons.copy_rounded,
-                                        size: 11,
-                                        color: GaonColors.textSecondary),
-                                  ],
+                              // 구매 검색어 — 비구매 항목(keyword=null)은 숨김(§17.11).
+                              // 준비물 이름·설명은 위에서 그대로 노출.
+                              if (supply.ecommerceKeyword
+                                  case final keyword?) ...[
+                                const SizedBox(height: GaonSpace.sm),
+                                Text('Từ khóa mua sắm · 구매 검색어',
+                                    style: GaonType.micro.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: GaonColors.textSecondary)),
+                                const SizedBox(height: GaonSpace.xxs),
+                                _MiniAction(
+                                  bg: GaonColors.primaryLight,
+                                  onTap: () => _copy(keyword,
+                                      "'$keyword' 복사했어요 · Đã sao chép"),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(keyword,
+                                          style: GaonType.caption.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: GaonColors
+                                                  .textSecondary)),
+                                      const Icon(Icons.copy_rounded,
+                                          size: 11,
+                                          color: GaonColors.textSecondary),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                               if (supply.ecommerceDeeplink != null) ...[
                                 const SizedBox(height: GaonSpace.xs),
                                 // 쿠팡 검색 링크(자동결제 아님 — 검색 페이지로만)

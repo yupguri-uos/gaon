@@ -118,6 +118,18 @@ void main() {
       expect(card.toJson()['calendar_events'][0]['date'], '2025-06-12');
       expect(restored.replyDraftKo, isNotNull);
     });
+
+    test('ecommerce_keyword null 허용 — 비구매 항목(§17.11)', () {
+      final supply = Supply.fromJson({
+        'name_ko': '교과서',
+        'name_native': 'Sách giáo khoa',
+        'explanation_native': '...',
+        'ecommerce_keyword': null,
+      });
+      expect(supply.ecommerceKeyword, isNull);
+      expect(supply.ecommerceDeeplink, isNull);
+      expect(Supply.fromJson(supply.toJson()).ecommerceKeyword, isNull);
+    });
   });
 
   group('TeacherMessage / ChildInfo', () {

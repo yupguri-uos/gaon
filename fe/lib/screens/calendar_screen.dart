@@ -168,8 +168,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 const SizedBox(height: GaonSpace.sm),
 
-                // 검색어 추천 (F-DOC-6)
-                if (analysis.actionCard.supplies.isNotEmpty)
+                // 검색어 추천 (F-DOC-6) — 키워드 있는 supply만(§17.11: 비구매 항목은 null)
+                if (analysis.actionCard.supplies
+                    .any((s) => s.ecommerceKeyword != null))
                   Container(
                     padding: const EdgeInsets.all(GaonSpace.sm),
                     decoration: BoxDecoration(
@@ -188,13 +189,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           spacing: 6,
                           children: [
                             for (final s in analysis.actionCard.supplies)
+                              if (s.ecommerceKeyword case final keyword?)
                               Material(
                                 color: GaonColors.textPrimary,
                                 borderRadius: BorderRadius.circular(
                                     GaonRadius.pill),
                                 child: InkWell(
-                                  onTap: () =>
-                                      _copyKeyword(s.ecommerceKeyword),
+                                  onTap: () => _copyKeyword(keyword),
                                   borderRadius: BorderRadius.circular(
                                       GaonRadius.pill),
                                   child: Padding(
@@ -203,7 +204,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(s.ecommerceKeyword,
+                                        Text(keyword,
                                             style: GaonType.caption
                                                 .copyWith(
                                                     fontWeight:
