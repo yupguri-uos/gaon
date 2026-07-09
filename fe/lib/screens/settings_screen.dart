@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/locator.dart';
+import '../data/notification_service.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -227,6 +228,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ]),
                     _section('알림', [
+                      // 시연용: 5초 후 로컬 알림 발화 → 기기를 잠그면 잠금화면에서 확인
+                      _row(
+                        icon: Icons.lock_clock_rounded,
+                        label: '잠금화면 알림 미리보기',
+                        sub: 'Xem trước thông báo (5s)',
+                        onTap: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final notifications =
+                              await repository.getNotifications();
+                          final notification = notifications.firstOrNull;
+                          if (notification == null) return;
+                          await NotificationService.instance
+                              .schedulePreview(notification);
+                          messenger.showSnackBar(const SnackBar(
+                              content: Text(
+                                  '5초 후 알림이 옵니다 — 화면을 잠가보세요 🔒')));
+                        },
+                      ),
                       _row(
                         icon: Icons.notifications_none_rounded,
                         label: '푸시 알림',
