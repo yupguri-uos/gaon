@@ -96,10 +96,19 @@ class ApiRepository implements GaonRepository {
   // ── 사용자 / 온보딩 ──────────────────────────────────────────────
   @override
   Future<User> getCurrentUser() async {
-    // BE 갭: GET /me 미구현(§11) — 온보딩 캐시로 대체.
+    // BE 갭: GET /me 미구현(§11) — 온보딩 캐시 → 없으면 데모 폴백.
+    // 폴백: 인증 유효성만 확인하고 기본 프로필 반환(설정 화면이 죽지 않게).
+    // GET /me가 생기면 이 폴백을 실조회로 교체한다.
     final cached = _cachedUser;
     if (cached != null) return cached;
-    throw AuthRequiredException();
+    await _get('/children'); // 401/403이면 AuthRequiredException 전파
+    return _cachedUser = User(
+      userId: '',
+      displayName: '학부모',
+      originCountry: OriginCountry.vn,
+      nativeLanguage: NativeLanguage.vi,
+      createdAt: DateTime.now(),
+    );
   }
 
   /// POST /onboarding — 프로필 + 첫 자녀 생성(F-ON-1).

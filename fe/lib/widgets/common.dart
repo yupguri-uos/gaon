@@ -398,6 +398,57 @@ class InfoBanner extends StatelessWidget {
   }
 }
 
+/// 비동기 로딩 실패 안내 + 재시도 — 실서버 모드에서 무한 스피너 방지(시연 가드).
+class GaonAsyncError extends StatelessWidget {
+  const GaonAsyncError({
+    super.key,
+    required this.message,
+    this.subMessage,
+    this.onRetry,
+  });
+
+  final String message;
+  final String? subMessage;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(GaonSpace.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🛰️', style: TextStyle(fontSize: 32)),
+            const SizedBox(height: GaonSpace.sm),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: GaonType.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: GaonColors.textPrimary,
+                    height: 1.5)),
+            if (subMessage != null) ...[
+              const SizedBox(height: GaonSpace.xxs),
+              Text(subMessage!,
+                  textAlign: TextAlign.center,
+                  style: GaonType.caption
+                      .copyWith(color: GaonColors.textSecondary)),
+            ],
+            if (onRetry != null) ...[
+              const SizedBox(height: GaonSpace.md),
+              GaonButton(
+                label: '다시 시도 · Thử lại',
+                fullWidth: false,
+                onTap: onRetry,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// 연한 구분선.
 class GaonDivider extends StatelessWidget {
   const GaonDivider({super.key});
