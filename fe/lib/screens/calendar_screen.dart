@@ -22,11 +22,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   // 데모 시나리오: 2025년 6월 — 일요일 시작, 30일.
   static const _totalDays = 30;
 
-  late final Future<(List<Child>, DocumentAnalysis)> _future = () async {
+  late Future<(List<Child>, DocumentAnalysis)> _future = _load();
+
+  Future<(List<Child>, DocumentAnalysis)> _load() async {
     final children = repository.getChildren();
     final analysis = repository.getLatestAnalysis();
     return (await children, await analysis);
-  }();
+  }
 
   int _selectedDay = 12;
 
@@ -248,6 +250,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
       child: FutureBuilder(
         future: _future,
         builder: (context, snap) {
+          if (snap.hasError) {
+            // 실서버: 아직 분석한 문서가 없으면 getLatestAnalysis가 StateError
+            final noAnalysis = snap.error is StateError;
+            return GaonAsyncError(
+              message:
+                  noAnalysis ? '아직 분석한 알림장이 없어요' : '캘린더를 불러오지 못했어요',
+              subMessage: noAnalysis
+                  ? '알림장 탭에서 사진을 올려보세요 · Hãy tải ảnh thông báo lên'
+                  : '네트워크 확인 후 다시 시도해 주세요',
+              onRetry: () => setState(() => _future = _load()),
+            );
+          }
           if (!snap.hasData) {
             return const Center(
                 child: CircularProgressIndicator(

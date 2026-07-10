@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'onboarding_child_screen.dart';
@@ -131,7 +132,21 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                 subLabel: 'Tiếp tục →',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => const OnboardingChildScreen()),
+                    builder: (_) => OnboardingChildScreen(
+                      // schema 미지원 국가(필리핀·태국·한국)는 데모 폴백 VN —
+                      // 확장은 SSOT 결정 대기(fe/CLAUDE.md)
+                      originCountry: switch (_country) {
+                        0 => OriginCountry.vn,
+                        1 => OriginCountry.cn,
+                        _ => OriginCountry.vn,
+                      },
+                      nativeLanguage: switch (_lang) {
+                        0 => NativeLanguage.vi,
+                        1 => NativeLanguage.zh,
+                        _ => NativeLanguage.vi,
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),

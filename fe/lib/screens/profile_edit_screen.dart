@@ -16,11 +16,13 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  late final Future<(User, List<Child>)> _future = () async {
+  late Future<(User, List<Child>)> _future = _load();
+
+  Future<(User, List<Child>)> _load() async {
     final user = repository.getCurrentUser();
     final children = repository.getChildren();
     return (await user, await children);
-  }();
+  }
 
   void _snack(String message) {
     ScaffoldMessenger.of(context)
@@ -79,6 +81,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               child: FutureBuilder(
                 future: _future,
                 builder: (context, snap) {
+                  if (snap.hasError) {
+                    return GaonAsyncError(
+                      message: '정보를 불러오지 못했어요',
+                      subMessage: '네트워크 확인 후 다시 시도해 주세요',
+                      onRetry: () => setState(() => _future = _load()),
+                    );
+                  }
                   if (!snap.hasData) {
                     return const Center(
                         child: CircularProgressIndicator(

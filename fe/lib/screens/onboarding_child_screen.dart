@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/api_repository.dart';
 import '../data/demo_data.dart';
 import '../data/locator.dart';
 import '../models/display.dart';
@@ -10,8 +11,16 @@ import 'main_shell.dart';
 
 /// S3 온보딩 ② 자녀 등록 (F-ON-4) — 다자녀 지원.
 /// 학년(초1~6)·학교명 모두 shared-schema 정본 반영 완료(마이그레이션 0007·0009).
+/// API 모드: 첫 자녀는 POST /onboarding(프로필+자녀), 나머지는 POST /children.
 class OnboardingChildScreen extends StatefulWidget {
-  const OnboardingChildScreen({super.key});
+  const OnboardingChildScreen({
+    super.key,
+    required this.originCountry,
+    required this.nativeLanguage,
+  });
+
+  final OriginCountry originCountry;
+  final NativeLanguage nativeLanguage;
 
   @override
   State<OnboardingChildScreen> createState() => _OnboardingChildScreenState();
@@ -208,19 +217,39 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                 label: '시작하기',
                 subLabel: 'Bắt đầu →',
                 onTap: () async {
-                  // 입력한 자녀들을 저장소에 등록 → 이후 화면(챗봇·설정·캘린더)에 반영
-                  for (final form in _children) {
-                    final name = form.name.text.trim();
-                    final school = form.school.text.trim();
-                    await repository.addChild(
-                      grade: form.grade,
-                      name: name.isEmpty ? null : name,
-                      classNo: form.classNo,
-                      schoolName: school.isEmpty ? null : school,
-                    );
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+                  try {
+                    // 입력한 자녀들을 등록 → 이후 화면(챗봇·설정·캘린더)에 반영.
+                    // API 모드: 첫 자녀 = POST /onboarding(F-ON-1, 프로필+자녀 생성).
+                    final repo = repository;
+                    for (final (i, form) in _children.indexed) {
+                      final name = form.name.text.trim();
+                      final school = form.school.text.trim();
+                      if (i == 0 && repo is ApiRepository) {
+                        await repo.submitOnboarding(
+                          originCountry: widget.originCountry,
+                          nativeLanguage: widget.nativeLanguage,
+                          childGrade: form.grade,
+                          childName: name.isEmpty ? null : name,
+                          childClassNo: form.classNo,
+                          childSchoolName: school.isEmpty ? null : school,
+                        );
+                      } else {
+                        await repo.addChild(
+                          grade: form.grade,
+                          name: name.isEmpty ? null : name,
+                          classNo: form.classNo,
+                          schoolName: school.isEmpty ? null : school,
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    messenger.showSnackBar(SnackBar(
+                        content: Text('등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)')));
+                    return;
                   }
-                  if (!context.mounted) return;
-                  Navigator.of(context).pushAndRemoveUntil(
+                  navigator.pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const MainShell()),
                     (route) => false,
                   );

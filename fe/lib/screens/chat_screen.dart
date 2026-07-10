@@ -119,28 +119,55 @@ class _ChatScreenState extends State<ChatScreen> {
     await _upload(imageRef);
   }
 
+  /// 업로드·폴링 실패 시 안내 후 초기 화면 복귀(시연 가드 — 멈춘 화면 방지).
+  void _failBack(String message) {
+    _pollTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _phase = _Phase.idle);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _upload(String imageRef) async {
     setState(() {
       _phase = _Phase.analyzing;
       _status = DocStatus.uploaded;
     });
-    final doc = await repository.uploadDocument(
-      imageRef: imageRef,
-      childId: _selectedChild?.childId,
-    );
+    final Document doc;
+    try {
+      doc = await repository.uploadDocument(
+        imageRef: imageRef,
+        childId: _selectedChild?.childId,
+      );
+    } catch (e) {
+      _failBack('업로드에 실패했어요 — 네트워크를 확인해 주세요');
+      return;
+    }
     if (!mounted) return;
-    _pollTimer = Timer.periodic(const Duration(milliseconds: 250), (t) async {
-      final updated = await repository.getDocument(doc.documentId);
-      if (!mounted) return;
-      setState(() => _status = updated.status);
-      if (updated.status == DocStatus.done) {
-        t.cancel();
-        final analysis = await repository.getDocumentAnalysis(doc.documentId);
+    // 실서버 Chain A는 LLM 호출이라 폴링 간격을 1초로(과호출 방지).
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
+      try {
+        final updated = await repository.getDocument(doc.documentId);
         if (!mounted) return;
-        setState(() {
-          _analysis = analysis;
-          _phase = _Phase.result;
-        });
+        setState(() => _status = updated.status);
+        if (updated.status == DocStatus.failed) {
+          t.cancel();
+          _failBack('분석에 실패했어요 — 다시 시도해 주세요');
+          return;
+        }
+        if (updated.status == DocStatus.done) {
+          t.cancel();
+          final analysis =
+              await repository.getDocumentAnalysis(doc.documentId);
+          if (!mounted) return;
+          setState(() {
+            _analysis = analysis;
+            _phase = _Phase.result;
+          });
+        }
+      } catch (e) {
+        t.cancel();
+        _failBack('분석 상태를 확인하지 못했어요 — 네트워크를 확인해 주세요');
       }
     });
   }

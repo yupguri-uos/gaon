@@ -5,6 +5,7 @@ import '../data/notification_service.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
+import '../widgets/common.dart';
 import 'profile_edit_screen.dart';
 
 /// S13 설정 — 프로필 히어로 + 섹션 리스트, S15 탈퇴 확인 다이얼로그.
@@ -16,11 +17,13 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late final Future<(User, List<Child>)> _future = () async {
+  late Future<(User, List<Child>)> _future = _load();
+
+  Future<(User, List<Child>)> _load() async {
     final user = repository.getCurrentUser();
     final children = repository.getChildren();
     return (await user, await children);
-  }();
+  }
 
   bool _pushEnabled = true;
 
@@ -149,6 +152,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: FutureBuilder(
         future: _future,
         builder: (context, snap) {
+          if (snap.hasError) {
+            return GaonAsyncError(
+              message: '프로필을 불러오지 못했어요',
+              subMessage: '네트워크 확인 후 다시 시도해 주세요',
+              onRetry: () => setState(() => _future = _load()),
+            );
+          }
           if (!snap.hasData) {
             return const Center(
                 child: CircularProgressIndicator(
