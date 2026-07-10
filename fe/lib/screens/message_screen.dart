@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../data/demo_data.dart';
 import '../data/app_lang.dart';
 import '../data/locator.dart';
+import '../data/ui_placeholders.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -20,10 +20,9 @@ class MessageScreen extends StatefulWidget {
 }
 
 class _MessageScreenState extends State<MessageScreen> {
-  final _inputController =
-      TextEditingController(
-      text: bi('Ngày mai con bị sốt nên xin phép nghỉ học.',
-          '孩子明天发烧，想请假一天。'));
+  final _inputController = TextEditingController(
+    text: bi('Ngày mai con bị sốt nên xin phép nghỉ học.', '孩子明天发烧，想请假一天。'),
+  );
   MessageSituation _situation = MessageSituation.absence;
   int _teacherIndex = 0;
   List<Child> _children = const [];
@@ -59,8 +58,9 @@ class _MessageScreenState extends State<MessageScreen> {
       context: context,
       backgroundColor: GaonColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -69,20 +69,26 @@ class _MessageScreenState extends State<MessageScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('자녀 선택 · ${bi('Chọn con', '选择孩子')}',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '자녀 선택 · ${bi('Chọn con', '选择孩子')}',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.sm),
               for (final c in _children)
                 ListTile(
                   onTap: () => Navigator.of(context).pop(c),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(GaonRadius.md)),
+                    borderRadius: BorderRadius.circular(GaonRadius.md),
+                  ),
                   tileColor: c.childId == _selectedChild?.childId
                       ? GaonColors.primaryLight
                       : null,
-                  title: Text(_childLabel(c),
-                      style: GaonType.bodyLg
-                          .copyWith(color: GaonColors.textPrimary)),
+                  title: Text(
+                    _childLabel(c),
+                    style: GaonType.bodyLg.copyWith(
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -122,15 +128,16 @@ class _MessageScreenState extends State<MessageScreen> {
   }
 
   // ── S12: 받는 사람 선택 시트 ──
-  // 교사 목록은 schema에 없어 UI 데모 데이터(demoTeachers) 사용.
+  // 교사 목록은 schema에 없어 UI 전용 플레이스홀더(ui_placeholders.demoTeachers) 사용.
   Future<void> _pickTeacher() async {
     final picked = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: GaonColors.surface,
       barrierColor: const Color(0x59011D14),
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -150,25 +157,35 @@ class _MessageScreenState extends State<MessageScreen> {
                 ),
               ),
               const SizedBox(height: GaonSpace.sm),
-              Text('받는 사람 · ${bi('Người nhận', '收件人')}',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '받는 사람 · ${bi('Người nhận', '收件人')}',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.sm),
               // 검색(데모)
               Container(
                 padding: const EdgeInsets.symmetric(
-                    vertical: 10, horizontal: 14),
+                  vertical: 10,
+                  horizontal: 14,
+                ),
                 decoration: BoxDecoration(
                   color: GaonColors.bg,
                   borderRadius: BorderRadius.circular(GaonRadius.pill),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search_rounded,
-                        size: 14, color: GaonColors.textSecondary),
+                    const Icon(
+                      Icons.search_rounded,
+                      size: 14,
+                      color: GaonColors.textSecondary,
+                    ),
                     const SizedBox(width: GaonSpace.xs),
-                    Text('선생님 이름 검색...',
-                        style: GaonType.body
-                            .copyWith(color: GaonColors.textSecondary)),
+                    Text(
+                      '선생님 이름 검색...',
+                      style: GaonType.body.copyWith(
+                        color: GaonColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -188,20 +205,32 @@ class _MessageScreenState extends State<MessageScreen> {
                     ),
                     alignment: Alignment.center,
                     child: i == _teacherIndex
-                        ? const Icon(Icons.check_rounded,
-                            size: 16, color: GaonColors.onPrimary)
-                        : const Icon(Icons.person_rounded,
-                            size: 16, color: GaonColors.textSecondary),
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: GaonColors.onPrimary,
+                          )
+                        : const Icon(
+                            Icons.person_rounded,
+                            size: 16,
+                            color: GaonColors.textSecondary,
+                          ),
                   ),
-                  title: Text(t.name,
-                      style: GaonType.body.copyWith(
-                          fontWeight: i == _teacherIndex
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                          color: GaonColors.textPrimary)),
-                  subtitle: Text(t.role,
-                      style: GaonType.caption
-                          .copyWith(color: GaonColors.textSecondary)),
+                  title: Text(
+                    t.name,
+                    style: GaonType.body.copyWith(
+                      fontWeight: i == _teacherIndex
+                          ? FontWeight.w700
+                          : FontWeight.w400,
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    t.role,
+                    style: GaonType.caption.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -225,19 +254,27 @@ class _MessageScreenState extends State<MessageScreen> {
               border: Border(bottom: BorderSide(color: GaonColors.border)),
             ),
             padding: const EdgeInsets.symmetric(
-                vertical: GaonSpace.sm, horizontal: GaonSpace.md),
+              vertical: GaonSpace.sm,
+              horizontal: GaonSpace.md,
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('선생님께 문자',
-                          style: GaonType.h3
-                              .copyWith(color: GaonColors.textPrimary)),
-                      Text(bi('Nhắn cho giáo viên', '给老师发消息'),
-                          style: GaonType.micro
-                              .copyWith(color: GaonColors.textSecondary)),
+                      Text(
+                        '선생님께 문자',
+                        style: GaonType.h3.copyWith(
+                          color: GaonColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        bi('Nhắn cho giáo viên', '给老师发消息'),
+                        style: GaonType.micro.copyWith(
+                          color: GaonColors.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -250,18 +287,29 @@ class _MessageScreenState extends State<MessageScreen> {
                     borderRadius: BorderRadius.circular(GaonRadius.pill),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 6, horizontal: 12),
+                        vertical: 6,
+                        horizontal: 12,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.person_rounded,
-                              size: 13, color: GaonColors.textPrimary),
+                          const Icon(
+                            Icons.person_rounded,
+                            size: 13,
+                            color: GaonColors.textPrimary,
+                          ),
                           const SizedBox(width: 4),
-                          Text(teacher.name,
-                              style: GaonType.label.copyWith(
-                                  color: GaonColors.textPrimary)),
-                          const Icon(Icons.keyboard_arrow_down_rounded,
-                              size: 14, color: GaonColors.textPrimary),
+                          Text(
+                            teacher.name,
+                            style: GaonType.label.copyWith(
+                              color: GaonColors.textPrimary,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 14,
+                            color: GaonColors.textPrimary,
+                          ),
                         ],
                       ),
                     ),
@@ -279,32 +327,39 @@ class _MessageScreenState extends State<MessageScreen> {
                 if (_selectedChild != null) ...[
                   Row(
                     children: [
-                      Text('자녀 · Con',
-                          style: GaonType.caption.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: GaonColors.textSecondary)),
+                      Text(
+                        '자녀 · Con',
+                        style: GaonType.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: GaonColors.textSecondary,
+                        ),
+                      ),
                       const SizedBox(width: GaonSpace.xs),
                       Material(
                         color: GaonColors.textPrimary,
-                        borderRadius:
-                            BorderRadius.circular(GaonRadius.pill),
+                        borderRadius: BorderRadius.circular(GaonRadius.pill),
                         child: InkWell(
                           onTap: _pickChild,
-                          borderRadius:
-                              BorderRadius.circular(GaonRadius.pill),
+                          borderRadius: BorderRadius.circular(GaonRadius.pill),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 5, horizontal: 12),
+                              vertical: 5,
+                              horizontal: 12,
+                            ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(_childLabel(_selectedChild!),
-                                    style: GaonType.label.copyWith(
-                                        color: GaonColors.onPrimary)),
+                                Text(
+                                  _childLabel(_selectedChild!),
+                                  style: GaonType.label.copyWith(
+                                    color: GaonColors.onPrimary,
+                                  ),
+                                ),
                                 const Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    size: 14,
-                                    color: GaonColors.onPrimary),
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 14,
+                                  color: GaonColors.onPrimary,
+                                ),
                               ],
                             ),
                           ),
@@ -316,10 +371,13 @@ class _MessageScreenState extends State<MessageScreen> {
                 ],
 
                 // 상황 선택
-                Text('상황 선택 · ${bi('Chọn tình huống', '选择情况')}',
-                    style: GaonType.caption.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: GaonColors.textSecondary)),
+                Text(
+                  '상황 선택 · ${bi('Chọn tình huống', '选择情况')}',
+                  style: GaonType.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: GaonColors.textSecondary,
+                  ),
+                ),
                 const SizedBox(height: GaonSpace.xs),
                 Wrap(
                   spacing: GaonSpace.xs,
@@ -330,20 +388,23 @@ class _MessageScreenState extends State<MessageScreen> {
                         color: _situation == s
                             ? GaonColors.textPrimary
                             : GaonColors.primaryLight,
-                        borderRadius:
-                            BorderRadius.circular(GaonRadius.pill),
+                        borderRadius: BorderRadius.circular(GaonRadius.pill),
                         child: InkWell(
                           onTap: () => setState(() => _situation = s),
-                          borderRadius:
-                              BorderRadius.circular(GaonRadius.pill),
+                          borderRadius: BorderRadius.circular(GaonRadius.pill),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 7, horizontal: 14),
-                            child: Text(s.label.$2,
-                                style: GaonType.label.copyWith(
-                                    color: _situation == s
-                                        ? GaonColors.onPrimary
-                                        : GaonColors.textPrimary)),
+                              vertical: 7,
+                              horizontal: 14,
+                            ),
+                            child: Text(
+                              s.label.$2,
+                              style: GaonType.label.copyWith(
+                                color: _situation == s
+                                    ? GaonColors.onPrimary
+                                    : GaonColors.textPrimary,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -355,30 +416,39 @@ class _MessageScreenState extends State<MessageScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('내 언어로 입력 · ${bi('Nhập bằng tiếng Việt', '用中文输入')}',
-                        style: GaonType.caption.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: GaonColors.textSecondary)),
-                    Text(bi('🇻🇳', '🇨🇳'), style: const TextStyle(fontSize: 13)),
+                    Text(
+                      '내 언어로 입력 · ${bi('Nhập bằng tiếng Việt', '用中文输入')}',
+                      style: GaonType.caption.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: GaonColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      bi('🇻🇳', '🇨🇳'),
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ],
                 ),
                 const SizedBox(height: GaonSpace.xs),
                 Container(
                   constraints: const BoxConstraints(minHeight: 80),
                   padding: const EdgeInsets.symmetric(
-                      vertical: GaonSpace.xs, horizontal: GaonSpace.sm),
+                    vertical: GaonSpace.xs,
+                    horizontal: GaonSpace.sm,
+                  ),
                   decoration: BoxDecoration(
                     color: GaonColors.surface,
                     borderRadius: BorderRadius.circular(GaonRadius.lg),
-                    border:
-                        Border.all(width: 2, color: GaonColors.primary),
+                    border: Border.all(width: 2, color: GaonColors.primary),
                     boxShadow: GaonShadow.card,
                   ),
                   child: TextField(
                     controller: _inputController,
                     maxLines: null,
                     style: GaonType.bodyLg.copyWith(
-                        color: GaonColors.textPrimary, height: 1.7),
+                      color: GaonColors.textPrimary,
+                      height: 1.7,
+                    ),
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
@@ -403,11 +473,15 @@ class _MessageScreenState extends State<MessageScreen> {
                             ? const Padding(
                                 padding: EdgeInsets.all(10),
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: GaonColors.onPrimary),
+                                  strokeWidth: 2,
+                                  color: GaonColors.onPrimary,
+                                ),
                               )
-                            : const Icon(Icons.arrow_downward_rounded,
-                                size: 18, color: GaonColors.onPrimary),
+                            : const Icon(
+                                Icons.arrow_downward_rounded,
+                                size: 18,
+                                color: GaonColors.onPrimary,
+                              ),
                       ),
                     ),
                   ),
@@ -418,10 +492,13 @@ class _MessageScreenState extends State<MessageScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('한국어 번역 결과 · ${bi('Bản dịch tiếng Hàn', '韩语翻译结果')}',
-                        style: GaonType.caption.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: GaonColors.textSecondary)),
+                    Text(
+                      '한국어 번역 결과 · ${bi('Bản dịch tiếng Hàn', '韩语翻译结果')}',
+                      style: GaonType.caption.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: GaonColors.textSecondary,
+                      ),
+                    ),
                     const Text('🇰🇷', style: TextStyle(fontSize: 13)),
                   ],
                 ),
@@ -430,21 +507,22 @@ class _MessageScreenState extends State<MessageScreen> {
                   width: double.infinity,
                   constraints: const BoxConstraints(minHeight: 64),
                   padding: const EdgeInsets.symmetric(
-                      vertical: GaonSpace.sm, horizontal: GaonSpace.sm),
+                    vertical: GaonSpace.sm,
+                    horizontal: GaonSpace.sm,
+                  ),
                   decoration: BoxDecoration(
                     color: GaonColors.primaryLight,
                     borderRadius: BorderRadius.circular(GaonRadius.lg),
-                    border:
-                        Border.all(width: 2, color: GaonColors.primary),
+                    border: Border.all(width: 2, color: GaonColors.primary),
                   ),
                   child: Text(
-                    _message?.outputKo ??
-                        '아래 ↓ 버튼을 누르면 정중한 한국어로 번역돼요',
+                    _message?.outputKo ?? '아래 ↓ 버튼을 누르면 정중한 한국어로 번역돼요',
                     style: GaonType.body.copyWith(
-                        color: _message != null
-                            ? GaonColors.textPrimary
-                            : GaonColors.textSecondary,
-                        height: 1.7),
+                      color: _message != null
+                          ? GaonColors.textPrimary
+                          : GaonColors.textSecondary,
+                      height: 1.7,
+                    ),
                   ),
                 ),
 
@@ -464,8 +542,11 @@ class _MessageScreenState extends State<MessageScreen> {
                         child: GaonButton(
                           variant: GaonButtonVariant.ghost,
                           label: '복사',
-                          icon: const Icon(Icons.copy_rounded,
-                              size: 14, color: GaonColors.textPrimary),
+                          icon: const Icon(
+                            Icons.copy_rounded,
+                            size: 14,
+                            color: GaonColors.textPrimary,
+                          ),
                           onTap: _copyMessage,
                         ),
                       ),
@@ -473,13 +554,17 @@ class _MessageScreenState extends State<MessageScreen> {
                       Expanded(
                         child: GaonButton(
                           label: '카톡 공유',
-                          icon: const Icon(Icons.share_rounded,
-                              size: 14, color: GaonColors.onPrimary),
+                          icon: const Icon(
+                            Icons.share_rounded,
+                            size: 14,
+                            color: GaonColors.onPrimary,
+                          ),
                           onTap: () {
                             // 직접 전송 금지(결정 #2) — OS 공유 시트를 열고
                             // 카톡 선택·전송은 사용자가 직접 한다.
                             SharePlus.instance.share(
-                                ShareParams(text: _message!.outputKo));
+                              ShareParams(text: _message!.outputKo),
+                            );
                           },
                         ),
                       ),

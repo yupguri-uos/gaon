@@ -44,6 +44,9 @@ dependencies:
   image_picker: ^1.2.3
   share_plus: ^13.2.0
   url_launcher: ^6.3.2
+  # Kakao 로그인(F-ON-3): 세션 토큰 영속화 + OAuth 딥링크(gaon://) 수신
+  shared_preferences: ^2.5.3
+  app_links: ^6.4.1
 
 dev_dependencies:
   flutter_test:

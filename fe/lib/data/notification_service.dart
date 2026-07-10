@@ -54,7 +54,8 @@ class NotificationService {
     // Android 13+ 런타임 권한
     await _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
     _initialized = true;
   }
@@ -70,7 +71,12 @@ class NotificationService {
       final isDeadline = e.type == schema.CalendarEventType.deadline;
       final fireDate = e.date.subtract(Duration(days: isDeadline ? 2 : 1));
       final fireAt = tz.TZDateTime(
-          tz.local, fireDate.year, fireDate.month, fireDate.day, 9);
+        tz.local,
+        fireDate.year,
+        fireDate.month,
+        fireDate.day,
+        9,
+      );
       if (fireAt.isBefore(tz.TZDateTime.now(tz.local))) continue;
 
       await _plugin.zonedSchedule(
@@ -90,8 +96,10 @@ class NotificationService {
 
   /// 시연용 미리보기 — [delay] 후 알림 발화.
   /// 누르고 기기를 잠그면 잠금화면에서 확인할 수 있다.
-  Future<void> schedulePreview(schema.Notification notification,
-      {Duration delay = const Duration(seconds: 5)}) async {
+  Future<void> schedulePreview(
+    schema.Notification notification, {
+    Duration delay = const Duration(seconds: 5),
+  }) async {
     if (kIsWeb) return;
     await init();
     await _plugin.zonedSchedule(

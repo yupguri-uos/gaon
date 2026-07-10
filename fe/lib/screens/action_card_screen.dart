@@ -24,8 +24,9 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
   late final Future<DocumentAnalysis> _future = repository.getLatestAnalysis();
 
   void _snack(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _copy(String text, String toast) async {
@@ -42,8 +43,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
   /// F-DOC-7: 캘린더 실저장 + 리마인드 예약.
   Future<void> _saveToCalendar(String documentId) async {
     try {
-      final saved =
-          await repository.saveCalendarEvents(documentId: documentId);
+      final saved = await repository.saveCalendarEvents(documentId: documentId);
       await NotificationService.instance.scheduleEventReminders(saved);
       if (!mounted) return;
       _snack('일정 ${saved.length}개를 캘린더에 저장했어요 · ${bi('Đã lưu', '已保存')}');
@@ -61,15 +61,20 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
         child: Column(
           children: [
             GaonHeader(
-                vi: bi('Thẻ hành động', '行动卡'), ko: '행동 카드', showBack: true),
+              vi: bi('Thẻ hành động', '行动卡'),
+              ko: '행동 카드',
+              showBack: true,
+            ),
             Expanded(
               child: FutureBuilder(
                 future: _future,
                 builder: (context, snap) {
                   if (!snap.hasData) {
                     return const Center(
-                        child: CircularProgressIndicator(
-                            color: GaonColors.textSecondary));
+                      child: CircularProgressIndicator(
+                        color: GaonColors.textSecondary,
+                      ),
+                    );
                   }
                   final analysis = snap.data!;
                   final card = analysis.actionCard;
@@ -81,7 +86,11 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
 
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(
-                        GaonSpace.md, 0, GaonSpace.md, GaonSpace.lg),
+                      GaonSpace.md,
+                      0,
+                      GaonSpace.md,
+                      GaonSpace.lg,
+                    ),
                     children: [
                       // ── 회신 초안 (F-DOC-8) — requiresReply일 때만 ──
                       if (card.replyDraftKo != null) ...[
@@ -93,9 +102,10 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                         const SizedBox(height: GaonSpace.xs),
                         SurfaceCard(
                           border: Border.all(
-                              width: 1.5, color: const Color(0xFFFCDDD6)),
-                          margin:
-                              const EdgeInsets.only(bottom: GaonSpace.sm),
+                            width: 1.5,
+                            color: const Color(0xFFFCDDD6),
+                          ),
+                          margin: const EdgeInsets.only(bottom: GaonSpace.sm),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -103,14 +113,17 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 children: [
                                   if (deadline != null)
                                     GaonBadge(
-                                        label: _dday(deadline),
-                                        color: GaonColors.warning,
-                                        bg: GaonColors.warningLight),
+                                      label: _dday(deadline),
+                                      color: GaonColors.warning,
+                                      bg: GaonColors.warningLight,
+                                    ),
                                   const SizedBox(width: GaonSpace.xs),
                                   Expanded(
                                     child: BiText(
-                                      vi: bi('Trả lời đơn đồng ý dã ngoại',
-                                          '回复校外活动同意书'),
+                                      vi: bi(
+                                        'Trả lời đơn đồng ý dã ngoại',
+                                        '回复校外活动同意书',
+                                      ),
                                       ko: '현장체험학습 동의서 회신',
                                       viStyle: GaonType.body,
                                       koStyle: GaonType.micro,
@@ -123,27 +136,33 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: GaonSpace.sm,
-                                    horizontal: GaonSpace.md),
+                                  vertical: GaonSpace.sm,
+                                  horizontal: GaonSpace.md,
+                                ),
                                 decoration: BoxDecoration(
                                   color: GaonColors.primaryLight,
                                   borderRadius: BorderRadius.circular(
-                                      GaonRadius.md),
+                                    GaonRadius.md,
+                                  ),
                                 ),
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('${bi('Bản nháp trả lời', '回复草稿')} · 회신 초안',
-                                        style: GaonType.micro.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: GaonColors
-                                                .textSecondary)),
+                                    Text(
+                                      '${bi('Bản nháp trả lời', '回复草稿')} · 회신 초안',
+                                      style: GaonType.micro.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: GaonColors.textSecondary,
+                                      ),
+                                    ),
                                     const SizedBox(height: GaonSpace.xxs),
-                                    Text(card.replyDraftKo!,
-                                        style: GaonType.caption.copyWith(
-                                            color: GaonColors.textPrimary,
-                                            height: 1.7)),
+                                    Text(
+                                      card.replyDraftKo!,
+                                      style: GaonType.caption.copyWith(
+                                        color: GaonColors.textPrimary,
+                                        height: 1.7,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -159,31 +178,35 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             const Icon(
-                                                Icons
-                                                    .notifications_rounded,
-                                                size: 12,
-                                                color: GaonColors.warning),
+                                              Icons.notifications_rounded,
+                                              size: 12,
+                                              color: GaonColors.warning,
+                                            ),
                                             const SizedBox(
-                                                width: GaonSpace.xxs),
+                                              width: GaonSpace.xxs,
+                                            ),
                                             Column(
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment
-                                                      .start,
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                    '마감 ${deadline.month}/${deadline.day}',
-                                                    style: GaonType.micro
-                                                        .copyWith(
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w600,
-                                                            color: GaonColors
-                                                                .warning)),
-                                                Text(bi('Hạn nộp', '截止日期'),
-                                                    style: TextStyle(
-                                                        fontSize: 9,
-                                                        color: GaonColors
-                                                            .textSecondary)),
+                                                  '마감 ${deadline.month}/${deadline.day}',
+                                                  style: GaonType.micro
+                                                      .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color:
+                                                            GaonColors.warning,
+                                                      ),
+                                                ),
+                                                Text(
+                                                  bi('Hạn nộp', '截止日期'),
+                                                  style: TextStyle(
+                                                    fontSize: 9,
+                                                    color: GaonColors
+                                                        .textSecondary,
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           ],
@@ -195,24 +218,25 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                     child: _MiniAction(
                                       bg: GaonColors.textPrimary,
                                       onTap: () => _saveToCalendar(
-                                          analysis.document.documentId),
+                                        analysis.document.documentId,
+                                      ),
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
                                           const Icon(
-                                              Icons.calendar_month_rounded,
-                                              size: 12,
-                                              color: Colors.white),
-                                          const SizedBox(
-                                              width: GaonSpace.xxs),
-                                          Text('캘린더 추가',
-                                              style: GaonType.micro
-                                                  .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color:
-                                                          Colors.white)),
+                                            Icons.calendar_month_rounded,
+                                            size: 12,
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: GaonSpace.xxs),
+                                          Text(
+                                            '캘린더 추가',
+                                            style: GaonType.micro.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -223,25 +247,25 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                       bg: GaonColors.kakao,
                                       // 공유 시트 — 전송은 사용자 수동(결정 #2)
                                       onTap: () => SharePlus.instance.share(
-                                          ShareParams(
-                                              text: card.replyDraftKo!)),
+                                        ShareParams(text: card.replyDraftKo!),
+                                      ),
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.share_rounded,
-                                              size: 11,
-                                              color:
-                                                  GaonColors.kakaoText),
-                                          const SizedBox(
-                                              width: GaonSpace.xxs),
-                                          Text('카톡공유',
-                                              style: GaonType.micro
-                                                  .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: GaonColors
-                                                          .kakaoText)),
+                                          const Icon(
+                                            Icons.share_rounded,
+                                            size: 11,
+                                            color: GaonColors.kakaoText,
+                                          ),
+                                          const SizedBox(width: GaonSpace.xxs),
+                                          Text(
+                                            '카톡공유',
+                                            style: GaonType.micro.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: GaonColors.kakaoText,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -256,14 +280,16 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 준비물 (F-DOC-6) — Supply마다 카드 ──
                       for (final supply in card.supplies) ...[
                         _sectionLabel(
-                            '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo',
-                            GaonColors.textSecondary),
+                          '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo',
+                          GaonColors.textSecondary,
+                        ),
                         const SizedBox(height: GaonSpace.xs),
                         SurfaceCard(
                           border: Border.all(
-                              width: 1.5, color: const Color(0xFFD4EDB8)),
-                          margin:
-                              const EdgeInsets.only(bottom: GaonSpace.sm),
+                            width: 1.5,
+                            color: const Color(0xFFD4EDB8),
+                          ),
+                          margin: const EdgeInsets.only(bottom: GaonSpace.sm),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -278,24 +304,25 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: GaonSpace.xs,
-                                    horizontal: GaonSpace.sm),
+                                  vertical: GaonSpace.xs,
+                                  horizontal: GaonSpace.sm,
+                                ),
                                 decoration: BoxDecoration(
                                   color: GaonColors.successLight,
                                   borderRadius: BorderRadius.circular(
-                                      GaonRadius.md),
+                                    GaonRadius.md,
+                                  ),
                                 ),
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Padding(
                                       padding: EdgeInsets.only(top: 2),
                                       child: Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 12,
-                                          color:
-                                              GaonColors.textSecondary),
+                                        Icons.check_circle_rounded,
+                                        size: 12,
+                                        color: GaonColors.textSecondary,
+                                      ),
                                     ),
                                     const SizedBox(width: GaonSpace.xs),
                                     Expanded(
@@ -305,28 +332,30 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                         children: [
                                           if (supply.spec != null)
                                             Text.rich(
-                                              TextSpan(children: [
-                                                TextSpan(
+                                              TextSpan(
+                                                children: [
+                                                  TextSpan(
                                                     text: '규격 ',
                                                     style: GaonType.caption
                                                         .copyWith(
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .w600)),
-                                                TextSpan(
-                                                    text: supply.spec),
-                                              ]),
-                                              style: GaonType.caption
-                                                  .copyWith(
-                                                      color: GaonColors
-                                                          .textPrimary),
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                  ),
+                                                  TextSpan(text: supply.spec),
+                                                ],
+                                              ),
+                                              style: GaonType.caption.copyWith(
+                                                color: GaonColors.textPrimary,
+                                              ),
                                             ),
-                                          Text(supply.explanationNative,
-                                              style: GaonType.micro
-                                                  .copyWith(
-                                                      color: GaonColors
-                                                          .textSecondary,
-                                                      height: 1.5)),
+                                          Text(
+                                            supply.explanationNative,
+                                            style: GaonType.micro.copyWith(
+                                              color: GaonColors.textSecondary,
+                                              height: 1.5,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -338,27 +367,36 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                               if (supply.ecommerceKeyword
                                   case final keyword?) ...[
                                 const SizedBox(height: GaonSpace.sm),
-                                Text('${bi('Từ khóa mua sắm', '购物关键词')} · 구매 검색어',
-                                    style: GaonType.micro.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: GaonColors.textSecondary)),
+                                Text(
+                                  '${bi('Từ khóa mua sắm', '购物关键词')} · 구매 검색어',
+                                  style: GaonType.micro.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: GaonColors.textSecondary,
+                                  ),
+                                ),
                                 const SizedBox(height: GaonSpace.xxs),
                                 _MiniAction(
                                   bg: GaonColors.primaryLight,
-                                  onTap: () => _copy(keyword,
-                                      "'$keyword' 복사했어요 · ${bi('Đã sao chép', '已复制')}"),
+                                  onTap: () => _copy(
+                                    keyword,
+                                    "'$keyword' 복사했어요 · ${bi('Đã sao chép', '已复制')}",
+                                  ),
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(keyword,
-                                          style: GaonType.caption.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: GaonColors
-                                                  .textSecondary)),
-                                      const Icon(Icons.copy_rounded,
-                                          size: 11,
-                                          color: GaonColors.textSecondary),
+                                      Text(
+                                        keyword,
+                                        style: GaonType.caption.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: GaonColors.textSecondary,
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.copy_rounded,
+                                        size: 11,
+                                        color: GaonColors.textSecondary,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -373,18 +411,23 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                     mode: LaunchMode.externalApplication,
                                   ),
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text('🛒 쿠팡에서 검색',
-                                          style: GaonType.caption.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white)),
+                                      Text(
+                                        '🛒 쿠팡에서 검색',
+                                        style: GaonType.caption.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                       const SizedBox(width: GaonSpace.xs),
-                                      Text(bi('Tìm trên Coupang', '在Coupang搜索'),
-                                          style: TextStyle(
-                                              fontSize: 9,
-                                              color: Color(0xBFFFFFFF))),
+                                      Text(
+                                        bi('Tìm trên Coupang', '在Coupang搜索'),
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          color: Color(0xBFFFFFFF),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -395,22 +438,24 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 _MiniAction(
                                   bg: GaonColors.textPrimary,
                                   onTap: () => _saveToCalendar(
-                                      analysis.document.documentId),
+                                    analysis.document.documentId,
+                                  ),
                                   child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       const Icon(
-                                          Icons.calendar_month_rounded,
-                                          size: 11,
-                                          color: Colors.white),
-                                      const SizedBox(
-                                          width: GaonSpace.xxs),
+                                        Icons.calendar_month_rounded,
+                                        size: 11,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: GaonSpace.xxs),
                                       Text(
-                                          '${e.date.month}/${e.date.day} 행사 캘린더 추가',
-                                          style: GaonType.micro.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white)),
+                                        '${e.date.month}/${e.date.day} 행사 캘린더 추가',
+                                        style: GaonType.micro.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -431,9 +476,14 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
   }
 
   Widget _sectionLabel(String text, Color color) {
-    return Text(text,
-        style: GaonType.micro.copyWith(
-            fontWeight: FontWeight.w600, letterSpacing: 0.6, color: color));
+    return Text(
+      text,
+      style: GaonType.micro.copyWith(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.6,
+        color: color,
+      ),
+    );
   }
 }
 
@@ -455,7 +505,9 @@ class _MiniAction extends StatelessWidget {
         borderRadius: BorderRadius.circular(GaonRadius.md),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              vertical: GaonSpace.xs, horizontal: GaonSpace.sm),
+            vertical: GaonSpace.xs,
+            horizontal: GaonSpace.sm,
+          ),
           child: child,
         ),
       ),

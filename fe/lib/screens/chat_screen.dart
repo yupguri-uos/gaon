@@ -60,8 +60,9 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       backgroundColor: GaonColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -70,32 +71,52 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('알림장 사진 · ${bi('Ảnh thông báo', '通知单照片')}',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '알림장 사진 · ${bi('Ảnh thông báo', '通知单照片')}',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.sm),
               for (final (value, icon, ko, vi) in [
-                ('camera', Icons.photo_camera_rounded, '카메라로 촬영',
-                    bi('Chụp ảnh', '拍照')),
-                ('gallery', Icons.photo_library_rounded, '갤러리에서 선택',
-                    bi('Chọn từ thư viện', '从相册选择')),
-                ('demo', Icons.description_rounded, '데모 알림장 사용',
-                    bi('Dùng ảnh mẫu', '使用示例通知单')),
+                (
+                  'camera',
+                  Icons.photo_camera_rounded,
+                  '카메라로 촬영',
+                  bi('Chụp ảnh', '拍照'),
+                ),
+                (
+                  'gallery',
+                  Icons.photo_library_rounded,
+                  '갤러리에서 선택',
+                  bi('Chọn từ thư viện', '从相册选择'),
+                ),
+                (
+                  'demo',
+                  Icons.description_rounded,
+                  '데모 알림장 사용',
+                  bi('Dùng ảnh mẫu', '使用示例通知单'),
+                ),
               ])
                 ListTile(
                   onTap: () => Navigator.of(context).pop(value),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(GaonRadius.md)),
+                    borderRadius: BorderRadius.circular(GaonRadius.md),
+                  ),
                   leading: IconCircle(
                     bg: GaonColors.primaryLight,
-                    child:
-                        Icon(icon, size: 16, color: GaonColors.textPrimary),
+                    child: Icon(icon, size: 16, color: GaonColors.textPrimary),
                   ),
-                  title: Text(ko,
-                      style: GaonType.bodyLg
-                          .copyWith(color: GaonColors.textPrimary)),
-                  subtitle: Text(vi,
-                      style: GaonType.micro
-                          .copyWith(color: GaonColors.textSecondary)),
+                  title: Text(
+                    ko,
+                    style: GaonType.bodyLg.copyWith(
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    vi,
+                    style: GaonType.micro.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -109,8 +130,7 @@ class _ChatScreenState extends State<ChatScreen> {
       imageRef = 'demo://notice.jpg';
     } else {
       final picked = await ImagePicker().pickImage(
-        source:
-            source == 'camera' ? ImageSource.camera : ImageSource.gallery,
+        source: source == 'camera' ? ImageSource.camera : ImageSource.gallery,
         maxWidth: 1600, // LLM 파싱에 충분 + 업로드 용량 절약
         imageQuality: 85,
       );
@@ -135,8 +155,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _pollTimer?.cancel();
     if (!mounted) return;
     setState(() => _phase = _Phase.idle);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _upload(String imageRef) async {
@@ -168,8 +189,7 @@ class _ChatScreenState extends State<ChatScreen> {
         }
         if (updated.status == DocStatus.done) {
           t.cancel();
-          final analysis =
-              await repository.getDocumentAnalysis(doc.documentId);
+          final analysis = await repository.getDocumentAnalysis(doc.documentId);
           if (!mounted) return;
           setState(() {
             _analysis = analysis;
@@ -188,8 +208,9 @@ class _ChatScreenState extends State<ChatScreen> {
       context: context,
       backgroundColor: GaonColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -198,20 +219,26 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('자녀 선택 · ${bi('Chọn con', '选择孩子')}',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '자녀 선택 · ${bi('Chọn con', '选择孩子')}',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.sm),
               for (final c in _children)
                 ListTile(
                   onTap: () => Navigator.of(context).pop(c),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(GaonRadius.md)),
+                    borderRadius: BorderRadius.circular(GaonRadius.md),
+                  ),
                   tileColor: c.childId == _selectedChild?.childId
                       ? GaonColors.primaryLight
                       : null,
-                  title: Text(_childLabel(c),
-                      style: GaonType.bodyLg
-                          .copyWith(color: GaonColors.textPrimary)),
+                  title: Text(
+                    _childLabel(c),
+                    style: GaonType.bodyLg.copyWith(
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -239,18 +266,20 @@ class _ChatScreenState extends State<ChatScreen> {
               border: Border(bottom: BorderSide(color: GaonColors.border)),
             ),
             padding: const EdgeInsets.symmetric(
-                vertical: GaonSpace.sm, horizontal: GaonSpace.md),
+              vertical: GaonSpace.sm,
+              horizontal: GaonSpace.md,
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                      switch (_phase) {
-                        _Phase.idle => '알림장',
-                        _Phase.analyzing => '알림장 분석 중...',
-                        _Phase.result => '번역 완료',
-                      },
-                      style: GaonType.h3
-                          .copyWith(color: GaonColors.textPrimary)),
+                    switch (_phase) {
+                      _Phase.idle => '알림장',
+                      _Phase.analyzing => '알림장 분석 중...',
+                      _Phase.result => '번역 완료',
+                    },
+                    style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+                  ),
                 ),
                 // 홈 복귀 — 잘못 눌렀을 때/새 알림장 분석 시 초기 화면으로
                 if (_phase != _Phase.idle) ...[
@@ -263,8 +292,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       child: const SizedBox(
                         width: 32,
                         height: 32,
-                        child: Icon(Icons.home_rounded,
-                            size: 16, color: GaonColors.textPrimary),
+                        child: Icon(
+                          Icons.home_rounded,
+                          size: 16,
+                          color: GaonColors.textPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -279,16 +311,24 @@ class _ChatScreenState extends State<ChatScreen> {
                       borderRadius: BorderRadius.circular(GaonRadius.pill),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 14),
+                          vertical: 6,
+                          horizontal: 14,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(_childLabel(_selectedChild!),
-                                style: GaonType.label
-                                    .copyWith(color: GaonColors.onPrimary)),
+                            Text(
+                              _childLabel(_selectedChild!),
+                              style: GaonType.label.copyWith(
+                                color: GaonColors.onPrimary,
+                              ),
+                            ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 14, color: GaonColors.onPrimary),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 14,
+                              color: GaonColors.onPrimary,
+                            ),
                           ],
                         ),
                       ),
@@ -301,12 +341,14 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: switch (_phase) {
               _Phase.idle => _EmptyState(
-                  onUpload: _pickAndUpload, upcoming: _upcoming),
+                onUpload: _pickAndUpload,
+                upcoming: _upcoming,
+              ),
               _Phase.analyzing => _LoadingState(status: _status),
               _Phase.result => _ResultState(
-                  analysis: _analysis!,
-                  onGoHome: _resetToHome,
-                ),
+                analysis: _analysis!,
+                onGoHome: _resetToHome,
+              ),
             },
           ),
         ],
@@ -337,40 +379,57 @@ class _EmptyState extends StatelessWidget {
               color: GaonColors.primary,
               boxShadow: GaonShadow.dark,
             ),
-            child: const Icon(Icons.photo_camera_rounded,
-                size: 38, color: GaonColors.textPrimary),
+            child: const Icon(
+              Icons.photo_camera_rounded,
+              size: 38,
+              color: GaonColors.textPrimary,
+            ),
           ),
         ),
         const SizedBox(height: GaonSpace.md),
-        Text('알림장을 올려주세요',
-            textAlign: TextAlign.center,
-            style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
+        Text(
+          '알림장을 올려주세요',
+          textAlign: TextAlign.center,
+          style: GaonType.h2.copyWith(color: GaonColors.textPrimary),
+        ),
         const SizedBox(height: 6),
-        Text(bi('Gửi ảnh thông báo từ trường', '请上传学校发的通知单'),
-            textAlign: TextAlign.center,
-            style: GaonType.body.copyWith(color: GaonColors.textSecondary)),
+        Text(
+          bi('Gửi ảnh thông báo từ trường', '请上传学校发的通知单'),
+          textAlign: TextAlign.center,
+          style: GaonType.body.copyWith(color: GaonColors.textSecondary),
+        ),
         const SizedBox(height: 4),
-        Text('사진 촬영 또는 갤러리에서 선택',
-            textAlign: TextAlign.center,
-            style:
-                GaonType.caption.copyWith(color: GaonColors.textSecondary)),
+        Text(
+          '사진 촬영 또는 갤러리에서 선택',
+          textAlign: TextAlign.center,
+          style: GaonType.caption.copyWith(color: GaonColors.textSecondary),
+        ),
         const SizedBox(height: GaonSpace.md),
         GaonButton(
           label: '사진 올리기',
           subLabel: bi('Tải ảnh lên', '上传照片'),
-          icon: const Icon(Icons.upload_rounded,
-              size: 16, color: GaonColors.onPrimary),
+          icon: const Icon(
+            Icons.upload_rounded,
+            size: 16,
+            color: GaonColors.onPrimary,
+          ),
           onTap: onUpload,
         ),
         const SizedBox(height: GaonSpace.lg),
-        // 다가오는 일정 — 저장된 캘린더 요약(홈에서 바로 확인, 실패 시 숨김)
+        // 다가오는 일정 — 저장된 캘린더 요약(홈에서 바로 확인, 실패 시 숨김).
+        // GET /calendar/events는 과거 포함 전체를 주므로(캘린더 탭 누적 조회용)
+        // 홈에서는 오늘 이후만 골라 보여준다.
         FutureBuilder<List<CalendarEvent>>(
           future: upcoming,
           builder: (context, snap) {
-            final events = ([...(snap.data ?? const <CalendarEvent>[])]
-                  ..sort((a, b) => a.date.compareTo(b.date)))
-                .take(3)
-                .toList();
+            final now = repository.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final events =
+                (([...(snap.data ?? const <CalendarEvent>[])]
+                          ..sort((a, b) => a.date.compareTo(b.date)))
+                        .where((e) => !e.date.isBefore(today))
+                        .take(3))
+                    .toList();
             if (events.isEmpty) return const SizedBox.shrink();
             return SurfaceCard(
               child: Column(
@@ -387,12 +446,15 @@ class _EmptyState extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                          onTap: () => goToCalendar(),
-                          child: Text('전체 보기 →',
-                              style: GaonType.caption.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: GaonColors.textSecondary)),
+                        onTap: () => goToCalendar(),
+                        child: Text(
+                          '전체 보기 →',
+                          style: GaonType.caption.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: GaonColors.textSecondary,
+                          ),
                         ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: GaonSpace.sm),
@@ -410,27 +472,33 @@ class _EmptyState extends StatelessWidget {
                                 : GaonColors.primaryLight,
                           ),
                           alignment: Alignment.center,
-                          child: Text('${e.date.month}/${e.date.day}',
-                              style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  color: e.type ==
-                                          CalendarEventType.deadline
-                                      ? GaonColors.warning
-                                      : GaonColors.textPrimary)),
+                          child: Text(
+                            '${e.date.month}/${e.date.day}',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: e.type == CalendarEventType.deadline
+                                  ? GaonColors.warning
+                                  : GaonColors.textPrimary,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: GaonSpace.sm),
                         Expanded(
-                          child: Text(e.title,
-                              style: GaonType.body.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: GaonColors.textPrimary)),
+                          child: Text(
+                            e.title,
+                            style: GaonType.body.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: GaonColors.textPrimary,
+                            ),
+                          ),
                         ),
                         if (e.type == CalendarEventType.deadline)
                           const GaonBadge(
-                              label: '마감',
-                              color: GaonColors.warning,
-                              bg: GaonColors.warningLight),
+                            label: '마감',
+                            color: GaonColors.warning,
+                            bg: GaonColors.warningLight,
+                          ),
                       ],
                     ),
                   ],
@@ -457,39 +525,41 @@ class _LoadingState extends StatefulWidget {
 class _LoadingStateState extends State<_LoadingState>
     with TickerProviderStateMixin {
   List<({String label, String vi})> get _steps => [
-        (label: '글자 읽기', vi: bi('Đọc chữ', '识别文字')),
-        (label: '정보 정리', vi: bi('Sắp xếp', '整理信息')),
-        (label: '번역 중', vi: bi('Đang dịch...', '翻译中…')),
-        (label: '할 일 추출', vi: bi('Tạo việc', '提取待办')),
-      ];
+    (label: '글자 읽기', vi: bi('Đọc chữ', '识别文字')),
+    (label: '정보 정리', vi: bi('Sắp xếp', '整理信息')),
+    (label: '번역 중', vi: bi('Đang dịch...', '翻译中…')),
+    (label: '할 일 추출', vi: bi('Tạo việc', '提取待办')),
+  ];
 
   int get _activeStep => switch (widget.status) {
-        DocStatus.uploaded => 0,
-        DocStatus.parsing => 1,
-        DocStatus.translating => 2,
-        DocStatus.action => 3,
-        DocStatus.done => 4,
-        DocStatus.failed => 0,
-      };
+    DocStatus.uploaded => 0,
+    DocStatus.parsing => 1,
+    DocStatus.translating => 2,
+    DocStatus.action => 3,
+    DocStatus.done => 4,
+    DocStatus.failed => 0,
+  };
 
   /// 상태별 진행 구간 — 실서버는 한 status에 수십 초 머무르므로
   /// 고정 퍼센트 대신 구간 상한을 향해 계속 차오르게 한다.
   (double, double) _bandFor(DocStatus s) => switch (s) {
-        DocStatus.uploaded => (0.02, 0.30),
-        DocStatus.parsing => (0.30, 0.62),
-        DocStatus.translating => (0.62, 0.86),
-        DocStatus.action => (0.86, 0.97),
-        DocStatus.done => (0.97, 1.0),
-        DocStatus.failed => (0.0, 0.0),
-      };
+    DocStatus.uploaded => (0.02, 0.30),
+    DocStatus.parsing => (0.30, 0.62),
+    DocStatus.translating => (0.62, 0.86),
+    DocStatus.action => (0.86, 0.97),
+    DocStatus.done => (0.97, 1.0),
+    DocStatus.failed => (0.0, 0.0),
+  };
 
   // 크리프: 구간 상한을 향해 서서히(처음엔 빠르게) 차오름 · 펄스: 로고 숨쉬기
   late final AnimationController _creep = AnimationController(
-      vsync: this, duration: const Duration(seconds: 40))
-    ..forward();
+    vsync: this,
+    duration: const Duration(seconds: 40),
+  )..forward();
   late final AnimationController _pulse = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1100))
-    ..repeat(reverse: true);
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
   double _from = 0.02;
 
   double get _value {
@@ -538,10 +608,13 @@ class _LoadingStateState extends State<_LoadingState>
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text('${(_value * 100).round()}%',
-                    style: GaonType.h3.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: GaonColors.textPrimary)),
+                Text(
+                  '${(_value * 100).round()}%',
+                  style: GaonType.h3.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: GaonColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -550,7 +623,9 @@ class _LoadingStateState extends State<_LoadingState>
           // 단계 카드
           Container(
             padding: const EdgeInsets.symmetric(
-                vertical: GaonSpace.xs, horizontal: GaonSpace.md),
+              vertical: GaonSpace.xs,
+              horizontal: GaonSpace.md,
+            ),
             decoration: BoxDecoration(
               color: GaonColors.surface,
               borderRadius: BorderRadius.circular(GaonRadius.xl),
@@ -564,7 +639,8 @@ class _LoadingStateState extends State<_LoadingState>
                     decoration: BoxDecoration(
                       border: i < _steps.length - 1
                           ? const Border(
-                              bottom: BorderSide(color: GaonColors.border))
+                              bottom: BorderSide(color: GaonColors.border),
+                            )
                           : null,
                     ),
                     child: Row(
@@ -579,8 +655,11 @@ class _LoadingStateState extends State<_LoadingState>
                                 : GaonColors.primaryLight,
                           ),
                           child: i < _activeStep
-                              ? const Icon(Icons.check_rounded,
-                                  size: 14, color: GaonColors.onPrimary)
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 14,
+                                  color: GaonColors.onPrimary,
+                                )
                               : Center(
                                   child: Container(
                                     width: 8,
@@ -597,25 +676,32 @@ class _LoadingStateState extends State<_LoadingState>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(s.label,
-                                  style: GaonType.body.copyWith(
-                                      fontWeight: i < _activeStep
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
-                                      color: i < _activeStep
-                                          ? GaonColors.textPrimary
-                                          : GaonColors.textSecondary)),
-                              Text(s.vi,
-                                  style: GaonType.micro.copyWith(
-                                      color: GaonColors.textSecondary)),
+                              Text(
+                                s.label,
+                                style: GaonType.body.copyWith(
+                                  fontWeight: i < _activeStep
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: i < _activeStep
+                                      ? GaonColors.textPrimary
+                                      : GaonColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                s.vi,
+                                style: GaonType.micro.copyWith(
+                                  color: GaonColors.textSecondary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         if (i == _activeStep)
                           const GaonBadge(
-                              label: '진행중',
-                              color: GaonColors.textPrimary,
-                              bg: GaonColors.primary),
+                            label: '진행중',
+                            color: GaonColors.textPrimary,
+                            bg: GaonColors.primary,
+                          ),
                       ],
                     ),
                   ),
@@ -623,10 +709,14 @@ class _LoadingStateState extends State<_LoadingState>
             ),
           ),
           const SizedBox(height: GaonSpace.md),
-          Text('거의 다 됐어요, 잠시만요 ☺',
-              style: GaonType.label.copyWith(color: GaonColors.textSecondary)),
-          Text(bi('Sắp xong rồi...', '快好了…'),
-              style: GaonType.micro.copyWith(color: GaonColors.textSecondary)),
+          Text(
+            '거의 다 됐어요, 잠시만요 ☺',
+            style: GaonType.label.copyWith(color: GaonColors.textSecondary),
+          ),
+          Text(
+            bi('Sắp xong rồi...', '快好了…'),
+            style: GaonType.micro.copyWith(color: GaonColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -639,40 +729,75 @@ class _PawFillPainter extends CustomPainter {
 
   final double progress;
 
-  void _drawPaw(Canvas canvas, Size size,
-      {required Color toe, required Color pad}) {
+  void _drawPaw(
+    Canvas canvas,
+    Size size, {
+    required Color toe,
+    required Color pad,
+  }) {
     final w = size.width / 100;
     final h = size.height / 118;
     final toePaint = Paint()..color = toe;
     final padPaint = Paint()..color = pad;
     canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(35 * w, 30 * h), width: 30 * w, height: 40 * h),
-        toePaint);
+      Rect.fromCenter(
+        center: Offset(35 * w, 30 * h),
+        width: 30 * w,
+        height: 40 * h,
+      ),
+      toePaint,
+    );
     canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(65 * w, 30 * h), width: 30 * w, height: 40 * h),
-        toePaint);
+      Rect.fromCenter(
+        center: Offset(65 * w, 30 * h),
+        width: 30 * w,
+        height: 40 * h,
+      ),
+      toePaint,
+    );
     canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(30 * w, 78 * h), width: 46 * w, height: 60 * h),
-        padPaint);
+      Rect.fromCenter(
+        center: Offset(30 * w, 78 * h),
+        width: 46 * w,
+        height: 60 * h,
+      ),
+      padPaint,
+    );
     canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(70 * w, 78 * h), width: 46 * w, height: 60 * h),
-        padPaint);
+      Rect.fromCenter(
+        center: Offset(70 * w, 78 * h),
+        width: 46 * w,
+        height: 60 * h,
+      ),
+      padPaint,
+    );
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     // 미채움(연한 톤)
-    _drawPaw(canvas, size,
-        toe: GaonColors.successLight, pad: GaonColors.primaryLight);
+    _drawPaw(
+      canvas,
+      size,
+      toe: GaonColors.successLight,
+      pad: GaonColors.primaryLight,
+    );
     // 채움(진한 톤) — 아래에서 progress만큼만
     canvas.save();
-    canvas.clipRect(Rect.fromLTWH(
-        0, size.height * (1 - progress), size.width, size.height * progress));
-    _drawPaw(canvas, size, toe: GaonColors.primary, pad: GaonColors.textPrimary);
+    canvas.clipRect(
+      Rect.fromLTWH(
+        0,
+        size.height * (1 - progress),
+        size.width,
+        size.height * progress,
+      ),
+    );
+    _drawPaw(
+      canvas,
+      size,
+      toe: GaonColors.primary,
+      pad: GaonColors.textPrimary,
+    );
     canvas.restore();
   }
 
@@ -713,21 +838,25 @@ class _ResultState extends StatelessWidget {
         spans.add(TextSpan(text: raw.substring(cursor, nextIndex)));
       }
       final term = nextTerm;
-      spans.add(WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: GestureDetector(
-          onTap: () => _showTermSheet(context, term),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 5),
-            decoration: BoxDecoration(
-              color: GaonColors.textPrimary,
-              borderRadius: BorderRadius.circular(4),
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: GestureDetector(
+            onTap: () => _showTermSheet(context, term),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 1, horizontal: 5),
+              decoration: BoxDecoration(
+                color: GaonColors.textPrimary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                term.termKo,
+                style: GaonType.label.copyWith(color: GaonColors.onPrimary),
+              ),
             ),
-            child: Text(term.termKo,
-                style: GaonType.label.copyWith(color: GaonColors.onPrimary)),
           ),
         ),
-      ));
+      );
       cursor = nextIndex + term.termKo.length;
     }
     return spans;
@@ -740,8 +869,9 @@ class _ResultState extends StatelessWidget {
       backgroundColor: GaonColors.surface,
       barrierColor: const Color(0x73011D14),
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -770,14 +900,20 @@ class _ResultState extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    Text(term.termKo,
-                        style: GaonType.h1.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: GaonColors.onPrimary)),
+                    Text(
+                      term.termKo,
+                      style: GaonType.h1.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: GaonColors.onPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(term.literalNative,
-                        style: GaonType.caption
-                            .copyWith(color: GaonColors.primary)),
+                    Text(
+                      term.literalNative,
+                      style: GaonType.caption.copyWith(
+                        color: GaonColors.primary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -792,14 +928,21 @@ class _ResultState extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('설명 · ${bi('Giải thích', '解释')}',
-                        style: GaonType.micro.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: GaonColors.textSecondary)),
+                    Text(
+                      '설명 · ${bi('Giải thích', '解释')}',
+                      style: GaonType.micro.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: GaonColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(term.explanationNative,
-                        style: GaonType.body.copyWith(
-                            color: GaonColors.textPrimary, height: 1.65)),
+                    Text(
+                      term.explanationNative,
+                      style: GaonType.body.copyWith(
+                        color: GaonColors.textPrimary,
+                        height: 1.65,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -823,7 +966,8 @@ class _ResultState extends StatelessWidget {
       builder: (dialogContext) => Dialog(
         backgroundColor: GaonColors.surface,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GaonRadius.xxl)),
+          borderRadius: BorderRadius.circular(GaonRadius.xxl),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(GaonSpace.lg),
           child: Column(
@@ -831,15 +975,22 @@ class _ResultState extends StatelessWidget {
             children: [
               const Text('🎉', style: TextStyle(fontSize: 28)),
               const SizedBox(height: GaonSpace.xs),
-              Text('캘린더에 추가되었습니다',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '캘린더에 추가되었습니다',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: 4),
-              Text('일정 ${saved.length}개 저장 · ${bi('Đã lưu ${saved.length} lịch', '已保存 ${saved.length} 个日程')}',
-                  style: GaonType.caption
-                      .copyWith(color: GaonColors.textSecondary)),
+              Text(
+                '일정 ${saved.length}개 저장 · ${bi('Đã lưu ${saved.length} lịch', '已保存 ${saved.length} 个日程')}',
+                style: GaonType.caption.copyWith(
+                  color: GaonColors.textSecondary,
+                ),
+              ),
               const SizedBox(height: 6),
-              Text('캘린더에서 확인하시겠습니까?',
-                  style: GaonType.body.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '캘린더에서 확인하시겠습니까?',
+                style: GaonType.body.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.md),
               Row(
                 children: [
@@ -880,7 +1031,8 @@ class _ResultState extends StatelessWidget {
       builder: (context) => Dialog(
         backgroundColor: GaonColors.surface,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(GaonRadius.xxl)),
+          borderRadius: BorderRadius.circular(GaonRadius.xxl),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(GaonSpace.lg),
           child: Column(
@@ -890,23 +1042,29 @@ class _ResultState extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
-                    shape: BoxShape.circle, color: GaonColors.textPrimary),
-                child: const Icon(Icons.calendar_month_rounded,
-                    size: 26, color: GaonColors.onPrimary),
+                  shape: BoxShape.circle,
+                  color: GaonColors.textPrimary,
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  size: 26,
+                  color: GaonColors.onPrimary,
+                ),
               ),
               const SizedBox(height: GaonSpace.sm),
-              Text('캘린더에 저장할까요?',
-                  style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '캘린더에 저장할까요?',
+                style: GaonType.h2.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: 4),
-              Text(bi('Lưu vào lịch không?', '要保存到日历吗？'),
-                  style: GaonType.label
-                      .copyWith(color: GaonColors.textSecondary)),
+              Text(
+                bi('Lưu vào lịch không?', '要保存到日历吗？'),
+                style: GaonType.label.copyWith(color: GaonColors.textSecondary),
+              ),
               const SizedBox(height: GaonSpace.md),
               for (final e in analysis.actionCard.calendarEvents.where(
-                  (e) => e.childId == analysis.document.childId)) ...[
-                _EventRow(event: e),
-                const SizedBox(height: GaonSpace.xs),
-              ],
+                (e) => e.childId == analysis.document.childId,
+              )) ...[_EventRow(event: e), const SizedBox(height: GaonSpace.xs)],
               const SizedBox(height: GaonSpace.xs),
               Row(
                 children: [
@@ -926,7 +1084,8 @@ class _ResultState extends StatelessWidget {
                         Navigator.of(context).pop();
                         // F-DOC-7: 앱 내 캘린더에 확정 저장
                         final saved = await repository.saveCalendarEvents(
-                            documentId: analysis.document.documentId);
+                          documentId: analysis.document.documentId,
+                        );
                         // F-PRO-2·3: 마감 D-2·행사 전날 잠금화면 리마인드 예약
                         await NotificationService.instance
                             .scheduleEventReminders(saved);
@@ -965,15 +1124,20 @@ class _ResultState extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('원문 한국어',
-                  style: GaonType.micro.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: GaonColors.textSecondary)),
+              Text(
+                '원문 한국어',
+                style: GaonType.micro.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: GaonColors.textSecondary,
+                ),
+              ),
               const SizedBox(height: 4),
               Text.rich(
                 TextSpan(children: _highlightedRawText(context)),
-                style: GaonType.body
-                    .copyWith(color: GaonColors.textPrimary, height: 1.7),
+                style: GaonType.body.copyWith(
+                  color: GaonColors.textPrimary,
+                  height: 1.7,
+                ),
               ),
             ],
           ),
@@ -996,24 +1160,34 @@ class _ResultState extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('번역 · ${bi('Bản dịch (Tiếng Việt)', '译文（中文）')}',
-                  style: GaonType.micro.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: GaonColors.textSecondary)),
+              Text(
+                '번역 · ${bi('Bản dịch (Tiếng Việt)', '译文（中文）')}',
+                style: GaonType.micro.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: GaonColors.textSecondary,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(analysis.translated.summaryNative,
-                  style: GaonType.body
-                      .copyWith(color: GaonColors.textPrimary, height: 1.7)),
+              Text(
+                analysis.translated.summaryNative,
+                style: GaonType.body.copyWith(
+                  color: GaonColors.textPrimary,
+                  height: 1.7,
+                ),
+              ),
             ],
           ),
         ),
         const SizedBox(height: GaonSpace.sm),
 
         // 단어 해설 칩
-        Text('단어 해설 · ${bi('Giải thích từ', '词语解释')}',
-            style: GaonType.caption.copyWith(
-                fontWeight: FontWeight.w600,
-                color: GaonColors.textSecondary)),
+        Text(
+          '단어 해설 · ${bi('Giải thích từ', '词语解释')}',
+          style: GaonType.caption.copyWith(
+            fontWeight: FontWeight.w600,
+            color: GaonColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: GaonSpace.xs),
         Wrap(
           spacing: GaonSpace.xs,
@@ -1028,10 +1202,15 @@ class _ResultState extends StatelessWidget {
                   borderRadius: BorderRadius.circular(GaonRadius.pill),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 7, horizontal: 14),
-                    child: Text('${term.termKo} ?',
-                        style: GaonType.label
-                            .copyWith(color: GaonColors.onPrimary)),
+                      vertical: 7,
+                      horizontal: 14,
+                    ),
+                    child: Text(
+                      '${term.termKo} ?',
+                      style: GaonType.label.copyWith(
+                        color: GaonColors.onPrimary,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1054,8 +1233,7 @@ class _ResultState extends StatelessWidget {
                 variant: GaonButtonVariant.secondary,
                 label: '📋 할 일 보기',
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const ActionCardScreen()),
+                  MaterialPageRoute(builder: (_) => const ActionCardScreen()),
                 ),
               ),
             ),
@@ -1083,7 +1261,9 @@ class _EventRow extends StatelessWidget {
     final urgent = event.type == CalendarEventType.deadline;
     return Container(
       padding: const EdgeInsets.symmetric(
-          vertical: GaonSpace.xs, horizontal: GaonSpace.sm),
+        vertical: GaonSpace.xs,
+        horizontal: GaonSpace.sm,
+      ),
       decoration: BoxDecoration(
         color: urgent ? GaonColors.warningLight : GaonColors.bg,
         borderRadius: BorderRadius.circular(GaonRadius.md),
@@ -1098,21 +1278,29 @@ class _EventRow extends StatelessWidget {
               color: urgent ? GaonColors.warning : GaonColors.textPrimary,
             ),
             alignment: Alignment.center,
-            child: Text('${event.date.month}/${event.date.day}',
-                style: GaonType.micro.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: GaonColors.onPrimary)),
+            child: Text(
+              '${event.date.month}/${event.date.day}',
+              style: GaonType.micro.copyWith(
+                fontWeight: FontWeight.w700,
+                color: GaonColors.onPrimary,
+              ),
+            ),
           ),
           const SizedBox(width: GaonSpace.sm),
           Expanded(
-            child: Text(event.title,
-                style: GaonType.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: GaonColors.textPrimary)),
+            child: Text(
+              event.title,
+              style: GaonType.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: GaonColors.textPrimary,
+              ),
+            ),
           ),
-          Icon(Icons.check_rounded,
-              size: 16,
-              color: urgent ? GaonColors.warning : GaonColors.textPrimary),
+          Icon(
+            Icons.check_rounded,
+            size: 16,
+            color: urgent ? GaonColors.warning : GaonColors.textPrimary,
+          ),
         ],
       ),
     );
