@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/locator.dart';
 import '../data/notification_service.dart';
+import '../data/picked_image_store.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -51,13 +53,79 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  Future<void> _upload() async {
+  /// F-DOC-1: 사진 소스 선택 — 카메라 촬영 / 갤러리 / 데모 알림장.
+  Future<void> _pickAndUpload() async {
+    final source = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: GaonColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(GaonSpace.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('알림장 사진 · Ảnh thông báo',
+                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              const SizedBox(height: GaonSpace.sm),
+              for (final (value, icon, ko, vi) in const [
+                ('camera', Icons.photo_camera_rounded, '카메라로 촬영', 'Chụp ảnh'),
+                ('gallery', Icons.photo_library_rounded, '갤러리에서 선택',
+                    'Chọn từ thư viện'),
+                ('demo', Icons.description_rounded, '데모 알림장 사용',
+                    'Dùng ảnh mẫu'),
+              ])
+                ListTile(
+                  onTap: () => Navigator.of(context).pop(value),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(GaonRadius.md)),
+                  leading: IconCircle(
+                    bg: GaonColors.primaryLight,
+                    child:
+                        Icon(icon, size: 16, color: GaonColors.textPrimary),
+                  ),
+                  title: Text(ko,
+                      style: GaonType.bodyLg
+                          .copyWith(color: GaonColors.textPrimary)),
+                  subtitle: Text(vi,
+                      style: GaonType.micro
+                          .copyWith(color: GaonColors.textSecondary)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (source == null) return;
+
+    String imageRef;
+    if (source == 'demo') {
+      imageRef = 'demo://notice.jpg';
+    } else {
+      final picked = await ImagePicker().pickImage(
+        source:
+            source == 'camera' ? ImageSource.camera : ImageSource.gallery,
+        maxWidth: 1600, // LLM 파싱에 충분 + 업로드 용량 절약
+        imageQuality: 85,
+      );
+      if (picked == null) return; // 사용자가 취소
+      imageRef = PickedImageStore.register(await picked.readAsBytes());
+    }
+    if (!mounted) return;
+    await _upload(imageRef);
+  }
+
+  Future<void> _upload(String imageRef) async {
     setState(() {
       _phase = _Phase.analyzing;
       _status = DocStatus.uploaded;
     });
     final doc = await repository.uploadDocument(
-      imageRef: 'demo://notice.jpg',
+      imageRef: imageRef,
       childId: _selectedChild?.childId,
     );
     if (!mounted) return;
@@ -176,7 +244,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
           Expanded(
             child: switch (_phase) {
-              _Phase.idle => _EmptyState(onUpload: _upload),
+              _Phase.idle => _EmptyState(onUpload: _pickAndUpload),
               _Phase.analyzing => _LoadingState(status: _status),
               _Phase.result => _ResultState(
                   analysis: _analysis!,

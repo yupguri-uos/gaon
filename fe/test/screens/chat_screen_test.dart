@@ -36,6 +36,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('사진 올리기'));
+    await tester.pumpAndSettle(); // 소스 선택 시트(F-DOC-1)
+    await tester.tap(find.text('데모 알림장 사용'));
     await tester.pump(); // 업로드 시작
     clock = clock.add(const Duration(seconds: 10)); // 체인 완료 시점으로 점프
     await tester.pump(const Duration(milliseconds: 300)); // 폴링 1회
