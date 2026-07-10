@@ -19,6 +19,7 @@ fe/build/
 *.key
 *.pem
 service-account*.json
+.ssh
 
 # IDE / OS / 개인 메모
 .vscode/
