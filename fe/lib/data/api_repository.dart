@@ -6,6 +6,7 @@ import 'package:http_parser/http_parser.dart' show MediaType;
 
 import '../models/schema.dart';
 import 'api_config.dart';
+import 'picked_image_store.dart';
 import 'repository.dart';
 
 /// 인증 토큰이 없거나 만료됨 — Kakao 로그인(F-ON-3)으로 재발급 필요.
@@ -163,8 +164,20 @@ class ApiRepository implements GaonRepository {
     if (childId != null) request.fields['child_id'] = childId;
 
     // BE가 content_type 검사(image/*)를 하므로 명시.
-    // 데모 경로면 번들 알림장 사진 사용, 아니면 파일 경로로 취급.
-    if (imageRef.startsWith('demo://')) {
+    // picked:// = 사용자가 고른 사진(F-DOC-1, 카메라·갤러리) — 메모리 스토어에서 소비.
+    // demo://   = 번들 데모 알림장.  그 외 = 파일 경로(모바일 전용).
+    if (PickedImageStore.isPickedRef(imageRef)) {
+      final bytes = PickedImageStore.take(imageRef);
+      if (bytes == null) {
+        throw StateError('선택한 사진을 찾을 수 없습니다: $imageRef');
+      }
+      request.files.add(http.MultipartFile.fromBytes(
+        'image',
+        bytes,
+        filename: 'notice.jpg',
+        contentType: MediaType('image', 'jpeg'),
+      ));
+    } else if (imageRef.startsWith('demo://')) {
       final bytes = await rootBundle.load('assets/images/demo_notice.jpg');
       request.files.add(http.MultipartFile.fromBytes(
         'image',
