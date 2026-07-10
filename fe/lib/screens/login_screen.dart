@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../data/api_repository.dart';
+import '../data/locator.dart';
 import '../theme/tokens.dart';
+import 'main_shell.dart';
 import 'onboarding_self_screen.dart';
 
 /// S1 로그인 (F-ON-3) — GAON 로고 + 카카오 OAuth 진입점.
@@ -36,10 +39,26 @@ class LoginScreen extends StatelessWidget {
                     color: GaonColors.kakao,
                     borderRadius: BorderRadius.circular(GaonRadius.pill),
                     child: InkWell(
-                      onTap: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                            builder: (_) => const OnboardingSelfScreen()),
-                      ),
+                      onTap: () async {
+                        final navigator = Navigator.of(context);
+                        // API 모드: 이미 온보딩된 계정이면 홈으로(§13 ⓪ user!=null 분기).
+                        // 재실행마다 온보딩을 다시 타며 자녀가 중복 등록되는 것 방지.
+                        final repo = repository;
+                        if (repo is ApiRepository) {
+                          try {
+                            final children = await repo.getChildren();
+                            if (children.isNotEmpty) {
+                              navigator.pushReplacement(MaterialPageRoute(
+                                  builder: (_) => const MainShell()));
+                              return;
+                            }
+                          } catch (_) {
+                            // 네트워크/인증 실패 시 온보딩으로 진행(아래)
+                          }
+                        }
+                        navigator.pushReplacement(MaterialPageRoute(
+                            builder: (_) => const OnboardingSelfScreen()));
+                      },
                       borderRadius: BorderRadius.circular(GaonRadius.pill),
                       child: Container(
                         width: double.infinity,

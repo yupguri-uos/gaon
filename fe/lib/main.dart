@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'data/app_lang.dart';
 import 'screens/login_screen.dart';
 import 'theme/tokens.dart';
 
@@ -15,6 +16,13 @@ class GaonApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: appLanguage, // 모국어(vi/zh) 변경 시 전 화면 병기 갱신
+      builder: (context, _, _) => _buildApp(),
+    );
+  }
+
+  Widget _buildApp() {
     return MaterialApp(
       title: 'GAON',
       debugShowCheckedModeBanner: false,

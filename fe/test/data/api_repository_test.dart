@@ -68,9 +68,11 @@ void main() {
   });
 
   group('POST /children', () {
-    test('이름·반 있으면 consent_child_pii=true로 전송 (결정 #7-PII)', () async {
+    test('이름·반 있으면 consent_child_pii=true + 색 자동 배정 (§17.4)', () async {
       late Map<String, dynamic> sentBody;
       final repo = repoWith((req) async {
+        // addChild는 색 배정을 위해 GET /children을 먼저 호출한다
+        if (req.method == 'GET') return jsonRes([], 200);
         sentBody = jsonDecode(req.body) as Map<String, dynamic>;
         return jsonRes({
             'child_id': 'c9',
@@ -86,6 +88,7 @@ void main() {
           grade: ChildGrade.elem5, name: '김하늘', classNo: '2');
       expect(sentBody['grade'], 'elem_5');
       expect(sentBody['consent_child_pii'], isTrue);
+      expect(sentBody['color'], '#011D14'); // 첫 자녀 = 팔레트 첫 색
     });
   });
 

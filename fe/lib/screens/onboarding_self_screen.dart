@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_lang.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -41,13 +42,13 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                       style:
                           GaonType.h1.copyWith(color: GaonColors.textPrimary)),
                   const SizedBox(height: GaonSpace.xxs),
-                  Text('Cho chúng tôi biết về bạn',
+                  Text(bi('Cho chúng tôi biết về bạn', '请介绍一下您自己'),
                       style: GaonType.label
                           .copyWith(color: GaonColors.textSecondary)),
                   const SizedBox(height: GaonSpace.lg),
 
                   // 출신국
-                  Text('출신국 · Quốc gia',
+                  Text('출신국 · ${bi('Quốc gia', '国家')}',
                       style: GaonType.label
                           .copyWith(color: GaonColors.textSecondary)),
                   const SizedBox(height: GaonSpace.xs),
@@ -66,7 +67,7 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                   const SizedBox(height: GaonSpace.lg),
 
                   // 모국어
-                  Text('모국어 · Ngôn ngữ mẹ đẻ',
+                  Text('모국어 · ${bi('Ngôn ngữ mẹ đẻ', '母语')}',
                       style: GaonType.label
                           .copyWith(color: GaonColors.textSecondary)),
                   const SizedBox(height: GaonSpace.xs),
@@ -78,7 +79,13 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                         _SelectChip(
                           label: l,
                           selected: _lang == i,
-                          onTap: () => setState(() => _lang = i),
+                          onTap: () => setState(() {
+                            _lang = i;
+                            // 병기 언어 즉시 전환(zh 지원, 미지원어는 vi 폴백)
+                            appLanguage.value = i == 1
+                                ? NativeLanguage.zh
+                                : NativeLanguage.vi;
+                          }),
                         ),
                     ],
                   ),
@@ -112,7 +119,8 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                                   style: GaonType.caption.copyWith(
                                       color: GaonColors.textPrimary)),
                               Text(
-                                  'Thông báo sẽ được dịch sang ngôn ngữ của bạn',
+                                  bi('Thông báo sẽ được dịch sang ngôn ngữ của bạn',
+                                      '通知将翻译成您的语言'),
                                   style: GaonType.micro.copyWith(
                                       color: GaonColors.textSecondary)),
                             ],
@@ -129,7 +137,7 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                   GaonSpace.md, GaonSpace.xs, GaonSpace.md, GaonSpace.lg),
               child: GaonButton(
                 label: '다음',
-                subLabel: 'Tiếp tục →',
+                subLabel: '${bi('Tiếp tục', '继续')} →',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => OnboardingChildScreen(

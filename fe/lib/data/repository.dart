@@ -16,6 +16,9 @@ class DocumentAnalysis {
   final ActionCard actionCard;
 }
 
+/// 자녀별 캘린더 색 팔레트 — 등록 순서대로 순환 배정(§17.4 Child.color).
+const childColorPalette = ['#011D14', '#E05A2B', '#3D7A6E', '#5270E0'];
+
 /// FE 데이터 접근 계약. 화면은 이 인터페이스만 안다.
 /// 지금은 MockRepository, BE 연동 시 ApiRepository로 교체(화면 코드 무변경).
 ///
@@ -37,7 +40,11 @@ abstract interface class GaonRepository {
     String? name,
     String? classNo,
     String? schoolName,
+    String? color, // 미지정 시 구현체가 팔레트에서 자동 배정
   });
+
+  /// 자녀 삭제(F-ON-4) = DELETE /children/{id}.
+  Future<void> deleteChild(String childId);
 
   /// Chain A 시작(F-DOC-1). Document 생성 후 status가 비동기로 진행된다.
   Future<Document> uploadDocument({required String imageRef, String? childId});

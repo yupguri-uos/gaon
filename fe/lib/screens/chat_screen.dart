@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/app_lang.dart';
+import '../data/app_nav.dart';
 import '../data/locator.dart';
 import '../data/notification_service.dart';
 import '../data/picked_image_store.dart';
@@ -16,10 +18,7 @@ import 'action_card_screen.dart';
 /// S4 빈 상태(업로드) → S5 분석 중(Document.status 폴링) → S6 번역 결과.
 /// S7 단어 해설 바텀시트 · S8 캘린더 저장 다이얼로그 포함.
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, this.onGoToCalendar});
-
-  /// 캘린더 저장 후 캘린더 탭으로 전환 (셸이 주입).
-  final VoidCallback? onGoToCalendar;
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -34,6 +33,8 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Child> _children = const [];
   Child? _selectedChild;
   Timer? _pollTimer;
+  // 홈(빈 상태)의 '다가오는 일정' — 리빌드마다 재요청하지 않게 캐시
+  late Future<List<CalendarEvent>> _upcoming = repository.getCalendarEvents();
 
   @override
   void initState() {
@@ -69,15 +70,16 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('알림장 사진 · Ảnh thông báo',
+              Text('알림장 사진 · ${bi('Ảnh thông báo', '通知单照片')}',
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: GaonSpace.sm),
-              for (final (value, icon, ko, vi) in const [
-                ('camera', Icons.photo_camera_rounded, '카메라로 촬영', 'Chụp ảnh'),
+              for (final (value, icon, ko, vi) in [
+                ('camera', Icons.photo_camera_rounded, '카메라로 촬영',
+                    bi('Chụp ảnh', '拍照')),
                 ('gallery', Icons.photo_library_rounded, '갤러리에서 선택',
-                    'Chọn từ thư viện'),
+                    bi('Chọn từ thư viện', '从相册选择')),
                 ('demo', Icons.description_rounded, '데모 알림장 사용',
-                    'Dùng ảnh mẫu'),
+                    bi('Dùng ảnh mẫu', '使用示例通知单')),
               ])
                 ListTile(
                   onTap: () => Navigator.of(context).pop(value),
@@ -117,6 +119,15 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     if (!mounted) return;
     await _upload(imageRef);
+  }
+
+  /// 홈(초기 화면)으로 — 잘못 진입했거나 새 알림장을 분석할 때(시연 가드).
+  void _resetToHome() {
+    _pollTimer?.cancel();
+    setState(() {
+      _phase = _Phase.idle;
+      _upcoming = repository.getCalendarEvents(); // 저장분 반영
+    });
   }
 
   /// 업로드·폴링 실패 시 안내 후 초기 화면 복귀(시연 가드 — 멈춘 화면 방지).
@@ -187,7 +198,7 @@ class _ChatScreenState extends State<ChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('자녀 선택 · Chọn con',
+              Text('자녀 선택 · ${bi('Chọn con', '选择孩子')}',
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: GaonSpace.sm),
               for (final c in _children)
@@ -241,6 +252,24 @@ class _ChatScreenState extends State<ChatScreen> {
                       style: GaonType.h3
                           .copyWith(color: GaonColors.textPrimary)),
                 ),
+                // 홈 복귀 — 잘못 눌렀을 때/새 알림장 분석 시 초기 화면으로
+                if (_phase != _Phase.idle) ...[
+                  Material(
+                    color: GaonColors.primaryLight,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: _resetToHome,
+                      customBorder: const CircleBorder(),
+                      child: const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Icon(Icons.home_rounded,
+                            size: 16, color: GaonColors.textPrimary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: GaonSpace.xs),
+                ],
                 if (_selectedChild != null)
                   Material(
                     color: GaonColors.textPrimary,
@@ -271,11 +300,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
           Expanded(
             child: switch (_phase) {
-              _Phase.idle => _EmptyState(onUpload: _pickAndUpload),
+              _Phase.idle => _EmptyState(
+                  onUpload: _pickAndUpload, upcoming: _upcoming),
               _Phase.analyzing => _LoadingState(status: _status),
               _Phase.result => _ResultState(
                   analysis: _analysis!,
-                  onGoToCalendar: widget.onGoToCalendar,
+                  onGoHome: _resetToHome,
                 ),
             },
           ),
@@ -285,20 +315,21 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// ── S4: 빈 상태 ────────────────────────────────────────────────────
+// ── S4: 빈 상태 (홈 역할 — 업로드 + 다가오는 일정 요약) ─────────────
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onUpload});
+  const _EmptyState({required this.onUpload, required this.upcoming});
 
   final VoidCallback onUpload;
+  final Future<List<CalendarEvent>> upcoming;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return ListView(
       padding: const EdgeInsets.all(GaonSpace.xl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
+      children: [
+        const SizedBox(height: GaonSpace.lg),
+        Center(
+          child: Container(
             width: 88,
             height: 88,
             decoration: const BoxDecoration(
@@ -309,44 +340,130 @@ class _EmptyState extends StatelessWidget {
             child: const Icon(Icons.photo_camera_rounded,
                 size: 38, color: GaonColors.textPrimary),
           ),
-          const SizedBox(height: GaonSpace.md),
-          Text('알림장을 올려주세요',
-              style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
-          const SizedBox(height: 6),
-          Text('Gửi ảnh thông báo từ trường',
-              style: GaonType.body.copyWith(color: GaonColors.textSecondary)),
-          const SizedBox(height: 4),
-          Text('사진 촬영 또는 갤러리에서 선택',
-              style:
-                  GaonType.caption.copyWith(color: GaonColors.textSecondary)),
-          const SizedBox(height: GaonSpace.md),
-          GaonButton(
-            label: '사진 올리기',
-            subLabel: 'Tải ảnh lên',
-            icon: const Icon(Icons.upload_rounded,
-                size: 16, color: GaonColors.onPrimary),
-            onTap: onUpload,
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: GaonSpace.md),
+        Text('알림장을 올려주세요',
+            textAlign: TextAlign.center,
+            style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
+        const SizedBox(height: 6),
+        Text(bi('Gửi ảnh thông báo từ trường', '请上传学校发的通知单'),
+            textAlign: TextAlign.center,
+            style: GaonType.body.copyWith(color: GaonColors.textSecondary)),
+        const SizedBox(height: 4),
+        Text('사진 촬영 또는 갤러리에서 선택',
+            textAlign: TextAlign.center,
+            style:
+                GaonType.caption.copyWith(color: GaonColors.textSecondary)),
+        const SizedBox(height: GaonSpace.md),
+        GaonButton(
+          label: '사진 올리기',
+          subLabel: bi('Tải ảnh lên', '上传照片'),
+          icon: const Icon(Icons.upload_rounded,
+              size: 16, color: GaonColors.onPrimary),
+          onTap: onUpload,
+        ),
+        const SizedBox(height: GaonSpace.lg),
+        // 다가오는 일정 — 저장된 캘린더 요약(홈에서 바로 확인, 실패 시 숨김)
+        FutureBuilder<List<CalendarEvent>>(
+          future: upcoming,
+          builder: (context, snap) {
+            final events = ([...(snap.data ?? const <CalendarEvent>[])]
+                  ..sort((a, b) => a.date.compareTo(b.date)))
+                .take(3)
+                .toList();
+            if (events.isEmpty) return const SizedBox.shrink();
+            return SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BiText(
+                          vi: bi('Lịch sắp tới', '即将到来的日程'),
+                          ko: '다가오는 일정',
+                          viStyle: GaonType.h3,
+                          koStyle: GaonType.micro,
+                        ),
+                      ),
+                      GestureDetector(
+                          onTap: () => goToCalendar(),
+                          child: Text('전체 보기 →',
+                              style: GaonType.caption.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: GaonColors.textSecondary)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: GaonSpace.sm),
+                  for (final (i, e) in events.indexed) ...[
+                    if (i > 0) const GaonDivider(),
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: e.type == CalendarEventType.deadline
+                                ? GaonColors.warningLight
+                                : GaonColors.primaryLight,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text('${e.date.month}/${e.date.day}',
+                              style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: e.type ==
+                                          CalendarEventType.deadline
+                                      ? GaonColors.warning
+                                      : GaonColors.textPrimary)),
+                        ),
+                        const SizedBox(width: GaonSpace.sm),
+                        Expanded(
+                          child: Text(e.title,
+                              style: GaonType.body.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: GaonColors.textPrimary)),
+                        ),
+                        if (e.type == CalendarEventType.deadline)
+                          const GaonBadge(
+                              label: '마감',
+                              color: GaonColors.warning,
+                              bg: GaonColors.warningLight),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
 // ── S5: 분석 중 (F-DOC-1·4 — status 폴링) ─────────────────────────
-class _LoadingState extends StatelessWidget {
+class _LoadingState extends StatefulWidget {
   const _LoadingState({required this.status});
 
   final DocStatus status;
 
-  static const _steps = [
-    (label: '글자 읽기', vi: 'Đọc chữ'),
-    (label: '정보 정리', vi: 'Sắp xếp'),
-    (label: '번역 중', vi: 'Đang dịch...'),
-    (label: '할 일 추출', vi: 'Tạo việc'),
-  ];
+  @override
+  State<_LoadingState> createState() => _LoadingStateState();
+}
 
-  int get _activeStep => switch (status) {
+class _LoadingStateState extends State<_LoadingState>
+    with TickerProviderStateMixin {
+  List<({String label, String vi})> get _steps => [
+        (label: '글자 읽기', vi: bi('Đọc chữ', '识别文字')),
+        (label: '정보 정리', vi: bi('Sắp xếp', '整理信息')),
+        (label: '번역 중', vi: bi('Đang dịch...', '翻译中…')),
+        (label: '할 일 추출', vi: bi('Tạo việc', '提取待办')),
+      ];
+
+  int get _activeStep => switch (widget.status) {
         DocStatus.uploaded => 0,
         DocStatus.parsing => 1,
         DocStatus.translating => 2,
@@ -355,14 +472,51 @@ class _LoadingState extends StatelessWidget {
         DocStatus.failed => 0,
       };
 
-  double get _progress => switch (status) {
-        DocStatus.uploaded => 0.08,
-        DocStatus.parsing => 0.33,
-        DocStatus.translating => 0.66,
-        DocStatus.action => 0.9,
-        DocStatus.done => 1.0,
-        DocStatus.failed => 0.0,
+  /// 상태별 진행 구간 — 실서버는 한 status에 수십 초 머무르므로
+  /// 고정 퍼센트 대신 구간 상한을 향해 계속 차오르게 한다.
+  (double, double) _bandFor(DocStatus s) => switch (s) {
+        DocStatus.uploaded => (0.02, 0.30),
+        DocStatus.parsing => (0.30, 0.62),
+        DocStatus.translating => (0.62, 0.86),
+        DocStatus.action => (0.86, 0.97),
+        DocStatus.done => (0.97, 1.0),
+        DocStatus.failed => (0.0, 0.0),
       };
+
+  // 크리프: 구간 상한을 향해 서서히(처음엔 빠르게) 차오름 · 펄스: 로고 숨쉬기
+  late final AnimationController _creep = AnimationController(
+      vsync: this, duration: const Duration(seconds: 40))
+    ..forward();
+  late final AnimationController _pulse = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100))
+    ..repeat(reverse: true);
+  double _from = 0.02;
+
+  double get _value {
+    final t = Curves.easeOutQuad.transform(_creep.value);
+    return _from + (_bandFor(widget.status).$2 - _from) * t;
+  }
+
+  @override
+  void didUpdateWidget(covariant _LoadingState old) {
+    super.didUpdateWidget(old);
+    if (old.status == widget.status) return;
+    // 현재 표시값(이전 구간 기준)에서 끊김 없이 이어 차오르게
+    final t = Curves.easeOutQuad.transform(_creep.value);
+    _from = _from + (_bandFor(old.status).$2 - _from) * t;
+    _creep
+      ..duration = widget.status == DocStatus.done
+          ? const Duration(milliseconds: 500)
+          : const Duration(seconds: 40)
+      ..forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _creep.dispose();
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -371,18 +525,20 @@ class _LoadingState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 발자국 로고가 아래에서 차오르는 진행 표시
-          TweenAnimationBuilder<double>(
-            tween: Tween(end: _progress),
-            duration: const Duration(milliseconds: 400),
-            builder: (context, value, _) => Column(
+          // 발자국 로고 — 퍼센트가 멈추지 않고 계속 차오른다
+          AnimatedBuilder(
+            animation: Listenable.merge([_creep, _pulse]),
+            builder: (context, _) => Column(
               children: [
-                CustomPaint(
-                  size: const Size(110, 130),
-                  painter: _PawFillPainter(progress: value),
+                Transform.scale(
+                  scale: 0.98 + 0.04 * _pulse.value,
+                  child: CustomPaint(
+                    size: const Size(110, 130),
+                    painter: _PawFillPainter(progress: _value),
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Text('${(value * 100).round()}%',
+                Text('${(_value * 100).round()}%',
                     style: GaonType.h3.copyWith(
                         fontWeight: FontWeight.w700,
                         color: GaonColors.textPrimary)),
@@ -469,7 +625,7 @@ class _LoadingState extends StatelessWidget {
           const SizedBox(height: GaonSpace.md),
           Text('거의 다 됐어요, 잠시만요 ☺',
               style: GaonType.label.copyWith(color: GaonColors.textSecondary)),
-          Text('Sắp xong rồi...',
+          Text(bi('Sắp xong rồi...', '快好了…'),
               style: GaonType.micro.copyWith(color: GaonColors.textSecondary)),
         ],
       ),
@@ -526,10 +682,10 @@ class _PawFillPainter extends CustomPainter {
 
 // ── S6: 번역 결과 ─────────────────────────────────────────────────
 class _ResultState extends StatelessWidget {
-  const _ResultState({required this.analysis, this.onGoToCalendar});
+  const _ResultState({required this.analysis, this.onGoHome});
 
   final DocumentAnalysis analysis;
-  final VoidCallback? onGoToCalendar;
+  final VoidCallback? onGoHome;
 
   /// 원문에서 단어 해설 term을 하이라이트 span으로 변환.
   List<InlineSpan> _highlightedRawText(BuildContext context) {
@@ -636,7 +792,7 @@ class _ResultState extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('설명 · Giải thích',
+                    Text('설명 · ${bi('Giải thích', '解释')}',
                         style: GaonType.micro.copyWith(
                             fontWeight: FontWeight.w600,
                             color: GaonColors.textSecondary)),
@@ -649,8 +805,64 @@ class _ResultState extends StatelessWidget {
               ),
               const SizedBox(height: GaonSpace.md),
               GaonButton(
-                label: '확인 · Đóng',
+                label: '확인 · ${bi('Đóng', '关闭')}',
                 onTap: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 저장 완료 확인 — "확인"을 누르면 저장된 일정의 월로 캘린더 이동.
+  void _showSavedConfirm(BuildContext context, List<CalendarEvent> saved) {
+    showDialog<void>(
+      context: context,
+      barrierColor: const Color(0x73011D14),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: GaonColors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GaonRadius.xxl)),
+        child: Padding(
+          padding: const EdgeInsets.all(GaonSpace.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🎉', style: TextStyle(fontSize: 28)),
+              const SizedBox(height: GaonSpace.xs),
+              Text('캘린더에 추가되었습니다',
+                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              const SizedBox(height: 4),
+              Text('일정 ${saved.length}개 저장 · ${bi('Đã lưu ${saved.length} lịch', '已保存 ${saved.length} 个日程')}',
+                  style: GaonType.caption
+                      .copyWith(color: GaonColors.textSecondary)),
+              const SizedBox(height: 6),
+              Text('캘린더에서 확인하시겠습니까?',
+                  style: GaonType.body.copyWith(color: GaonColors.textPrimary)),
+              const SizedBox(height: GaonSpace.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: GaonButton(
+                      variant: GaonButtonVariant.ghost,
+                      label: '나중에',
+                      onTap: () => Navigator.of(dialogContext).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: GaonSpace.xs),
+                  Expanded(
+                    flex: 2,
+                    child: GaonButton(
+                      label: '확인 · ${bi('Xem lịch', '查看日历')}',
+                      onTap: () {
+                        Navigator.of(dialogContext).pop();
+                        // 저장된 첫 일정의 월·일로 캘린더 포커스 이동
+                        goToCalendar(saved.firstOrNull?.date);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -661,6 +873,7 @@ class _ResultState extends StatelessWidget {
 
   // ── S8: 캘린더 저장 다이얼로그 ──
   void _showCalSaveDialog(BuildContext context) {
+    final rootContext = context; // 다이얼로그 pop 이후 확인 다이얼로그용
     showDialog<void>(
       context: context,
       barrierColor: const Color(0x73011D14),
@@ -685,7 +898,7 @@ class _ResultState extends StatelessWidget {
               Text('캘린더에 저장할까요?',
                   style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: 4),
-              Text('Lưu vào lịch không?',
+              Text(bi('Lưu vào lịch không?', '要保存到日历吗？'),
                   style: GaonType.label
                       .copyWith(color: GaonColors.textSecondary)),
               const SizedBox(height: GaonSpace.md),
@@ -708,9 +921,8 @@ class _ResultState extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: GaonButton(
-                      label: '✓ 저장하기 · Lưu',
+                      label: '✓ 저장하기 · ${bi('Lưu', '保存')}',
                       onTap: () async {
-                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.of(context).pop();
                         // F-DOC-7: 앱 내 캘린더에 확정 저장
                         final saved = await repository.saveCalendarEvents(
@@ -718,10 +930,9 @@ class _ResultState extends StatelessWidget {
                         // F-PRO-2·3: 마감 D-2·행사 전날 잠금화면 리마인드 예약
                         await NotificationService.instance
                             .scheduleEventReminders(saved);
-                        messenger.showSnackBar(SnackBar(
-                            content: Text(
-                                '일정 ${saved.length}개를 캘린더에 저장했어요 · Đã lưu')));
-                        onGoToCalendar?.call();
+                        // "확인하시겠습니까?" → 확인 시 해당 월 캘린더로 이동
+                        if (!rootContext.mounted) return;
+                        _showSavedConfirm(rootContext, saved);
                       },
                     ),
                   ),
@@ -785,7 +996,7 @@ class _ResultState extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('번역 · Bản dịch (Tiếng Việt)',
+              Text('번역 · ${bi('Bản dịch (Tiếng Việt)', '译文（中文）')}',
                   style: GaonType.micro.copyWith(
                       fontWeight: FontWeight.w600,
                       color: GaonColors.textSecondary)),
@@ -799,7 +1010,7 @@ class _ResultState extends StatelessWidget {
         const SizedBox(height: GaonSpace.sm),
 
         // 단어 해설 칩
-        Text('단어 해설 · Giải thích từ',
+        Text('단어 해설 · ${bi('Giải thích từ', '词语解释')}',
             style: GaonType.caption.copyWith(
                 fontWeight: FontWeight.w600,
                 color: GaonColors.textSecondary)),
@@ -849,6 +1060,13 @@ class _ResultState extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: GaonSpace.xs),
+        // 홈 복귀 — 새 알림장을 분석하거나 잘못 진입했을 때
+        GaonButton(
+          variant: GaonButtonVariant.ghost,
+          label: '🏠 처음으로 · ${bi('Về đầu', '回到首页')}',
+          onTap: onGoHome,
         ),
       ],
     );

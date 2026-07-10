@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/demo_data.dart';
+import '../data/app_lang.dart';
 import '../data/locator.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
@@ -19,7 +21,9 @@ class MessageScreen extends StatefulWidget {
 
 class _MessageScreenState extends State<MessageScreen> {
   final _inputController =
-      TextEditingController(text: 'Ngày mai con bị sốt nên xin phép nghỉ học.');
+      TextEditingController(
+      text: bi('Ngày mai con bị sốt nên xin phép nghỉ học.',
+          '孩子明天发烧，想请假一天。'));
   MessageSituation _situation = MessageSituation.absence;
   int _teacherIndex = 0;
   List<Child> _children = const [];
@@ -65,7 +69,7 @@ class _MessageScreenState extends State<MessageScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('자녀 선택 · Chọn con',
+              Text('자녀 선택 · ${bi('Chọn con', '选择孩子')}',
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: GaonSpace.sm),
               for (final c in _children)
@@ -113,7 +117,7 @@ class _MessageScreenState extends State<MessageScreen> {
     await Clipboard.setData(ClipboardData(text: message.outputKo));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('메시지를 복사했어요 · Đã sao chép')),
+      SnackBar(content: Text('메시지를 복사했어요 · ${bi('Đã sao chép', '已复制')}')),
     );
   }
 
@@ -146,7 +150,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 ),
               ),
               const SizedBox(height: GaonSpace.sm),
-              Text('받는 사람 · Người nhận',
+              Text('받는 사람 · ${bi('Người nhận', '收件人')}',
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: GaonSpace.sm),
               // 검색(데모)
@@ -231,7 +235,7 @@ class _MessageScreenState extends State<MessageScreen> {
                       Text('선생님께 문자',
                           style: GaonType.h3
                               .copyWith(color: GaonColors.textPrimary)),
-                      Text('Nhắn cho giáo viên',
+                      Text(bi('Nhắn cho giáo viên', '给老师发消息'),
                           style: GaonType.micro
                               .copyWith(color: GaonColors.textSecondary)),
                     ],
@@ -312,7 +316,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 ],
 
                 // 상황 선택
-                Text('상황 선택 · Chọn tình huống',
+                Text('상황 선택 · ${bi('Chọn tình huống', '选择情况')}',
                     style: GaonType.caption.copyWith(
                         fontWeight: FontWeight.w600,
                         color: GaonColors.textSecondary)),
@@ -351,11 +355,11 @@ class _MessageScreenState extends State<MessageScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('내 언어로 입력 · Nhập bằng tiếng Việt',
+                    Text('내 언어로 입력 · ${bi('Nhập bằng tiếng Việt', '用中文输入')}',
                         style: GaonType.caption.copyWith(
                             fontWeight: FontWeight.w600,
                             color: GaonColors.textSecondary)),
-                    const Text('🇻🇳', style: TextStyle(fontSize: 13)),
+                    Text(bi('🇻🇳', '🇨🇳'), style: const TextStyle(fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: GaonSpace.xs),
@@ -375,10 +379,10 @@ class _MessageScreenState extends State<MessageScreen> {
                     maxLines: null,
                     style: GaonType.bodyLg.copyWith(
                         color: GaonColors.textPrimary, height: 1.7),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: 'Nhập bằng tiếng Việt...',
+                      hintText: bi('Nhập bằng tiếng Việt...', '请用中文输入...'),
                     ),
                   ),
                 ),
@@ -414,7 +418,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('한국어 번역 결과 · Bản dịch tiếng Hàn',
+                    Text('한국어 번역 결과 · ${bi('Bản dịch tiếng Hàn', '韩语翻译结果')}',
                         style: GaonType.caption.copyWith(
                             fontWeight: FontWeight.w600,
                             color: GaonColors.textSecondary)),
@@ -472,11 +476,10 @@ class _MessageScreenState extends State<MessageScreen> {
                           icon: const Icon(Icons.share_rounded,
                               size: 14, color: GaonColors.onPrimary),
                           onTap: () {
-                            // 직접 전송 금지 — 공유 시트로 사용자가 직접 보낸다.
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        '카카오톡 공유 시트가 열립니다 (데모)')));
+                            // 직접 전송 금지(결정 #2) — OS 공유 시트를 열고
+                            // 카톡 선택·전송은 사용자가 직접 한다.
+                            SharePlus.instance.share(
+                                ShareParams(text: _message!.outputKo));
                           },
                         ),
                       ),

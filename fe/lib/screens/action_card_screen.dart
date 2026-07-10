@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../data/app_lang.dart';
 import '../data/locator.dart';
+import '../data/notification_service.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -35,6 +39,20 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
     return diff >= 0 ? 'D-$diff' : 'D+${-diff}';
   }
 
+  /// F-DOC-7: 캘린더 실저장 + 리마인드 예약.
+  Future<void> _saveToCalendar(String documentId) async {
+    try {
+      final saved =
+          await repository.saveCalendarEvents(documentId: documentId);
+      await NotificationService.instance.scheduleEventReminders(saved);
+      if (!mounted) return;
+      _snack('일정 ${saved.length}개를 캘린더에 저장했어요 · ${bi('Đã lưu', '已保存')}');
+    } catch (e) {
+      if (!mounted) return;
+      _snack('캘린더 저장에 실패했어요 — 네트워크를 확인해 주세요');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,7 +60,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const GaonHeader(vi: 'Thẻ hành động', ko: '행동 카드', showBack: true),
+            GaonHeader(
+                vi: bi('Thẻ hành động', '行动卡'), ko: '행동 카드', showBack: true),
             Expanded(
               child: FutureBuilder(
                 future: _future,
@@ -67,7 +86,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 회신 초안 (F-DOC-8) — requiresReply일 때만 ──
                       if (card.replyDraftKo != null) ...[
                         _sectionLabel(
-                          'HÀNH ĐỘNG ${++actionNo} · 할 일 $actionNo'
+                          '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo'
                           '${deadline != null ? ' — ${_dday(deadline)}' : ''}',
                           GaonColors.warning,
                         ),
@@ -88,9 +107,10 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                         color: GaonColors.warning,
                                         bg: GaonColors.warningLight),
                                   const SizedBox(width: GaonSpace.xs),
-                                  const Expanded(
+                                  Expanded(
                                     child: BiText(
-                                      vi: 'Trả lời đơn đồng ý dã ngoại',
+                                      vi: bi('Trả lời đơn đồng ý dã ngoại',
+                                          '回复校外活动同意书'),
                                       ko: '현장체험학습 동의서 회신',
                                       viStyle: GaonType.body,
                                       koStyle: GaonType.micro,
@@ -114,7 +134,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                    Text('Bản nháp trả lời · 회신 초안',
+                                    Text('${bi('Bản nháp trả lời', '回复草稿')} · 회신 초안',
                                         style: GaonType.micro.copyWith(
                                             fontWeight: FontWeight.w600,
                                             color: GaonColors
@@ -159,7 +179,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                                                     .w600,
                                                             color: GaonColors
                                                                 .warning)),
-                                                const Text('Hạn nộp',
+                                                Text(bi('Hạn nộp', '截止日期'),
                                                     style: TextStyle(
                                                         fontSize: 9,
                                                         color: GaonColors
@@ -174,8 +194,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   Expanded(
                                     child: _MiniAction(
                                       bg: GaonColors.textPrimary,
-                                      onTap: () => _snack(
-                                          '캘린더에 추가했어요 · Đã thêm vào lịch (데모)'),
+                                      onTap: () => _saveToCalendar(
+                                          analysis.document.documentId),
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
@@ -201,14 +221,15 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   Expanded(
                                     child: _MiniAction(
                                       bg: GaonColors.kakao,
-                                      onTap: () => _copy(
-                                          card.replyDraftKo!,
-                                          '초안을 복사했어요. 카카오톡에 붙여넣어 보내세요.'),
+                                      // 공유 시트 — 전송은 사용자 수동(결정 #2)
+                                      onTap: () => SharePlus.instance.share(
+                                          ShareParams(
+                                              text: card.replyDraftKo!)),
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.copy_rounded,
+                                          const Icon(Icons.share_rounded,
                                               size: 11,
                                               color:
                                                   GaonColors.kakaoText),
@@ -235,7 +256,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 준비물 (F-DOC-6) — Supply마다 카드 ──
                       for (final supply in card.supplies) ...[
                         _sectionLabel(
-                            'HÀNH ĐỘNG ${++actionNo} · 할 일 $actionNo',
+                            '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo',
                             GaonColors.textSecondary),
                         const SizedBox(height: GaonSpace.xs),
                         SurfaceCard(
@@ -247,7 +268,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               BiText(
-                                vi: 'Chuẩn bị ${supply.nameNative}',
+                                vi: '${bi('Chuẩn bị', '准备')} ${supply.nameNative}',
                                 ko: '${supply.nameKo} 준비',
                                 viStyle: GaonType.body,
                                 koStyle: GaonType.micro,
@@ -317,7 +338,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                               if (supply.ecommerceKeyword
                                   case final keyword?) ...[
                                 const SizedBox(height: GaonSpace.sm),
-                                Text('Từ khóa mua sắm · 구매 검색어',
+                                Text('${bi('Từ khóa mua sắm', '购物关键词')} · 구매 검색어',
                                     style: GaonType.micro.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: GaonColors.textSecondary)),
@@ -325,7 +346,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 _MiniAction(
                                   bg: GaonColors.primaryLight,
                                   onTap: () => _copy(keyword,
-                                      "'$keyword' 복사했어요 · Đã sao chép"),
+                                      "'$keyword' 복사했어요 · ${bi('Đã sao chép', '已复制')}"),
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -347,8 +368,10 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 // 쿠팡 검색 링크(자동결제 아님 — 검색 페이지로만)
                                 _MiniAction(
                                   bg: const Color(0xFFFF3B2F),
-                                  onTap: () =>
-                                      _snack('쿠팡 검색으로 이동합니다 (데모)'),
+                                  onTap: () => launchUrl(
+                                    Uri.parse(supply.ecommerceDeeplink!),
+                                    mode: LaunchMode.externalApplication,
+                                  ),
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.center,
@@ -358,7 +381,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                               fontWeight: FontWeight.w700,
                                               color: Colors.white)),
                                       const SizedBox(width: GaonSpace.xs),
-                                      const Text('Tìm trên Coupang',
+                                      Text(bi('Tìm trên Coupang', '在Coupang搜索'),
                                           style: TextStyle(
                                               fontSize: 9,
                                               color: Color(0xBFFFFFFF))),
@@ -371,8 +394,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 const SizedBox(height: GaonSpace.xs),
                                 _MiniAction(
                                   bg: GaonColors.textPrimary,
-                                  onTap: () => _snack(
-                                      '${e.date.month}/${e.date.day} 행사를 캘린더에 추가했어요 (데모)'),
+                                  onTap: () => _saveToCalendar(
+                                      analysis.document.documentId),
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.center,

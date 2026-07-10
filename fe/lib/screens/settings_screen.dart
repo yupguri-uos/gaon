@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_lang.dart';
 import '../data/locator.dart';
 import '../data/notification_service.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
+import '../models/schema.dart' as schema; // Notification이 material과 겹침
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'profile_edit_screen.dart';
@@ -62,7 +64,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   textAlign: TextAlign.center,
                   style: GaonType.h2.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: 6),
-              Text('Bạn có chắc chắn muốn xóa tài khoản?',
+              Text(bi('Bạn có chắc chắn muốn xóa tài khoản?', '确定要注销账号吗？'),
                   textAlign: TextAlign.center,
                   style: GaonType.label
                       .copyWith(color: GaonColors.textSecondary)),
@@ -96,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Expanded(
                     child: _dialogButton(
-                      label: '취소 · Hủy',
+                      label: '취소 · ${bi('Hủy', '取消')}',
                       bg: GaonColors.primaryLight,
                       fg: GaonColors.textPrimary,
                       onTap: () => Navigator.of(context).pop(),
@@ -105,12 +107,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: GaonSpace.xs),
                   Expanded(
                     child: _dialogButton(
-                      label: '탈퇴 · Xóa',
+                      label: '탈퇴 · ${bi('Xóa', '注销')}',
                       bg: GaonColors.warning,
                       fg: Colors.white,
                       onTap: () {
                         Navigator.of(context).pop();
-                        _snack('회원탈퇴는 BE 연동 후 동작합니다 (데모)');
+                        _snack('회원탈퇴는 Kakao 로그인 연동 후 제공돼요');
                       },
                     ),
                   ),
@@ -221,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _row(
                         icon: Icons.person_outline_rounded,
                         label: '개인정보 수정',
-                        sub: 'Chỉnh sửa hồ sơ',
+                        sub: bi('Chỉnh sửa hồ sơ', '修改个人信息'),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (_) => const ProfileEditScreen()),
@@ -230,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _row(
                         icon: Icons.family_restroom_rounded,
                         label: '자녀 관리',
-                        sub: 'Quản lý con',
+                        sub: bi('Quản lý con', '子女管理'),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (_) => const ProfileEditScreen()),
@@ -242,13 +244,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _row(
                         icon: Icons.lock_clock_rounded,
                         label: '잠금화면 알림 미리보기',
-                        sub: 'Xem trước thông báo (5s)',
+                        sub: bi('Xem trước thông báo (5s)', '通知预览 (5秒)'),
                         onTap: () async {
                           final messenger = ScaffoldMessenger.of(context);
-                          final notifications =
-                              await repository.getNotifications();
-                          final notification = notifications.firstOrNull;
-                          if (notification == null) return;
+                          // BE notifications 미구현(§11 P2) — 서버 목록에 기대지 않고
+                          // 저장된 캘린더 일정(마감 우선)으로 로컬 구성한다.
+                          var notification =
+                              (await repository.getNotifications())
+                                  .firstOrNull;
+                          if (notification == null) {
+                            List<CalendarEvent> events = const [];
+                            try {
+                              events = await repository.getCalendarEvents();
+                            } catch (_) {} // 네트워크 실패해도 기본 문구로 진행
+                            final target = events
+                                    .where((e) =>
+                                        e.type == CalendarEventType.deadline)
+                                    .firstOrNull ??
+                                events.firstOrNull;
+                            notification = schema.Notification(
+                              notificationId: 'preview',
+                              userId: '',
+                              type: NotificationType.deadlineD2,
+                              titleNative: '⏰ 마감 임박 · ${bi('Sắp đến hạn', '截止临近')}',
+                              bodyNative: target != null
+                                  ? '「${target.title}」 — ${target.date.month}월 ${target.date.day}일까지예요. 미리 준비해 주세요!'
+                                  : '가정통신문 회신 마감이 다가오고 있어요. 앱에서 확인해 주세요!',
+                              scheduledAt: repository.now(),
+                            );
+                          }
                           await NotificationService.instance
                               .schedulePreview(notification);
                           messenger.showSnackBar(const SnackBar(
@@ -259,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _row(
                         icon: Icons.notifications_none_rounded,
                         label: '푸시 알림',
-                        sub: 'Thông báo đẩy',
+                        sub: bi('Thông báo đẩy', '推送通知'),
                         trailing: GestureDetector(
                           onTap: () => setState(
                               () => _pushEnabled = !_pushEnabled),
@@ -294,14 +318,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _row(
                         icon: Icons.logout_rounded,
                         label: '로그아웃',
-                        sub: 'Đăng xuất',
+                        sub: bi('Đăng xuất', '退出登录'),
                         onTap: () =>
-                            _snack('로그아웃은 BE 연동 후 동작합니다 (데모)'),
+                            _snack('로그아웃은 Kakao 로그인 연동 후 제공돼요'),
                       ),
                       _row(
                         icon: Icons.delete_outline_rounded,
                         label: '회원탈퇴',
-                        sub: 'Xóa tài khoản',
+                        sub: bi('Xóa tài khoản', '注销账号'),
                         danger: true,
                         onTap: _showDeleteDialog,
                       ),
