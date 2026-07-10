@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'app_lang.dart';
 import '../models/schema.dart' as schema;
 
 /// 잠금화면 리마인드 알림 (F-PRO-2·3의 FE 로컬 표면).
@@ -75,8 +76,8 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: e.hashCode & 0x7fffffff, // 이벤트별 안정 id
         title: isDeadline
-            ? '⏰ 마감 임박 (D-2) · Sắp đến hạn'
-            : '📅 내일 일정 · Ngày mai',
+            ? '⏰ 마감 임박 (D-2) · ${bi('Sắp đến hạn', '截止临近')}'
+            : '📅 내일 일정 · ${bi('Ngày mai', '明天日程')}',
         body: '${e.title} — ${e.date.month}/${e.date.day}',
         scheduledDate: fireAt,
         notificationDetails: _details,

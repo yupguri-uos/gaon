@@ -33,9 +33,6 @@ class MockRepository implements GaonRepository {
   List<Child>? _registeredChildren;
   int _childSeq = 0;
 
-  // 자녀별 캘린더 색 자동 배정(§17.4 Child.color)
-  static const _childColors = ['#011D14', '#E05A2B', '#3D7A6E', '#5270E0'];
-
   @override
   Future<List<Child>> getChildren() =>
       _delayed(_registeredChildren ?? demoChildren);
@@ -46,6 +43,7 @@ class MockRepository implements GaonRepository {
     String? name,
     String? classNo,
     String? schoolName,
+    String? color,
   }) {
     final registered = _registeredChildren ??= [];
     final child = Child(
@@ -55,11 +53,19 @@ class MockRepository implements GaonRepository {
       grade: grade,
       classNo: classNo,
       schoolName: schoolName,
-      color: _childColors[registered.length % _childColors.length],
+      color: color ??
+          childColorPalette[registered.length % childColorPalette.length],
       createdAt: demoToday,
     );
     registered.add(child);
     return _delayed(child);
+  }
+
+  @override
+  Future<void> deleteChild(String childId) {
+    (_registeredChildren ??= [...demoChildren])
+        .removeWhere((c) => c.childId == childId);
+    return _delayed(null);
   }
 
   @override

@@ -133,7 +133,21 @@ class ApiRepository implements GaonRepository {
     }) as Map<String, dynamic>;
     final user = User.fromJson(json['user'] as Map<String, dynamic>);
     _cachedUser = user;
-    return (user, Child.fromJson(json['child'] as Map<String, dynamic>));
+    var child = Child.fromJson(json['child'] as Map<String, dynamic>);
+    // /onboarding 요청엔 color 필드가 없어 첫 자녀 색을 PATCH로 배정(§17.4)
+    if (child.color == null) {
+      try {
+        final patched = await _client.patch(
+          _uri('/children/${child.childId}'),
+          headers: {..._authHeaders, 'Content-Type': 'application/json'},
+          body: jsonEncode({'color': childColorPalette.first}),
+        );
+        child = Child.fromJson(_decode(patched) as Map<String, dynamic>);
+      } catch (_) {
+        // 색 배정 실패는 치명적이지 않음 — 기본색으로 표시됨
+      }
+    }
+    return (user, child);
   }
 
   // ── 자녀 (F-ON-4) ────────────────────────────────────────────────
@@ -151,15 +165,27 @@ class ApiRepository implements GaonRepository {
     String? name,
     String? classNo,
     String? schoolName,
+    String? color,
   }) async {
+    // 캘린더 색 구분(§17.4): 미지정이면 현재 자녀 수 기준 팔레트 순환 배정
+    final assigned = color ??
+        childColorPalette[
+            (await getChildren()).length % childColorPalette.length];
     final json = await _post('/children', {
       'grade': grade.wire,
       'name': name,
       'class_no': classNo,
       'school_name': schoolName,
+      'color': assigned,
       'consent_child_pii': name != null || classNo != null,
     }) as Map<String, dynamic>;
     return Child.fromJson(json);
+  }
+
+  @override
+  Future<void> deleteChild(String childId) async {
+    _decode(await _client.delete(_uri('/children/$childId'),
+        headers: _authHeaders));
   }
 
   // ── Chain A (F-DOC) ──────────────────────────────────────────────

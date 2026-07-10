@@ -4,6 +4,7 @@ import '../data/api_repository.dart';
 import '../data/demo_data.dart';
 import '../data/locator.dart';
 import '../models/display.dart';
+import '../data/app_lang.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -64,7 +65,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('학년 · Lớp',
+              Text('학년 · ${bi('Lớp', '年级')}',
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
               const SizedBox(height: GaonSpace.sm),
               for (final g in ChildGrade.values)
@@ -163,7 +164,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                       style:
                           GaonType.h1.copyWith(color: GaonColors.textPrimary)),
                   const SizedBox(height: GaonSpace.xxs),
-                  Text('Đăng ký thông tin con',
+                  Text(bi('Đăng ký thông tin con', '登记孩子信息'),
                       style: GaonType.label
                           .copyWith(color: GaonColors.textSecondary)),
                   const SizedBox(height: GaonSpace.lg),
@@ -200,7 +201,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                           const Icon(Icons.add_rounded,
                               size: 16, color: GaonColors.textSecondary),
                           const SizedBox(width: GaonSpace.xs),
-                          Text('자녀 추가 · Thêm con',
+                          Text('자녀 추가 · ${bi('Thêm con', '添加子女')}',
                               style: GaonType.body.copyWith(
                                   color: GaonColors.textSecondary)),
                         ],
@@ -215,7 +216,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                   GaonSpace.md, GaonSpace.xs, GaonSpace.md, GaonSpace.lg),
               child: GaonButton(
                 label: '시작하기',
-                subLabel: 'Bắt đầu →',
+                subLabel: '${bi('Bắt đầu', '开始')} →',
                 onTap: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(context);
@@ -332,11 +333,11 @@ class _ChildCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: GaonSpace.sm),
-          _field('학교명 · Tên trường', form.school, '예) 가온초등학교'),
+          _field('학교명 · ${bi('Tên trường', '学校名称')}', form.school, '예) 가온초등학교'),
           const SizedBox(height: GaonSpace.xs),
-          _field('이름 · Tên con', form.name, '자녀 이름'),
+          _field('이름 · ${bi('Tên con', '孩子姓名')}', form.name, '자녀 이름'),
           const SizedBox(height: GaonSpace.xs),
-          Text('학년·반 · Lớp',
+          Text('학년·반 · ${bi('Lớp', '年级')}',
               style: GaonType.micro.copyWith(
                   fontWeight: FontWeight.w600,
                   color: GaonColors.textSecondary)),

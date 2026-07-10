@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_lang.dart';
 import '../theme/tokens.dart';
 
 /// 이중언어 라벨 — 베트남어(주, 크게) + 한국어(보조 병기, 작게).
@@ -437,7 +438,7 @@ class GaonAsyncError extends StatelessWidget {
             if (onRetry != null) ...[
               const SizedBox(height: GaonSpace.md),
               GaonButton(
-                label: '다시 시도 · Thử lại',
+                label: '다시 시도 · ${bi('Thử lại', '重试')}',
                 fullWidth: false,
                 onTap: onRetry,
               ),

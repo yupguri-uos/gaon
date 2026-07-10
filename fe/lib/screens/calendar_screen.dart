@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/app_nav.dart';
+import '../data/app_lang.dart';
 import '../data/locator.dart';
+import '../data/notification_service.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -19,8 +22,6 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   static const _days = ['일', '월', '화', '수', '목', '금', '토'];
   static const _weekdaysKo = ['월', '화', '수', '목', '금', '토', '일'];
-  // 데모 시나리오: 2025년 6월 — 일요일 시작, 30일.
-  static const _totalDays = 30;
 
   late Future<(List<Child>, DocumentAnalysis)> _future = _load();
 
@@ -30,9 +31,45 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return (await children, await analysis);
   }
 
-  int _selectedDay = 12;
+  /// 표시 중인 월(1일 고정) — ◀▶로 자유 이동.
+  late DateTime _visibleMonth =
+      DateTime(_today.year, _today.month);
+  int? _selectedDay;
 
   DateTime get _today => repository.now();
+
+  @override
+  void initState() {
+    super.initState();
+    calendarFocus.addListener(_onFocus);
+    _onFocus(); // 진입 시점에 이미 포커스가 있으면 적용
+  }
+
+  @override
+  void dispose() {
+    calendarFocus.removeListener(_onFocus);
+    super.dispose();
+  }
+
+  /// 저장 직후 "확인" 등으로 특정 일정에 포커스 — 해당 월로 이동 + 목록 갱신.
+  void _onFocus() {
+    final date = calendarFocus.value;
+    if (date == null) return;
+    calendarFocus.value = null; // 소비
+    setState(() {
+      _visibleMonth = DateTime(date.year, date.month);
+      _selectedDay = date.day;
+      _future = _load(); // 방금 저장된 일정 반영
+    });
+  }
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _visibleMonth =
+          DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+      _selectedDay = null;
+    });
+  }
 
   String _dday(DateTime date) {
     final diff = date.difference(_today).inDays;
@@ -182,7 +219,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('🛒 검색어 추천 · Từ khóa mua sắm',
+                        Text('🛒 검색어 추천 · ${bi('Từ khóa mua sắm', '购物关键词')}',
                             style: GaonType.caption.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: GaonColors.textPrimary)),
@@ -229,11 +266,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                 const SizedBox(height: GaonSpace.md),
                 GaonButton(
-                  label: '📅 캘린더 추가 · Thêm vào lịch',
-                  onTap: () {
+                  label: '🔔 리마인드 알림 예약 · ${bi('Đặt nhắc nhở', '设置提醒')}',
+                  onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('기기 캘린더에 추가했어요 (데모)')));
+                    // 마감 D-2·행사 전날 잠금화면 리마인드(F-PRO-2·3 로컬)
+                    await NotificationService.instance
+                        .scheduleEventReminders([event]);
+                    messenger.showSnackBar(const SnackBar(
+                        content: Text('리마인드 알림을 예약했어요 🔔')));
                   },
                 ),
               ],
@@ -257,7 +298,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               message:
                   noAnalysis ? '아직 분석한 알림장이 없어요' : '캘린더를 불러오지 못했어요',
               subMessage: noAnalysis
-                  ? '알림장 탭에서 사진을 올려보세요 · Hãy tải ảnh thông báo lên'
+                  ? '알림장 탭에서 사진을 올려보세요 · ${bi('Hãy tải ảnh thông báo lên', '请在通知单页上传照片')}'
                   : '네트워크 확인 후 다시 시도해 주세요',
               onRetry: () => setState(() => _future = _load()),
             );
@@ -271,11 +312,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
           final events = analysis.actionCard.calendarEvents;
           final eventsByDay = <int, List<CalendarEvent>>{};
           for (final e in events) {
-            if (e.date.year == _today.year && e.date.month == _today.month) {
+            if (e.date.year == _visibleMonth.year &&
+                e.date.month == _visibleMonth.month) {
               eventsByDay.putIfAbsent(e.date.day, () => []).add(e);
             }
           }
-          final selectedEvents = eventsByDay[_selectedDay] ?? const [];
+          // 선택일이 없으면 이 월의 첫 일정 날로 자동 선택
+          final selectedDay = _selectedDay ??
+              (eventsByDay.keys.isEmpty
+                  ? null
+                  : eventsByDay.keys.reduce((a, b) => a < b ? a : b));
+          final selectedEvents =
+              selectedDay == null ? const <CalendarEvent>[] : (eventsByDay[selectedDay] ?? const <CalendarEvent>[]);
 
           return Column(
             children: [
@@ -290,18 +338,32 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     vertical: GaonSpace.sm, horizontal: GaonSpace.md),
                 child: Row(
                   children: [
+                    IconButton(
+                      onPressed: () => _shiftMonth(-1),
+                      icon: const Icon(Icons.chevron_left_rounded,
+                          color: GaonColors.textPrimary),
+                    ),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${_today.year}년 ${_today.month}월',
-                              style: GaonType.h1.copyWith(
+                          Text(
+                              '${_visibleMonth.year}년 ${_visibleMonth.month}월',
+                              textAlign: TextAlign.center,
+                              style: GaonType.h2.copyWith(
                                   color: GaonColors.textPrimary)),
-                          Text('Tháng ${_today.month}, ${_today.year}',
-                              style: GaonType.caption.copyWith(
+                          Text(
+                              bi('Tháng ${_visibleMonth.month}, ${_visibleMonth.year}',
+                                  '${_visibleMonth.year}年${_visibleMonth.month}月'),
+                              textAlign: TextAlign.center,
+                              style: GaonType.micro.copyWith(
                                   color: GaonColors.textSecondary)),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      onPressed: () => _shiftMonth(1),
+                      icon: const Icon(Icons.chevron_right_rounded,
+                          color: GaonColors.textPrimary),
                     ),
                     for (final c in children)
                       Padding(
@@ -352,27 +414,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 날짜 그리드
+              // 날짜 그리드 — 표시 월의 시작 요일·일수에 맞춰 계산
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                       vertical: 4, horizontal: GaonSpace.xs),
-                  child: Column(
-                    children: [
-                      for (var week = 0; week < 5; week++)
-                        Expanded(
-                          child: Row(
-                            children: [
-                              for (var wd = 0; wd < 7; wd++)
-                                Expanded(
-                                  child: _dayCell(week * 7 + wd + 1,
-                                      children, eventsByDay),
-                                ),
-                            ],
+                  child: Builder(builder: (context) {
+                    final offset = _visibleMonth.weekday % 7; // 일요일 시작
+                    final daysInMonth = DateTime(_visibleMonth.year,
+                            _visibleMonth.month + 1, 0)
+                        .day;
+                    final rows = ((offset + daysInMonth) / 7).ceil();
+                    return Column(
+                      children: [
+                        for (var week = 0; week < rows; week++)
+                          Expanded(
+                            child: Row(
+                              children: [
+                                for (var wd = 0; wd < 7; wd++)
+                                  Expanded(
+                                    child: _dayCell(
+                                        week * 7 + wd + 1 - offset,
+                                        daysInMonth,
+                                        selectedDay,
+                                        children,
+                                        eventsByDay),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    );
+                  }),
                 ),
               ),
 
@@ -399,7 +472,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    '${_today.month}월 $_selectedDay일 · '
+                                    '${_visibleMonth.month}월 $selectedDay일 · '
                                     '${_dday(selectedEvents.first.date)}',
                                     style: GaonType.h3.copyWith(
                                         color: selectedEvents.first.type ==
@@ -430,11 +503,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _dayCell(int day, List<Child> children,
-      Map<int, List<CalendarEvent>> eventsByDay) {
-    if (day > _totalDays) return const SizedBox();
+  Widget _dayCell(int day, int daysInMonth, int? selectedDay,
+      List<Child> children, Map<int, List<CalendarEvent>> eventsByDay) {
+    if (day < 1 || day > daysInMonth) return const SizedBox();
     final dayEvents = eventsByDay[day] ?? const [];
-    final isSelected = day == _selectedDay;
+    final isSelected = day == selectedDay;
     return GestureDetector(
       onTap: () => setState(() => _selectedDay = day),
       behavior: HitTestBehavior.opaque,
