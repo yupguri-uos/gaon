@@ -12,11 +12,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# rag 무거운 의존성 최선행 설치(레이어 캐시) — shared/ai 소스가 바뀌어도 torch 재다운로드 없음.
+# (shared-schema가 가장 자주 바뀌므로 반드시 소스 COPY보다 앞에 둔다.)
+# 스펙 문자열은 ai/pyproject.toml [rag]와 동일하게 유지할 것(버전 정본은 pyproject) —
+# 아래 ai[rag] 설치에서 사전 충족된 휠은 재사용되고 kss만 추가 설치된다.
+RUN pip install --no-cache-dir "sentence-transformers>=3" "psycopg[binary,pool]>=3.1"
+
 # 모노레포 내부 의존 패키지 먼저 설치(레이어 캐시). 순서 중요: shared → ai.
 COPY shared/python /src/shared
+RUN pip install --no-cache-dir /src/shared
+
 COPY ai /src/ai
-RUN pip install --no-cache-dir /src/shared \
-    && pip install --no-cache-dir /src/ai
+RUN pip install --no-cache-dir "/src/ai[rag]"
 
 # be 설치 — 위에서 gaon-shared·gaon-ai가 이미 충족되므로 나머지 의존만 PyPI에서 받음.
 COPY be /src/be

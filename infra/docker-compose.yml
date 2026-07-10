@@ -95,7 +95,10 @@ services:
     init: true
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     tty: true
+    volumes:
+      - hfcache:/root/.cache/huggingface   # KURE 가중치(~2.3GB) 1회 다운로드 후 재기동·재빌드에도 보존
 
 volumes:
   pgdata:
   miniodata:
+  hfcache:
