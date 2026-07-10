@@ -12,10 +12,10 @@ import 'package:fe/models/schema.dart';
 void main() {
   // 한글 본문은 http.Response(String)이 Latin-1로 인코딩해 깨진다 → UTF-8 바이트로.
   http.Response jsonRes(Object body, [int status = 200]) => http.Response.bytes(
-        utf8.encode(jsonEncode(body)),
-        status,
-        headers: {'content-type': 'application/json; charset=utf-8'},
-      );
+    utf8.encode(jsonEncode(body)),
+    status,
+    headers: {'content-type': 'application/json; charset=utf-8'},
+  );
 
   ApiRepository repoWith(Future<http.Response> Function(http.Request) handler) {
     return ApiRepository(
@@ -46,17 +46,17 @@ void main() {
       final repo = repoWith((req) async {
         captured = req;
         return jsonRes([
-            {
-              'child_id': 'c1',
-              'user_id': 'u1',
-              'name': '이서준',
-              'grade': 'elem_2',
-              'class_no': '3',
-              'school_name': '가온초등학교',
-              'color': '#011D14',
-              'created_at': '2026-07-01T09:00:00Z',
-            }
-          ], 200);
+          {
+            'child_id': 'c1',
+            'user_id': 'u1',
+            'name': '이서준',
+            'grade': 'elem_2',
+            'class_no': '3',
+            'school_name': '가온초등학교',
+            'color': '#011D14',
+            'created_at': '2026-07-01T09:00:00Z',
+          },
+        ], 200);
       });
 
       final children = await repo.getChildren();
@@ -75,17 +75,16 @@ void main() {
         if (req.method == 'GET') return jsonRes([], 200);
         sentBody = jsonDecode(req.body) as Map<String, dynamic>;
         return jsonRes({
-            'child_id': 'c9',
-            'user_id': 'u1',
-            'name': '김하늘',
-            'grade': 'elem_5',
-            'class_no': '2',
-            'created_at': '2026-07-10T09:00:00Z',
-          }, 201);
+          'child_id': 'c9',
+          'user_id': 'u1',
+          'name': '김하늘',
+          'grade': 'elem_5',
+          'class_no': '2',
+          'created_at': '2026-07-10T09:00:00Z',
+        }, 201);
       });
 
-      await repo.addChild(
-          grade: ChildGrade.elem5, name: '김하늘', classNo: '2');
+      await repo.addChild(grade: ChildGrade.elem5, name: '김하늘', classNo: '2');
       expect(sentBody['grade'], 'elem_5');
       expect(sentBody['consent_child_pii'], isTrue);
       expect(sentBody['color'], '#011D14'); // 첫 자녀 = 팔레트 첫 색
@@ -98,11 +97,11 @@ void main() {
       final repo = repoWith((req) async {
         sentBody = jsonDecode(req.body) as Map<String, dynamic>;
         return jsonRes({
-            'situation': 'sick_note',
-            'input_native': 'xin chào',
-            'output_ko': '선생님, 안녕하세요...',
-            'admin_guide_native': 'Giấy khám bệnh...',
-          }, 200);
+          'situation': 'sick_note',
+          'input_native': 'xin chào',
+          'output_ko': '선생님, 안녕하세요...',
+          'admin_guide_native': 'Giấy khám bệnh...',
+        }, 200);
       });
 
       final msg = await repo.generateTeacherMessage(
@@ -118,29 +117,33 @@ void main() {
 
   group('캘린더', () {
     test('POST /calendar/events → created 언래핑', () async {
-      final repo = repoWith((_) async => jsonRes({
-              'created': [
-                {'title': '동의서 마감', 'date': '2026-07-12', 'type': 'deadline'},
-              ]
-            }, 200));
+      final repo = repoWith(
+        (_) async => jsonRes({
+          'created': [
+            {'title': '동의서 마감', 'date': '2026-07-12', 'type': 'deadline'},
+          ],
+        }, 200),
+      );
       final saved = await repo.saveCalendarEvents(documentId: 'd1');
       expect(saved.single.type, CalendarEventType.deadline);
       expect(saved.single.date, DateTime(2026, 7, 12));
     });
 
     test('GET /calendar/events → events 언래핑 + child_id', () async {
-      final repo = repoWith((_) async => jsonRes({
-              'events': [
-                {
-                  'id': 'e1',
-                  'document_id': 'd1',
-                  'child_id': 'c1',
-                  'title': '현장체험학습',
-                  'date': '2026-07-16',
-                  'type': 'event',
-                }
-              ]
-            }, 200));
+      final repo = repoWith(
+        (_) async => jsonRes({
+          'events': [
+            {
+              'id': 'e1',
+              'document_id': 'd1',
+              'child_id': 'c1',
+              'title': '현장체험학습',
+              'date': '2026-07-16',
+              'type': 'event',
+            },
+          ],
+        }, 200),
+      );
       final events = await repo.getCalendarEvents();
       expect(events.single.childId, 'c1');
       expect(events.single.type, CalendarEventType.event);
@@ -149,18 +152,20 @@ void main() {
 
   group('Chain A — 결과 조회', () {
     test('result의 null 필드(done 전) → StateError 방어', () {
-      final repo = repoWith((_) async => jsonRes({
-              'document': {
-                'document_id': 'd1',
-                'user_id': 'u1',
-                'image_ref': 'k',
-                'status': 'parsing',
-                'created_at': '2026-07-10T09:00:00Z',
-              },
-              'extracted': null,
-              'translated': null,
-              'action_card': null,
-            }, 200));
+      final repo = repoWith(
+        (_) async => jsonRes({
+          'document': {
+            'document_id': 'd1',
+            'user_id': 'u1',
+            'image_ref': 'k',
+            'status': 'parsing',
+            'created_at': '2026-07-10T09:00:00Z',
+          },
+          'extracted': null,
+          'translated': null,
+          'action_card': null,
+        }, 200),
+      );
       expect(() => repo.getDocumentAnalysis('d1'), throwsStateError);
     });
   });
