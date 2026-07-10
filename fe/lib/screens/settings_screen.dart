@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/app_lang.dart';
 import '../data/locator.dart';
+import '../data/profile_store.dart';
 import '../data/notification_service.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
@@ -226,7 +227,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         sub: bi('Chỉnh sửa hồ sơ', '修改个人信息'),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => const ProfileEditScreen()),
+                              builder: (_) => const ProfileEditScreen(
+                                  section: ProfileSection.profile)),
                         ),
                       ),
                       _row(
@@ -235,7 +237,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         sub: bi('Quản lý con', '子女管理'),
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => const ProfileEditScreen()),
+                              builder: (_) => const ProfileEditScreen(
+                                  section: ProfileSection.children)),
+                        ),
+                      ),
+                    ]),
+                    _section('언어 · ${bi('Ngôn ngữ', '语言')}', [
+                      // 병기 언어 즉시 전환(시연용) — 서버 프로필과 별개로 UI만 바꾼다
+                      _row(
+                        icon: Icons.translate_rounded,
+                        label: '병기 언어',
+                        sub: bi('Tiếng Việt', '中文'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final (lang, name) in const [
+                              (NativeLanguage.vi, 'Việt'),
+                              (NativeLanguage.zh, '中文'),
+                            ])
+                              GestureDetector(
+                                onTap: () {
+                                  appLanguage.value = lang;
+                                  ProfileStore.saveLanguage(lang); // 재시작 유지
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 6, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: appLanguage.value == lang
+                                        ? GaonColors.textPrimary
+                                        : GaonColors.primaryLight,
+                                    borderRadius: BorderRadius.circular(
+                                        GaonRadius.pill),
+                                  ),
+                                  child: Text(name,
+                                      style: GaonType.label.copyWith(
+                                          color: appLanguage.value == lang
+                                              ? GaonColors.onPrimary
+                                              : GaonColors.textPrimary)),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ]),
@@ -274,10 +317,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             );
                           }
                           await NotificationService.instance
-                              .schedulePreview(notification);
+                              .schedulePreview(notification,
+                                  delay: const Duration(seconds: 3));
                           messenger.showSnackBar(const SnackBar(
                               content: Text(
-                                  '5초 후 알림이 옵니다 — 화면을 잠가보세요 🔒')));
+                                  '지금 화면을 잠가보세요 — 곧 알림이 도착해요 🔒')));
                         },
                       ),
                       _row(
@@ -335,10 +379,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         children: [
                           Text('GAON v1.0.0',
-                              style: GaonType.micro.copyWith(
-                                  color: GaonColors.textSecondary)),
-                          const SizedBox(height: 2),
-                          Text('Translation → Action',
                               style: GaonType.micro.copyWith(
                                   color: GaonColors.textSecondary)),
                         ],

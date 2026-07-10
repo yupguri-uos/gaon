@@ -7,6 +7,8 @@ import 'package:http_parser/http_parser.dart' show MediaType;
 import '../models/schema.dart';
 import 'api_config.dart';
 import 'picked_image_store.dart';
+import 'auth_store.dart';
+import 'profile_store.dart';
 import 'repository.dart';
 
 /// 인증 토큰이 없거나 만료됨 — Kakao 로그인(F-ON-3)으로 재발급 필요.
@@ -60,8 +62,11 @@ class ApiRepository implements GaonRepository {
 
   // ── HTTP 헬퍼 ────────────────────────────────────────────────────
   Map<String, String> get _authHeaders {
-    if (_token.isEmpty) throw AuthRequiredException();
-    return {'Authorization': 'Bearer $_token'};
+    // 카카오 로그인 토큰(AuthStore)이 있으면 dart-define 토큰보다 우선
+    final token =
+        (AuthStore.token?.isNotEmpty ?? false) ? AuthStore.token! : _token;
+    if (token.isEmpty) throw AuthRequiredException();
+    return {'Authorization': 'Bearer $token'};
   }
 
   Uri _uri(String path) => Uri.parse('$_base$path');
@@ -102,11 +107,12 @@ class ApiRepository implements GaonRepository {
     final cached = _cachedUser;
     if (cached != null) return cached;
     await _get('/children'); // 401/403이면 AuthRequiredException 전파
-    return _cachedUser = User(
+    // 온보딩에서 고른 값(로컬 저장)을 폴백으로 — 캐시하지 않아 변경 즉시 반영
+    return User(
       userId: '',
       displayName: '학부모',
-      originCountry: OriginCountry.vn,
-      nativeLanguage: NativeLanguage.vi,
+      originCountry: ProfileStore.country ?? OriginCountry.vn,
+      nativeLanguage: ProfileStore.language ?? NativeLanguage.vi,
       createdAt: DateTime.now(),
     );
   }

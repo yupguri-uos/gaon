@@ -9,10 +9,15 @@ import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 
+/// 설정 진입 구분 — 개인정보 수정 vs 자녀 관리.
+enum ProfileSection { profile, children }
+
 /// S14 개인정보 수정 — 학부모 정보 + 자녀 카드 관리.
 /// 저장은 BE 연동 후 동작(현재 데모).
 class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({super.key});
+  const ProfileEditScreen({super.key, this.section = ProfileSection.profile});
+
+  final ProfileSection section;
 
   @override
   State<ProfileEditScreen> createState() => _ProfileEditScreenState();
@@ -54,8 +59,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _showAddChildSheet(int existingCount) async {
     final nameCtrl = TextEditingController();
     final schoolCtrl = TextEditingController();
+    final classCtrl = TextEditingController(); // 반 자유 입력(이름 반 지원)
     var grade = ChildGrade.elem1;
-    var classNo = '1';
 
     final submitted = await showModalBottomSheet<bool>(
       context: context,
@@ -101,26 +106,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ],
               ),
               const SizedBox(height: GaonSpace.sm),
-              Text('반 · ${bi('Ban', '班')}',
-                  style: GaonType.micro.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: GaonColors.textSecondary)),
-              const SizedBox(height: GaonSpace.xxs),
-              Wrap(
-                spacing: 6,
-                children: [
-                  for (var n = 1; n <= 5; n++)
-                    _sheetChip(
-                        label: '$n반',
-                        selected: classNo == '$n',
-                        onTap: () =>
-                            setSheetState(() => classNo = '$n')),
-                ],
-              ),
+              _sheetField('반 · ${bi('Ban', '班')}', classCtrl, '예) 3 · 하늘'),
               const SizedBox(height: GaonSpace.lg),
               GaonButton(
                 label: '등록하기 · ${bi('Đăng ký', '注册')}',
-                onTap: () => Navigator.of(sheetContext).pop(true),
+                onTap: () {
+                  // 이름 필수 — 빈 이름 등록 방지
+                  if (nameCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(sheetContext).showSnackBar(
+                        const SnackBar(content: Text('자녀 이름을 입력해 주세요')));
+                    return;
+                  }
+                  Navigator.of(sheetContext).pop(true);
+                },
               ),
             ],
           ),
@@ -132,16 +130,18 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     Future.delayed(const Duration(seconds: 1), () {
       nameCtrl.dispose();
       schoolCtrl.dispose();
+      classCtrl.dispose();
     });
     if (submitted != true) return;
 
     final name = nameCtrl.text.trim();
     final school = schoolCtrl.text.trim();
+    final classNo = classCtrl.text.trim();
     try {
       await repository.addChild(
         grade: grade,
         name: name.isEmpty ? null : name,
-        classNo: classNo,
+        classNo: classNo.isEmpty ? null : classNo,
         schoolName: school.isEmpty ? null : school,
         // 색은 팔레트 순환 배정(§17.4) — 기존 자녀 수 기준
         color: childColorPalette[existingCount % childColorPalette.length],
@@ -296,10 +296,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('개인정보 수정',
+                      Text(
+                          widget.section == ProfileSection.children
+                              ? '자녀 관리'
+                              : '개인정보 수정',
                           style: GaonType.h3
                               .copyWith(color: GaonColors.textPrimary)),
-                      Text(bi('Chỉnh sửa hồ sơ', '修改个人信息'),
+                      Text(
+                          widget.section == ProfileSection.children
+                              ? bi('Quản lý con', '子女管理')
+                              : bi('Chỉnh sửa hồ sơ', '修改个人信息'),
                           style: GaonType.micro
                               .copyWith(color: GaonColors.textSecondary)),
                     ],
@@ -330,6 +336,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   return ListView(
                     padding: const EdgeInsets.all(GaonSpace.md),
                     children: [
+                      if (widget.section == ProfileSection.profile) ...[
                       Text('학부모 정보',
                           style: GaonType.label
                               .copyWith(color: GaonColors.textSecondary)),
@@ -355,8 +362,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         ),
                       ),
                       const SizedBox(height: GaonSpace.md),
+                      ],
 
-                      Text('자녀 정보 · Thông tin con',
+                      Text('자녀 정보 · ${bi('Thông tin con', '子女信息')}',
                           style: GaonType.label
                               .copyWith(color: GaonColors.textSecondary)),
                       const SizedBox(height: GaonSpace.xs),

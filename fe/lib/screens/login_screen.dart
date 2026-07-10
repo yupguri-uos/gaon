@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/api_repository.dart';
+import '../data/auth_store.dart';
 import '../data/locator.dart';
 import '../theme/tokens.dart';
+import 'kakao_login_screen.dart';
 import 'main_shell.dart';
 import 'onboarding_self_screen.dart';
 
@@ -41,8 +44,25 @@ class LoginScreen extends StatelessWidget {
                     child: InkWell(
                       onTap: () async {
                         final navigator = Navigator.of(context);
-                        // API 모드: 이미 온보딩된 계정이면 홈으로(§13 ⓪ user!=null 분기).
-                        // 재실행마다 온보딩을 다시 타며 자녀가 중복 등록되는 것 방지.
+                        // F-ON-3: 카카오 OAuth 웹뷰 — API 모드 전용.
+                        // (mock 모드·웹 빌드·위젯 테스트는 아래 기존 플로우)
+                        // 성공 시 JWT 저장 후 needs_onboarding으로 분기.
+                        if (!kIsWeb && repository is ApiRepository) {
+                          final result = await navigator
+                              .push<KakaoLoginResult>(MaterialPageRoute(
+                                  builder: (_) =>
+                                      const KakaoLoginScreen()));
+                          if (result != null) {
+                            await AuthStore.save(result.accessToken);
+                            navigator.pushReplacement(MaterialPageRoute(
+                                builder: (_) => result.needsOnboarding
+                                    ? const OnboardingSelfScreen()
+                                    : const MainShell()));
+                            return;
+                          }
+                        }
+                        // 폴백(카카오 키 미설정·취소): 기존 토큰으로 홈/온보딩.
+                        // 재실행마다 자녀가 중복 등록되지 않게 기가입 계정은 홈으로.
                         final repo = repository;
                         if (repo is ApiRepository) {
                           try {

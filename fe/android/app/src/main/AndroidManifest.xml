@@ -55,5 +55,10 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- 쿠팡 앱 스킴 실행 가능 여부 조회(F-DOC-6) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="coupang"/>
+        </intent>
     </queries>
 </manifest>

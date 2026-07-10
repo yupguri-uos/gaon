@@ -156,14 +156,16 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     if (!mounted) return;
     // 실서버 Chain A는 LLM 호출이라 폴링 간격을 1초로(과호출 방지).
+    var pollMisses = 0; // 일시적 네트워크/게이트웨이 오류 허용 횟수
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
       try {
         final updated = await repository.getDocument(doc.documentId);
         if (!mounted) return;
+        pollMisses = 0;
         setState(() => _status = updated.status);
         if (updated.status == DocStatus.failed) {
           t.cancel();
-          _failBack('분석에 실패했어요 — 다시 시도해 주세요');
+          _failBack('알림장을 읽지 못했어요 — 알림장 사진이 맞는지 확인 후 다시 시도해 주세요');
           return;
         }
         if (updated.status == DocStatus.done) {
@@ -177,6 +179,8 @@ class _ChatScreenState extends State<ChatScreen> {
           });
         }
       } catch (e) {
+        // 분석이 오래 걸리는 동안 한두 번 응답이 튀어도 바로 포기하지 않는다
+        if (++pollMisses < 5) return;
         t.cancel();
         _failBack('분석 상태를 확인하지 못했어요 — 네트워크를 확인해 주세요');
       }
@@ -840,6 +844,9 @@ class _ResultState extends StatelessWidget {
               const SizedBox(height: 6),
               Text('캘린더에서 확인하시겠습니까?',
                   style: GaonType.body.copyWith(color: GaonColors.textPrimary)),
+              Text(bi('Xem trong lịch nhé?', '要在日历中查看吗？'),
+                  style: GaonType.micro
+                      .copyWith(color: GaonColors.textSecondary)),
               const SizedBox(height: GaonSpace.md),
               Row(
                 children: [
@@ -847,6 +854,8 @@ class _ResultState extends StatelessWidget {
                     child: GaonButton(
                       variant: GaonButtonVariant.ghost,
                       label: '나중에',
+                      subLabel: bi('Để sau', '稍后'),
+                      subBelow: true,
                       onTap: () => Navigator.of(dialogContext).pop(),
                     ),
                   ),
@@ -854,7 +863,9 @@ class _ResultState extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: GaonButton(
-                      label: '확인 · ${bi('Xem lịch', '查看日历')}',
+                      label: '확인',
+                      subLabel: bi('Xem lịch', '查看日历'),
+                      subBelow: true,
                       onTap: () {
                         Navigator.of(dialogContext).pop();
                         // 저장된 첫 일정의 월·일로 캘린더 포커스 이동
@@ -871,13 +882,19 @@ class _ResultState extends StatelessWidget {
     );
   }
 
-  // ── S8: 캘린더 저장 다이얼로그 ──
+  // ── S8: 캘린더 저장 다이얼로그 — 항목 선택 후 저장 ──
   void _showCalSaveDialog(BuildContext context) {
     final rootContext = context; // 다이얼로그 pop 이후 확인 다이얼로그용
+    final candidates = analysis.actionCard.calendarEvents
+        .where((e) => e.childId == analysis.document.childId)
+        .toList();
+    // 기본 전체 선택 — 체크 해제한 일정은 리마인드에서 제외
+    final checked = List<bool>.filled(candidates.length, true);
     showDialog<void>(
       context: context,
       barrierColor: const Color(0x73011D14),
-      builder: (context) => Dialog(
+      builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
         backgroundColor: GaonColors.surface,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(GaonRadius.xxl)),
@@ -902,9 +919,26 @@ class _ResultState extends StatelessWidget {
                   style: GaonType.label
                       .copyWith(color: GaonColors.textSecondary)),
               const SizedBox(height: GaonSpace.md),
-              for (final e in analysis.actionCard.calendarEvents.where(
-                  (e) => e.childId == analysis.document.childId)) ...[
-                _EventRow(event: e),
+              for (final (i, e) in candidates.indexed) ...[
+                InkWell(
+                  onTap: () =>
+                      setDialogState(() => checked[i] = !checked[i]),
+                  borderRadius: BorderRadius.circular(GaonRadius.md),
+                  child: Row(
+                    children: [
+                      Icon(
+                          checked[i]
+                              ? Icons.check_box_rounded
+                              : Icons.check_box_outline_blank_rounded,
+                          size: 20,
+                          color: checked[i]
+                              ? GaonColors.textPrimary
+                              : GaonColors.textSecondary),
+                      const SizedBox(width: GaonSpace.xs),
+                      Expanded(child: _EventRow(event: e)),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: GaonSpace.xs),
               ],
               const SizedBox(height: GaonSpace.xs),
@@ -914,6 +948,8 @@ class _ResultState extends StatelessWidget {
                     child: GaonButton(
                       variant: GaonButtonVariant.ghost,
                       label: '건너뛰기',
+                      subLabel: bi('Bỏ qua', '跳过'),
+                      subBelow: true,
                       onTap: () => Navigator.of(context).pop(),
                     ),
                   ),
@@ -921,15 +957,28 @@ class _ResultState extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: GaonButton(
-                      label: '✓ 저장하기 · ${bi('Lưu', '保存')}',
+                      label: '✓ 저장하기',
+                      subLabel: bi('Lưu', '保存'),
+                      subBelow: true,
                       onTap: () async {
                         Navigator.of(context).pop();
-                        // F-DOC-7: 앱 내 캘린더에 확정 저장
+                        // F-DOC-7: 앱 내 캘린더에 확정 저장.
+                        // BE 계약(§11)이 문서 단위 저장이라 서버엔 전체가
+                        // 저장됨 — 선택 반영(부분 저장)은 BE 협의 필요.
                         final saved = await repository.saveCalendarEvents(
                             documentId: analysis.document.documentId);
-                        // F-PRO-2·3: 마감 D-2·행사 전날 잠금화면 리마인드 예약
+                        // 체크한 일정만 리마인드 예약(F-PRO-2·3)
+                        final chosenKeys = {
+                          for (final (i, e) in candidates.indexed)
+                            if (checked[i]) '${e.title}|${e.date}',
+                        };
+                        final chosen = saved
+                            .where((e) =>
+                                chosenKeys.contains('${e.title}|${e.date}'))
+                            .toList();
                         await NotificationService.instance
-                            .scheduleEventReminders(saved);
+                            .scheduleEventReminders(
+                                chosen.isEmpty ? saved : chosen);
                         // "확인하시겠습니까?" → 확인 시 해당 월 캘린더로 이동
                         if (!rootContext.mounted) return;
                         _showSavedConfirm(rootContext, saved);
@@ -941,7 +990,7 @@ class _ResultState extends StatelessWidget {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 

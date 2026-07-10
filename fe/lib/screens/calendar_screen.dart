@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/app_nav.dart';
 import '../data/app_lang.dart';
 import '../data/locator.dart';
 import '../data/notification_service.dart';
-import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
@@ -23,12 +21,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   static const _days = ['일', '월', '화', '수', '목', '금', '토'];
   static const _weekdaysKo = ['월', '화', '수', '목', '금', '토', '일'];
 
-  late Future<(List<Child>, DocumentAnalysis)> _future = _load();
+  late Future<(List<Child>, List<CalendarEvent>)> _future = _load();
 
-  Future<(List<Child>, DocumentAnalysis)> _load() async {
+  /// 캘린더 일정은 실서버 저장분(GET /calendar/events)이 정본 —
+  /// 분석 결과(제안 일정)가 아니라 사용자가 저장한 일정을 그린다.
+  Future<(List<Child>, List<CalendarEvent>)> _load() async {
     final children = repository.getChildren();
-    final analysis = repository.getLatestAnalysis();
-    return (await children, await analysis);
+    final events = repository.getCalendarEvents();
+    return (await children, await events);
   }
 
   /// 표시 중인 월(1일 고정) — ◀▶로 자유 이동.
@@ -71,8 +71,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
+  /// 자정 기준 날짜 차이 — 시각 차 때문에 하루가 밀리는 문제 방지.
   String _dday(DateTime date) {
-    final diff = date.difference(_today).inDays;
+    final diff = DateTime(date.year, date.month, date.day)
+        .difference(DateTime(_today.year, _today.month, _today.day))
+        .inDays;
     return diff >= 0 ? 'D-$diff' : 'D+${-diff}';
   }
 
@@ -90,195 +93,99 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ? GaonColors.warning
           : _childColor(children, e.childId);
 
-  Future<void> _copyKeyword(String keyword) async {
-    await Clipboard.setData(ClipboardData(text: keyword));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("'$keyword' 복사했어요 · Đã sao chép")),
-    );
-  }
 
-  // ── S10: 날짜 상세 바텀시트 ──
-  void _showDetail(DocumentAnalysis analysis, CalendarEvent event) {
-    var showTranslated = true;
+  // ── S10: 날짜 상세 바텀시트 — 일정 정보만(원문·구매 정보는 행동 카드에서).
+  void _showDetail(List<Child> children, CalendarEvent event) {
     final urgent = event.type == CalendarEventType.deadline;
+    final childName =
+        children.where((c) => c.childId == event.childId).firstOrNull?.name;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: GaonColors.surface,
       barrierColor: const Color(0x59011D14),
-      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(GaonSpace.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: GaonColors.primary,
-                      borderRadius: BorderRadius.circular(GaonRadius.pill),
-                    ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(GaonSpace.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: GaonColors.primary,
+                    borderRadius: BorderRadius.circular(GaonRadius.pill),
                   ),
                 ),
-                const SizedBox(height: GaonSpace.sm),
-
-                // 날짜 헤더 + 원본/번역 토글
-                Row(
+              ),
+              const SizedBox(height: GaonSpace.sm),
+              Text(
+                  '${event.date.month}월 ${event.date.day}일 '
+                  '${_weekdaysKo[event.date.weekday - 1]}요일',
+                  style: GaonType.h2.copyWith(
+                      color: urgent
+                          ? GaonColors.warning
+                          : GaonColors.textPrimary)),
+              const SizedBox(height: GaonSpace.md),
+              Container(
+                padding: const EdgeInsets.all(GaonSpace.sm),
+                decoration: BoxDecoration(
+                  color: GaonColors.bg,
+                  borderRadius: BorderRadius.circular(GaonRadius.lg),
+                ),
+                child: Row(
                   children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _dotColor(children, event),
+                      ),
+                    ),
+                    const SizedBox(width: GaonSpace.xs),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(event.title,
+                              style: GaonType.body.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: GaonColors.textPrimary)),
                           Text(
-                              '${event.date.month}월 ${event.date.day}일 '
-                              '${_weekdaysKo[event.date.weekday - 1]}요일',
-                              style: GaonType.h2.copyWith(
+                              '${_dday(event.date)} · '
+                              '${urgent ? '마감 · ${bi('Hạn nộp', '截止')}' : '행사 · ${bi('Sự kiện', '活动')}'}'
+                              '${childName != null ? ' · $childName' : ''}',
+                              style: GaonType.caption.copyWith(
                                   color: urgent
                                       ? GaonColors.warning
-                                      : GaonColors.textPrimary)),
-                          Text(
-                              '${event.title} · ${_dday(event.date)}',
-                              style: GaonType.caption.copyWith(
-                                  color: GaonColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: GaonColors.primaryLight,
-                        borderRadius:
-                            BorderRadius.circular(GaonRadius.pill),
-                      ),
-                      child: Row(
-                        children: [
-                          for (final (i, t) in const ['원본', '번역'].indexed)
-                            GestureDetector(
-                              onTap: () => setSheetState(
-                                  () => showTranslated = i == 1),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 12),
-                                decoration: BoxDecoration(
-                                  color: (i == 1) == showTranslated
-                                      ? GaonColors.textPrimary
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(
-                                      GaonRadius.pill),
-                                ),
-                                child: Text(t,
-                                    style: GaonType.caption.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: (i == 1) == showTranslated
-                                            ? GaonColors.onPrimary
-                                            : GaonColors.textSecondary)),
-                              ),
-                            ),
+                                      : GaonColors.textSecondary)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: GaonSpace.md),
-
-                // 내용 — 번역(요약) ↔ 원본(rawText)
-                Container(
-                  padding: const EdgeInsets.all(GaonSpace.sm),
-                  decoration: BoxDecoration(
-                    color: GaonColors.bg,
-                    borderRadius: BorderRadius.circular(GaonRadius.lg),
-                  ),
-                  child: Text(
-                    showTranslated
-                        ? analysis.translated.summaryNative
-                        : analysis.extractedItem.rawText,
-                    style: GaonType.body.copyWith(
-                        color: GaonColors.textPrimary, height: 1.7),
-                  ),
-                ),
-                const SizedBox(height: GaonSpace.sm),
-
-                // 검색어 추천 (F-DOC-6) — 키워드 있는 supply만(§17.11: 비구매 항목은 null)
-                if (analysis.actionCard.supplies
-                    .any((s) => s.ecommerceKeyword != null))
-                  Container(
-                    padding: const EdgeInsets.all(GaonSpace.sm),
-                    decoration: BoxDecoration(
-                      color: GaonColors.primaryLight,
-                      borderRadius: BorderRadius.circular(GaonRadius.lg),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('🛒 검색어 추천 · ${bi('Từ khóa mua sắm', '购物关键词')}',
-                            style: GaonType.caption.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: GaonColors.textPrimary)),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          children: [
-                            for (final s in analysis.actionCard.supplies)
-                              if (s.ecommerceKeyword case final keyword?)
-                              Material(
-                                color: GaonColors.textPrimary,
-                                borderRadius: BorderRadius.circular(
-                                    GaonRadius.pill),
-                                child: InkWell(
-                                  onTap: () => _copyKeyword(keyword),
-                                  borderRadius: BorderRadius.circular(
-                                      GaonRadius.pill),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 5, horizontal: 12),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(keyword,
-                                            style: GaonType.caption
-                                                .copyWith(
-                                                    fontWeight:
-                                                        FontWeight.w600,
-                                                    color: GaonColors
-                                                        .onPrimary)),
-                                        const SizedBox(width: 4),
-                                        const Icon(Icons.copy_rounded,
-                                            size: 10,
-                                            color: GaonColors.primary),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: GaonSpace.md),
-                GaonButton(
-                  label: '🔔 리마인드 알림 예약 · ${bi('Đặt nhắc nhở', '设置提醒')}',
-                  onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    Navigator.of(context).pop();
-                    // 마감 D-2·행사 전날 잠금화면 리마인드(F-PRO-2·3 로컬)
-                    await NotificationService.instance
-                        .scheduleEventReminders([event]);
-                    messenger.showSnackBar(const SnackBar(
-                        content: Text('리마인드 알림을 예약했어요 🔔')));
-                  },
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: GaonSpace.md),
+              GaonButton(
+                label: '🔔 리마인드 알림 예약 · ${bi('Đặt nhắc nhở', '设置提醒')}',
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.of(context).pop();
+                  // 마감 D-2·행사 전날 잠금화면 리마인드(F-PRO-2·3 로컬)
+                  await NotificationService.instance
+                      .scheduleEventReminders([event]);
+                  messenger.showSnackBar(const SnackBar(
+                      content: Text('리마인드 알림을 예약했어요 🔔')));
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -292,14 +199,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         future: _future,
         builder: (context, snap) {
           if (snap.hasError) {
-            // 실서버: 아직 분석한 문서가 없으면 getLatestAnalysis가 StateError
-            final noAnalysis = snap.error is StateError;
             return GaonAsyncError(
-              message:
-                  noAnalysis ? '아직 분석한 알림장이 없어요' : '캘린더를 불러오지 못했어요',
-              subMessage: noAnalysis
-                  ? '알림장 탭에서 사진을 올려보세요 · ${bi('Hãy tải ảnh thông báo lên', '请在通知单页上传照片')}'
-                  : '네트워크 확인 후 다시 시도해 주세요',
+              message: '캘린더를 불러오지 못했어요',
+              subMessage: '네트워크 확인 후 다시 시도해 주세요',
               onRetry: () => setState(() => _future = _load()),
             );
           }
@@ -308,8 +210,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 child: CircularProgressIndicator(
                     color: GaonColors.textSecondary));
           }
-          final (children, analysis) = snap.data!;
-          final events = analysis.actionCard.calendarEvents;
+          final (children, events) = snap.data!;
           final eventsByDay = <int, List<CalendarEvent>>{};
           for (final e in events) {
             if (e.date.year == _visibleMonth.year &&
@@ -414,88 +315,125 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 날짜 그리드 — 표시 월의 시작 요일·일수에 맞춰 계산
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 4, horizontal: GaonSpace.xs),
-                  child: Builder(builder: (context) {
-                    final offset = _visibleMonth.weekday % 7; // 일요일 시작
-                    final daysInMonth = DateTime(_visibleMonth.year,
-                            _visibleMonth.month + 1, 0)
-                        .day;
-                    final rows = ((offset + daysInMonth) / 7).ceil();
-                    return Column(
-                      children: [
-                        for (var week = 0; week < rows; week++)
-                          Expanded(
-                            child: Row(
-                              children: [
-                                for (var wd = 0; wd < 7; wd++)
-                                  Expanded(
-                                    child: _dayCell(
-                                        week * 7 + wd + 1 - offset,
-                                        daysInMonth,
-                                        selectedDay,
-                                        children,
-                                        eventsByDay),
-                                  ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    );
-                  }),
-                ),
+              // 날짜 그리드 — 셀 높이 고정(달력 크기 불변, iOS 캘린더식).
+              // 남는 공간은 아래 일정 영역이 차지하고, 일정이 없으면 비워둔다.
+              Container(
+                color: GaonColors.surface,
+                padding: const EdgeInsets.symmetric(
+                    vertical: 4, horizontal: GaonSpace.xs),
+                child: Builder(builder: (context) {
+                  final offset = _visibleMonth.weekday % 7; // 일요일 시작
+                  final daysInMonth = DateTime(_visibleMonth.year,
+                          _visibleMonth.month + 1, 0)
+                      .day;
+                  final rows = ((offset + daysInMonth) / 7).ceil();
+                  return Column(
+                    children: [
+                      for (var week = 0; week < rows; week++)
+                        Row(
+                          children: [
+                            for (var wd = 0; wd < 7; wd++)
+                              Expanded(
+                                child: _dayCell(
+                                    week * 7 + wd + 1 - offset,
+                                    daysInMonth,
+                                    selectedDay,
+                                    children,
+                                    eventsByDay),
+                              ),
+                          ],
+                        ),
+                    ],
+                  );
+                }),
               ),
+              Container(height: 1, color: GaonColors.border),
 
-              // 선택일 프리뷰 바
-              if (selectedEvents.isNotEmpty)
-                Material(
-                  color: GaonColors.surface,
-                  child: InkWell(
-                    onTap: () =>
-                        _showDetail(analysis, selectedEvents.first),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        border: Border(
-                            top: BorderSide(color: GaonColors.border)),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: GaonSpace.sm,
-                          horizontal: GaonSpace.md),
-                      child: Row(
+              // 선택일 일정 목록 — 상시 확보된 영역(없으면 빈 화면)
+              Expanded(
+                child: events.isEmpty
+                    ? Center(
+                        child: Text(
+                            '저장된 일정이 없어요\n알림장 탭에서 일정을 저장해 보세요 · ${bi('Hãy lưu lịch từ thông báo', '请从通知单保存日程')}',
+                            textAlign: TextAlign.center,
+                            style: GaonType.caption.copyWith(
+                                color: GaonColors.textSecondary,
+                                height: 1.6)),
+                      )
+                    : selectedEvents.isEmpty
+                    ? const SizedBox.shrink()
+                    : ListView(
+                        padding: const EdgeInsets.all(GaonSpace.sm),
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    '${_visibleMonth.month}월 $selectedDay일 · '
-                                    '${_dday(selectedEvents.first.date)}',
-                                    style: GaonType.h3.copyWith(
-                                        color: selectedEvents.first.type ==
-                                                CalendarEventType.deadline
-                                            ? GaonColors.warning
-                                            : GaonColors.textPrimary)),
-                                Text(
-                                    selectedEvents
-                                        .map((e) => e.title)
-                                        .join(' · '),
-                                    style: GaonType.caption.copyWith(
-                                        color:
-                                            GaonColors.textSecondary)),
-                              ],
+                          for (final e in selectedEvents)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: GaonSpace.xs),
+                              child: Material(
+                                color: GaonColors.surface,
+                                borderRadius: BorderRadius.circular(
+                                    GaonRadius.lg),
+                                child: InkWell(
+                                  onTap: () => _showDetail(children, e),
+                                  borderRadius: BorderRadius.circular(
+                                      GaonRadius.lg),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: GaonSpace.sm,
+                                        horizontal: GaonSpace.md),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: _dotColor(children, e),
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                            width: GaonSpace.xs),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(e.title,
+                                                  style: GaonType.body
+                                                      .copyWith(
+                                                          fontWeight:
+                                                              FontWeight
+                                                                  .w600,
+                                                          color: GaonColors
+                                                              .textPrimary)),
+                                              Text(
+                                                  '${e.date.month}월 ${e.date.day}일 · ${_dday(e.date)}',
+                                                  style: GaonType.caption
+                                                      .copyWith(
+                                                          color: e.type ==
+                                                                  CalendarEventType
+                                                                      .deadline
+                                                              ? GaonColors
+                                                                  .warning
+                                                              : GaonColors
+                                                                  .textSecondary)),
+                                            ],
+                                          ),
+                                        ),
+                                        const Icon(
+                                            Icons.chevron_right_rounded,
+                                            size: 18,
+                                            color:
+                                                GaonColors.textSecondary),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded,
-                              size: 18, color: GaonColors.textSecondary),
                         ],
                       ),
-                    ),
-                  ),
-                ),
+              ),
             ],
           );
         },
@@ -505,13 +443,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _dayCell(int day, int daysInMonth, int? selectedDay,
       List<Child> children, Map<int, List<CalendarEvent>> eventsByDay) {
-    if (day < 1 || day > daysInMonth) return const SizedBox();
+    if (day < 1 || day > daysInMonth) return const SizedBox(height: 46);
     final dayEvents = eventsByDay[day] ?? const [];
     final isSelected = day == selectedDay;
     return GestureDetector(
       onTap: () => setState(() => _selectedDay = day),
       behavior: HitTestBehavior.opaque,
-      child: Column(
+      // 셀 높이 고정 — 터치 구획이 날짜와 1:1로 일치
+      child: SizedBox(
+        height: 46,
+        child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
@@ -551,6 +492,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

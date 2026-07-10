@@ -29,11 +29,12 @@ class BiText extends StatelessWidget {
           ? CrossAxisAlignment.center
           : CrossAxisAlignment.start,
       children: [
-        Text(vi,
+        // 시스템 전체 언어 순서 일관성: 한국어 주 + 모국어 병기(작게)
+        Text(ko,
             textAlign: align,
             style: viStyle.copyWith(color: GaonColors.textPrimary, height: 1.4)),
         const SizedBox(height: GaonSpace.xxs),
-        Text(ko,
+        Text(vi,
             textAlign: align,
             style:
                 koStyle.copyWith(color: GaonColors.textSecondary, height: 1.4)),
@@ -50,6 +51,7 @@ class GaonButton extends StatelessWidget {
     super.key,
     required this.label,
     this.subLabel,
+    this.subBelow = false,
     this.variant = GaonButtonVariant.primary,
     this.fullWidth = true,
     this.icon,
@@ -58,6 +60,9 @@ class GaonButton extends StatelessWidget {
 
   final String label;
   final String? subLabel;
+
+  /// true면 subLabel(모국어)을 라벨 아랫줄에 표시 — 좁은 버튼에서 잘림 방지.
+  final bool subBelow;
   final GaonButtonVariant variant;
   final bool fullWidth;
   final Widget? icon;
@@ -82,8 +87,8 @@ class GaonButton extends StatelessWidget {
           GaonColors.textSecondary,
         ),
       GaonButtonVariant.ghost => (
-          GaonColors.successLight,
-          GaonColors.success,
+          GaonColors.primaryLight,
+          GaonColors.textPrimary,
           GaonColors.textSecondary,
         ),
     };
@@ -98,7 +103,34 @@ class GaonButton extends StatelessWidget {
           width: fullWidth ? double.infinity : null,
           padding: const EdgeInsets.symmetric(
               vertical: GaonSpace.sm, horizontal: GaonSpace.lg),
-          child: Row(
+          child: subBelow && subLabel != null
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (icon != null) ...[
+                          icon!,
+                          const SizedBox(width: GaonSpace.xs)
+                        ],
+                        Flexible(
+                          child: Text(label,
+                              overflow: TextOverflow.ellipsis,
+                              style: GaonType.body.copyWith(
+                                  fontWeight: FontWeight.w700, color: fg)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(subLabel!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GaonType.micro.copyWith(color: subFg)),
+                  ],
+                )
+              : Row(
             mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -283,7 +315,7 @@ class GaonHeader extends StatelessWidget {
                   width: 32,
                   height: 32,
                   child: Icon(Icons.arrow_back_rounded,
-                      size: 16, color: GaonColors.primary),
+                      size: 16, color: GaonColors.textPrimary),
                 ),
               ),
             ),

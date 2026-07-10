@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../data/api_repository.dart';
-import '../data/demo_data.dart';
 import '../data/locator.dart';
+import '../data/profile_store.dart';
 import '../models/display.dart';
 import '../data/app_lang.dart';
 import '../models/schema.dart';
@@ -28,14 +28,16 @@ class OnboardingChildScreen extends StatefulWidget {
 }
 
 class _ChildForm {
-  final school = TextEditingController(text: demoSchoolName);
+  final school = TextEditingController();
   final name = TextEditingController();
+  // 반은 자유 입력 — 숫자 반 외에 '하늘반' 같은 이름 반도 있다(text 컬럼).
+  final classNo = TextEditingController(text: '3');
   ChildGrade grade = ChildGrade.elem2;
-  String classNo = '3';
 
   void dispose() {
     school.dispose();
     name.dispose();
+    classNo.dispose();
   }
 }
 
@@ -84,43 +86,6 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
       ),
     );
     if (picked != null) setState(() => form.grade = picked);
-  }
-
-  Future<void> _pickClassNo(_ChildForm form) async {
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: GaonColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(GaonSpace.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('반 · Ban',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
-              const SizedBox(height: GaonSpace.sm),
-              for (var n = 1; n <= 5; n++)
-                ListTile(
-                  onTap: () => Navigator.of(context).pop('$n'),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(GaonRadius.md)),
-                  tileColor:
-                      '$n' == form.classNo ? GaonColors.primaryLight : null,
-                  title: Text('$n반 / Ban $n',
-                      style: GaonType.bodyLg
-                          .copyWith(color: GaonColors.textPrimary)),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (picked != null) setState(() => form.classNo = picked);
   }
 
   @override
@@ -174,7 +139,6 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                       index: i,
                       form: form,
                       onPickGrade: () => _pickGrade(form),
-                      onPickClassNo: () => _pickClassNo(form),
                       onRemove: _children.length > 1
                           ? () => setState(() =>
                               _children.removeAt(i).dispose())
@@ -220,6 +184,16 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                 onTap: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(context);
+                  // 이름 필수 — 빈 이름으로 등록되는 문제 방지
+                  if (_children.any((f) => f.name.text.trim().isEmpty)) {
+                    messenger.showSnackBar(const SnackBar(
+                        content: Text('자녀 이름을 입력해 주세요')));
+                    return;
+                  }
+                  // 출신국·모국어 로컬 저장 — 설정 프로필·재시작에 반영
+                  await ProfileStore.save(
+                      country: widget.originCountry,
+                      language: widget.nativeLanguage);
                   try {
                     // 입력한 자녀들을 등록 → 이후 화면(챗봇·설정·캘린더)에 반영.
                     // API 모드: 첫 자녀 = POST /onboarding(F-ON-1, 프로필+자녀 생성).
@@ -233,14 +207,18 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                           nativeLanguage: widget.nativeLanguage,
                           childGrade: form.grade,
                           childName: name.isEmpty ? null : name,
-                          childClassNo: form.classNo,
+                          childClassNo: form.classNo.text.trim().isEmpty
+                              ? null
+                              : form.classNo.text.trim(),
                           childSchoolName: school.isEmpty ? null : school,
                         );
                       } else {
                         await repo.addChild(
                           grade: form.grade,
                           name: name.isEmpty ? null : name,
-                          classNo: form.classNo,
+                          classNo: form.classNo.text.trim().isEmpty
+                              ? null
+                              : form.classNo.text.trim(),
                           schoolName: school.isEmpty ? null : school,
                         );
                       }
@@ -269,14 +247,12 @@ class _ChildCard extends StatelessWidget {
     required this.index,
     required this.form,
     required this.onPickGrade,
-    required this.onPickClassNo,
     this.onRemove,
   });
 
   final int index;
   final _ChildForm form;
   final VoidCallback onPickGrade;
-  final VoidCallback onPickClassNo;
   final VoidCallback? onRemove;
 
   @override
@@ -343,13 +319,15 @@ class _ChildCard extends StatelessWidget {
                   color: GaonColors.textSecondary)),
           const SizedBox(height: 3),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: _darkSelector(form.grade.label, onPickGrade),
               ),
               const SizedBox(width: GaonSpace.xs),
+              // 반 자유 입력 — 숫자·이름 반 모두 허용
               Expanded(
-                child: _darkSelector('${form.classNo}반', onPickClassNo),
+                child: _field('', form.classNo, '예) 3 · 하늘'),
               ),
             ],
           ),

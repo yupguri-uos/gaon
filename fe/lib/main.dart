@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 
 import 'data/app_lang.dart';
+import 'data/auth_store.dart';
+import 'data/profile_store.dart';
+import 'data/teacher_store.dart';
 import 'screens/login_screen.dart';
 import 'theme/tokens.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // 온보딩에서 고른 프로필(출신국·모국어) 복원 — 재시작해도 유지
+  await ProfileStore.load();
+  await AuthStore.load(); // 카카오 로그인 JWT — dart-define 토큰보다 우선
+  await TeacherStore.load(); // 받는 사람(교사) 목록 — 로컬 관리
+  final saved = ProfileStore.language;
+  if (saved != null) appLanguage.value = saved;
   runApp(const GaonApp());
 }
 
@@ -37,6 +47,12 @@ class GaonApp extends StatelessWidget {
           backgroundColor: GaonColors.textPrimary,
           behavior: SnackBarBehavior.floating,
         ),
+      ),
+      // 입력창 바깥을 탭하면 키보드 닫기(iOS는 기본 제스처가 없음)
+      builder: (context, child) => GestureDetector(
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: child!,
       ),
       home: const LoginScreen(),
     );

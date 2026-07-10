@@ -32,6 +32,8 @@ lib/screens/  화면 (v2 시안: 5 Flows · 15 Screens)
   nginx가 /api 프리픽스를 벗겨 FastAPI로 전달. 로컬 BE는 --dart-define=GAON_API_BASE로 오버라이드.
 
 ## 명령
-- 실행:   `flutter run -d chrome` (웹) / `open -a Simulator && flutter run` (iOS)
+- 실행:   `flutter run --dart-define-from-file=env.json` — **기본이 실서버(API) 모드**.
+  env.json(gitignore)에 `{"GAON_API_TOKEN": "BE 발급 토큰"}` 필요. 없으면 인증 오류 화면.
+  모의 데이터 실행: `flutter run --dart-define=GAON_USE_API=false`
 - 검사:   `flutter analyze`
 - 테스트: `flutter test`

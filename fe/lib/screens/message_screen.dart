@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../data/demo_data.dart';
+import '../data/teacher_store.dart';
 import '../data/app_lang.dart';
 import '../data/locator.dart';
 import '../models/display.dart';
@@ -20,11 +20,23 @@ class MessageScreen extends StatefulWidget {
 }
 
 class _MessageScreenState extends State<MessageScreen> {
-  final _inputController =
-      TextEditingController(
-      text: bi('Ngày mai con bị sốt nên xin phép nghỉ học.',
-          '孩子明天发烧，想请假一天。'));
+  late final _inputController =
+      TextEditingController(text: _exampleFor(MessageSituation.absence));
   MessageSituation _situation = MessageSituation.absence;
+
+  /// 상황별 모국어 예시문 — 상황 칩을 바꾸면 입력창도 함께 바뀐다.
+  String _exampleFor(MessageSituation s) => switch (s) {
+        MessageSituation.absence => bi(
+            'Ngày mai con bị sốt nên xin phép nghỉ học.',
+            '孩子明天发烧，想请假一天。'),
+        MessageSituation.sickNote => bi(
+            'Con đã đi khám bệnh, tôi sẽ nộp giấy khám bệnh sau.',
+            '孩子已经去医院看过了，稍后会提交诊断书。'),
+        MessageSituation.consultation => bi(
+            'Tôi muốn hẹn thời gian tư vấn về việc học của con.',
+            '想和老师约时间咨询孩子的学习情况。'),
+        MessageSituation.custom => '',
+      };
   int _teacherIndex = 0;
   List<Child> _children = const [];
   Child? _selectedChild; // Chain B child_info(§8) 필수 — 어느 자녀 건인지
@@ -95,6 +107,11 @@ class _MessageScreenState extends State<MessageScreen> {
   Future<void> _generate() async {
     final child = _selectedChild;
     if (_generating || child == null) return;
+    if (_inputController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('보낼 내용을 먼저 입력해 주세요')));
+      return;
+    }
     setState(() {
       _generating = true;
       _message = null;
@@ -132,7 +149,8 @@ class _MessageScreenState extends State<MessageScreen> {
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
       ),
-      builder: (context) => SafeArea(
+      builder: (context) => StatefulBuilder(
+          builder: (context, setSheetState) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(GaonSpace.lg),
           child: Column(
@@ -173,7 +191,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 ),
               ),
               const SizedBox(height: GaonSpace.xs),
-              for (final (i, t) in demoTeachers.indexed)
+              for (final (i, t) in TeacherStore.teachers.value.indexed)
                 ListTile(
                   onTap: () => Navigator.of(context).pop(i),
                   contentPadding: EdgeInsets.zero,
@@ -202,18 +220,92 @@ class _MessageScreenState extends State<MessageScreen> {
                   subtitle: Text(t.role,
                       style: GaonType.caption
                           .copyWith(color: GaonColors.textSecondary)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        size: 18, color: GaonColors.textSecondary),
+                    onPressed: () async {
+                      await TeacherStore.removeAt(i);
+                      if (!context.mounted) return;
+                      setSheetState(() {});
+                      setState(() => _teacherIndex = 0);
+                    },
+                  ),
                 ),
+              // 받는 사람 추가 — 로컬 관리(Teacher 엔티티 SSOT 대기)
+              TextButton.icon(
+                onPressed: () => _addTeacher(setSheetState),
+                icon: const Icon(Icons.add_rounded,
+                    size: 18, color: GaonColors.textPrimary),
+                label: Text('받는 사람 추가 · ${bi('Thêm người nhận', '添加收件人')}',
+                    style: GaonType.body
+                        .copyWith(color: GaonColors.textPrimary)),
+              ),
             ],
           ),
         ),
-      ),
+      )),
     );
     if (picked != null) setState(() => _teacherIndex = picked);
   }
 
+  /// 받는 사람 추가 다이얼로그 — 이름·역할 입력 후 로컬 저장.
+  Future<void> _addTeacher(StateSetter setSheetState) async {
+    final nameCtrl = TextEditingController();
+    final roleCtrl = TextEditingController();
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GaonColors.surface,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(GaonRadius.xl)),
+        title: Text('받는 사람 추가',
+            style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(hintText: '예) 최수민 선생님'),
+            ),
+            TextField(
+              controller: roleCtrl,
+              decoration: const InputDecoration(hintText: '예) 3학년 1반 담임'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('취소',
+                style:
+                    GaonType.body.copyWith(color: GaonColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('추가',
+                style: GaonType.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: GaonColors.textPrimary)),
+          ),
+        ],
+      ),
+    );
+    if (added == true && nameCtrl.text.trim().isNotEmpty) {
+      await TeacherStore.add(
+          nameCtrl.text.trim(),
+          roleCtrl.text.trim().isEmpty ? '담임' : roleCtrl.text.trim());
+      if (mounted) setSheetState(() {});
+    }
+    Future.delayed(const Duration(seconds: 1), () {
+      nameCtrl.dispose();
+      roleCtrl.dispose();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final teacher = demoTeachers[_teacherIndex];
+    final list = TeacherStore.teachers.value;
+    final teacher = list[_teacherIndex.clamp(0, list.length - 1)];
 
     return SafeArea(
       child: Column(
@@ -333,7 +425,12 @@ class _MessageScreenState extends State<MessageScreen> {
                         borderRadius:
                             BorderRadius.circular(GaonRadius.pill),
                         child: InkWell(
-                          onTap: () => setState(() => _situation = s),
+                          onTap: () => setState(() {
+                            _situation = s;
+                            // 상황이 바뀌면 예시문도 함께 교체
+                            _inputController.text = _exampleFor(s);
+                            _message = null;
+                          }),
                           borderRadius:
                               BorderRadius.circular(GaonRadius.pill),
                           child: Padding(
