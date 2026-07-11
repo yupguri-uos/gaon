@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from gaon_shared import Child as ChildSchema
 from gaon_shared import ChildGrade
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -18,6 +18,8 @@ from app.models import Child, User
 from app.security import get_current_user
 
 router = APIRouter(tags=["children"])
+
+MAX_CHILDREN = 5  # 자녀 수 상한(QA 2026-07-11). 남용 방지 — 온보딩 첫 자녀 포함해 총 5명.
 
 
 class ChildCreateRequest(BaseModel):
@@ -68,6 +70,15 @@ def create_child(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="이름·반 저장에는 consent_child_pii 동의가 필요합니다",
+        )
+
+    child_count = db.scalar(
+        select(func.count()).select_from(Child).where(Child.user_id == current_user.id)
+    )
+    if child_count >= MAX_CHILDREN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"자녀는 최대 {MAX_CHILDREN}명까지 등록할 수 있습니다",
         )
 
     child = Child(

@@ -196,6 +196,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         if (!mounted) return;
         _snack('${name.isEmpty ? '자녀' : name} 정보를 수정했어요');
       }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      // 400은 서버 검증 실패(자녀 수 상한·PII 동의 등) — 안내 메시지를 그대로 보여준다.
+      _snack(
+        e.statusCode == 400
+            ? e.message
+            : (edit == null
+                  ? '등록에 실패했어요 — 잠시 후 다시 시도해 주세요'
+                  : '수정에 실패했어요 — 잠시 후 다시 시도해 주세요'),
+      );
     } catch (e) {
       if (!mounted) return;
       _snack(
