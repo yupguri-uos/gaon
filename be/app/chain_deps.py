@@ -43,9 +43,21 @@ def _gemini_singleton() -> GeminiLLMClient:
     return GeminiLLMClient(image_loader=_s3_image_loader)
 
 
+def current_llm_mode() -> str:
+    """해석된 LLM 모드 — get_llm_client 분기와 /health 노출의 단일 출처.
+
+    빈 값도 기본으로 — docker compose env_file은 `GAON_LLM_MODE=`(빈 값)를 빈 문자열로 싣는다.
+    """
+    return os.environ.get("GAON_LLM_MODE") or "gemini"
+
+
+def current_rag_mode() -> str:
+    """해석된 RAG 모드 — get_retriever 분기와 /health 노출의 단일 출처."""
+    return os.environ.get("GAON_RAG_MODE") or "kb"
+
+
 def get_llm_client() -> LLMClient:
-    # 빈 값도 기본으로 — docker compose env_file은 `GAON_LLM_MODE=`(빈 값)를 빈 문자열로 싣는다
-    mode = os.environ.get("GAON_LLM_MODE") or "gemini"
+    mode = current_llm_mode()
     if mode == "fake":
         return FakeLLMClient()
     if mode == "gemini":
@@ -108,8 +120,7 @@ def _reset_retriever_for_tests() -> None:
 
 
 def get_retriever() -> Retriever:
-    # 빈 값도 기본으로 — docker compose env_file은 `GAON_RAG_MODE=`(빈 값)를 빈 문자열로 싣는다
-    mode = os.environ.get("GAON_RAG_MODE") or "kb"
+    mode = current_rag_mode()
     if mode == "fake":
         return FakeRetriever()
     if mode == "kb":
@@ -126,8 +137,7 @@ async def warmup_retriever() -> None:
     fake 모드면 no-op. 실패는 예외 전파 — 호출자(main.py lifespan)가 로깅만 하고 앱은 살린다
     (요청 경로가 어차피 명시 에러를 보장하므로 은폐되지 않음).
     """
-    mode = os.environ.get("GAON_RAG_MODE") or "kb"
-    if mode != "kb":
+    if current_rag_mode() != "kb":
         return
     retriever = get_retriever()
     await retriever.retrieve(["가정통신문"], top_k=1)

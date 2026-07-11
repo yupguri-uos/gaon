@@ -1,14 +1,16 @@
-/// 데모 시나리오 고정 데이터 (SSOT 데모 연속성 규칙):
+/// 테스트 픽스처 — FakeRepository가 반환하는 데모 시나리오 고정 데이터.
+/// 앱 번들(lib/)에는 두지 않는다 — 테스트 전용.
+///
+/// 시나리오(SSOT 데모 연속성 규칙):
 /// "2학년 3반 미술 준비물 + 서울대공원 현장체험학습, 동의서 6/12 마감, 행사 6/16"
 /// 기준일(오늘)은 6/10 — 동의서 마감이 D-2가 되는 날.
-/// 다자녀 데모: 이서준(2-3, forest) + 이민아(1-1, warn) — 캘린더 색 구분용.
+/// 다자녀: 이서준(2-3, forest) + 이민아(1-1, warn) — 캘린더 색 구분용.
 library;
 
-import '../models/schema.dart';
+import 'package:fe/models/schema.dart';
 
 final demoToday = DateTime(2025, 6, 10);
 
-/// 온보딩 학교명 기본값 (Child.school_name — 마이그레이션 0007로 정식 반영됨).
 const demoSchoolName = '가온초등학교';
 
 final demoUser = User(
@@ -54,7 +56,8 @@ final demoExtractedItem = ExtractedItem(
   supplies: const ['색연필 12색 이상 (크레파스 불가, 이름 기재)'],
   deadline: DateTime(2025, 6, 12),
   requiresReply: true,
-  rawText: '2학년 3반 학부모님께. 6월 16일 서울대공원 현장체험학습이 예정되어 있습니다. '
+  rawText:
+      '2학년 3반 학부모님께. 6월 16일 서울대공원 현장체험학습이 예정되어 있습니다. '
       '동의서를 6/12까지 제출해 주세요. 미술 시간 준비물(색연필 12색 이상)도 확인 부탁드립니다.',
 );
 
@@ -128,8 +131,7 @@ final demoActionCard = ActionCard(
       childId: 'demo-child-2',
     ),
   ],
-  replyDraftKo:
-      '선생님, 안녕하세요. 서울대공원 현장체험학습 동의서를 제출합니다. 참가에 동의합니다. 감사합니다.',
+  replyDraftKo: '선생님, 안녕하세요. 서울대공원 현장체험학습 동의서를 제출합니다. 참가에 동의합니다. 감사합니다.',
 );
 
 // 주차 합계가 총계(12/8/1)와 일치하도록 구성 — 발표 시 숫자 안 맞는 약점 방지.
@@ -140,26 +142,30 @@ final demoActivityLog = ActivityLog(
   missedCount: 1,
   weeklyActivity: [
     WeeklyActivity(
-        weekStart: DateTime(2025, 6, 1),
-        weekEnd: DateTime(2025, 6, 7),
-        processedCount: 3,
-        eventParticipationCount: 2),
+      weekStart: DateTime(2025, 6, 1),
+      weekEnd: DateTime(2025, 6, 7),
+      processedCount: 3,
+      eventParticipationCount: 2,
+    ),
     WeeklyActivity(
-        weekStart: DateTime(2025, 6, 8),
-        weekEnd: DateTime(2025, 6, 14),
-        processedCount: 4,
-        eventParticipationCount: 3,
-        missedCount: 1),
+      weekStart: DateTime(2025, 6, 8),
+      weekEnd: DateTime(2025, 6, 14),
+      processedCount: 4,
+      eventParticipationCount: 3,
+      missedCount: 1,
+    ),
     WeeklyActivity(
-        weekStart: DateTime(2025, 6, 15),
-        weekEnd: DateTime(2025, 6, 21),
-        processedCount: 2,
-        eventParticipationCount: 1),
+      weekStart: DateTime(2025, 6, 15),
+      weekEnd: DateTime(2025, 6, 21),
+      processedCount: 2,
+      eventParticipationCount: 1,
+    ),
     WeeklyActivity(
-        weekStart: DateTime(2025, 6, 22),
-        weekEnd: DateTime(2025, 6, 28),
-        processedCount: 3,
-        eventParticipationCount: 2),
+      weekStart: DateTime(2025, 6, 22),
+      weekEnd: DateTime(2025, 6, 28),
+      processedCount: 3,
+      eventParticipationCount: 2,
+    ),
   ],
 );
 
@@ -176,14 +182,6 @@ final demoNotifications = [
   ),
 ];
 
-/// 받는 사람(교사) 목록 — schema에 Teacher 엔티티가 없어 UI 전용 데모 데이터.
-/// 실서비스 반영은 SSOT 결정 필요.
-const demoTeachers = [
-  (name: '박지수 선생님', role: '2학년 3반 담임'),
-  (name: '김민정 선생님', role: '영어 전담'),
-  (name: '이현우 선생님', role: '체육 전담'),
-];
-
 /// Chain B 상황별 데모 응답(F-TCH-2·3).
 TeacherMessage demoTeacherMessage({
   required MessageSituation situation,
@@ -191,21 +189,21 @@ TeacherMessage demoTeacherMessage({
 }) {
   final (outputKo, adminGuideNative) = switch (situation) {
     MessageSituation.absence => (
-        '선생님, 안녕하세요. 내일 아이가 열이 나서 결석하겠습니다. 확인 부탁드립니다.',
-        'Nếu nghỉ quá 3 ngày liên tục, cần nộp giấy khám bệnh.',
-      ),
+      '선생님, 안녕하세요. 내일 아이가 열이 나서 결석하겠습니다. 확인 부탁드립니다.',
+      'Nếu nghỉ quá 3 ngày liên tục, cần nộp giấy khám bệnh.',
+    ),
     MessageSituation.sickNote => (
-        '선생님, 안녕하세요. 아이 진단서를 오늘 알림장에 넣어 보냈습니다. 확인 부탁드립니다.',
-        'Giấy khám bệnh cần có tên bệnh viện và ngày khám.',
-      ),
+      '선생님, 안녕하세요. 아이 진단서를 오늘 알림장에 넣어 보냈습니다. 확인 부탁드립니다.',
+      'Giấy khám bệnh cần có tên bệnh viện và ngày khám.',
+    ),
     MessageSituation.consultation => (
-        '선생님, 안녕하세요. 아이 학교생활 관련해 상담을 요청드리고 싶습니다. 가능한 시간을 알려주시면 감사하겠습니다.',
-        'Trường thường tổ chức tư vấn phụ huynh định kỳ mỗi học kỳ — có thể yêu cầu phiên dịch miễn phí.',
-      ),
+      '선생님, 안녕하세요. 아이 학교생활 관련해 상담을 요청드리고 싶습니다. 가능한 시간을 알려주시면 감사하겠습니다.',
+      'Trường thường tổ chức tư vấn phụ huynh định kỳ mỗi học kỳ — có thể yêu cầu phiên dịch miễn phí.',
+    ),
     MessageSituation.custom => (
-        '선생님, 안녕하세요. 전달드릴 내용이 있어 연락드립니다. 확인 부탁드립니다.',
-        'Nội dung tự do — hãy kiểm tra lại bản dịch trước khi gửi.',
-      ),
+      '선생님, 안녕하세요. 전달드릴 내용이 있어 연락드립니다. 확인 부탁드립니다.',
+      'Nội dung tự do — hãy kiểm tra lại bản dịch trước khi gửi.',
+    ),
   };
   return TeacherMessage(
     situation: situation,

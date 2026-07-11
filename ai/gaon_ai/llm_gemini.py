@@ -119,7 +119,9 @@ class GeminiLLMClient:
             config=types.GenerateContentConfig(
                 system_instruction=system_text or None,  # system은 SDK의 시스템 프롬프트 자리로
                 temperature=0.0,  # 재현성
-                max_output_tokens=8192,  # 절단 방지 상향(파일럿 계측 결함 패치 유지)
+                # Gemini 3는 내부 thinking 토큰이 이 한도를 함께 소모한다 — 8192로는
+                # 긴 가정통신문에서 출력이 절단돼 JSON 검증에서 반복 실패(2026-07-11 보고).
+                max_output_tokens=32768,
                 response_mime_type="application/json",
                 response_schema=output_model,  # Pydantic 모델 직접 전달(SDK 공식 경로)
             ),

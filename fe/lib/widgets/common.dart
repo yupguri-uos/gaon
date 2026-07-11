@@ -29,14 +29,17 @@ class BiText extends StatelessWidget {
           ? CrossAxisAlignment.center
           : CrossAxisAlignment.start,
       children: [
-        Text(vi,
-            textAlign: align,
-            style: viStyle.copyWith(color: GaonColors.textPrimary, height: 1.4)),
+        Text(
+          vi,
+          textAlign: align,
+          style: viStyle.copyWith(color: GaonColors.textPrimary, height: 1.4),
+        ),
         const SizedBox(height: GaonSpace.xxs),
-        Text(ko,
-            textAlign: align,
-            style:
-                koStyle.copyWith(color: GaonColors.textSecondary, height: 1.4)),
+        Text(
+          ko,
+          textAlign: align,
+          style: koStyle.copyWith(color: GaonColors.textSecondary, height: 1.4),
+        ),
       ],
     );
   }
@@ -67,25 +70,25 @@ class GaonButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, fg, subFg) = switch (variant) {
       GaonButtonVariant.primary => (
-          GaonColors.textPrimary,
-          GaonColors.onPrimary,
-          const Color(0xB3FFFFFF),
-        ),
+        GaonColors.textPrimary,
+        GaonColors.onPrimary,
+        const Color(0xB3FFFFFF),
+      ),
       GaonButtonVariant.secondary => (
-          GaonColors.success,
-          Colors.white,
-          const Color(0xB3FFFFFF),
-        ),
+        GaonColors.success,
+        Colors.white,
+        const Color(0xB3FFFFFF),
+      ),
       GaonButtonVariant.kakao => (
-          GaonColors.kakao,
-          GaonColors.kakaoText,
-          GaonColors.textSecondary,
-        ),
+        GaonColors.kakao,
+        GaonColors.kakaoText,
+        GaonColors.textSecondary,
+      ),
       GaonButtonVariant.ghost => (
-          GaonColors.successLight,
-          GaonColors.success,
-          GaonColors.textSecondary,
-        ),
+        GaonColors.successLight,
+        GaonColors.success,
+        GaonColors.textSecondary,
+      ),
     };
 
     return Material(
@@ -97,16 +100,20 @@ class GaonButton extends StatelessWidget {
         child: Container(
           width: fullWidth ? double.infinity : null,
           padding: const EdgeInsets.symmetric(
-              vertical: GaonSpace.sm, horizontal: GaonSpace.lg),
+            vertical: GaonSpace.sm,
+            horizontal: GaonSpace.lg,
+          ),
           child: Row(
             mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[icon!, const SizedBox(width: GaonSpace.xs)],
               Flexible(
-                child: Text(label,
-                    overflow: TextOverflow.ellipsis,
-                    style: GaonType.btn.copyWith(color: fg)),
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: GaonType.btn.copyWith(color: fg),
+                ),
               ),
               if (subLabel != null) ...[
                 const SizedBox(width: GaonSpace.xs),
@@ -147,27 +154,38 @@ class InputCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(GaonRadius.lg),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              vertical: GaonSpace.sm, horizontal: GaonSpace.md),
+            vertical: GaonSpace.sm,
+            horizontal: GaonSpace.md,
+          ),
           child: Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('$viLabel / $koLabel',
-                        style: GaonType.micro
-                            .copyWith(color: GaonColors.textSecondary)),
+                    Text(
+                      '$viLabel / $koLabel',
+                      style: GaonType.micro.copyWith(
+                        color: GaonColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(height: GaonSpace.xxs),
-                    Text(value,
-                        style: GaonType.bodyLg.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: GaonColors.textPrimary)),
+                    Text(
+                      value,
+                      style: GaonType.bodyLg.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: GaonColors.textPrimary,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (showChevron)
-                const Icon(Icons.keyboard_arrow_down_rounded,
-                    size: 18, color: GaonColors.primary),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: GaonColors.primary,
+                ),
             ],
           ),
         ),
@@ -201,19 +219,27 @@ class GaonChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(GaonRadius.pill),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              vertical: GaonSpace.xs, horizontal: GaonSpace.md),
+            vertical: GaonSpace.xs,
+            horizontal: GaonSpace.md,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(vi,
-                  style: GaonType.label.copyWith(
-                      color: selected ? Colors.white : GaonColors.primary)),
-              Text(ko,
-                  style: GaonType.micro.copyWith(
-                      color: selected
-                          ? const Color(0xB3FFFFFF)
-                          : GaonColors.textSecondary)),
+              Text(
+                vi,
+                style: GaonType.label.copyWith(
+                  color: selected ? Colors.white : GaonColors.primary,
+                ),
+              ),
+              Text(
+                ko,
+                style: GaonType.micro.copyWith(
+                  color: selected
+                      ? const Color(0xB3FFFFFF)
+                      : GaonColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),
@@ -224,12 +250,7 @@ class GaonChip extends StatelessWidget {
 
 /// 흰색 엘리베이티드 카드.
 class SurfaceCard extends StatelessWidget {
-  const SurfaceCard({
-    super.key,
-    required this.child,
-    this.margin,
-    this.border,
-  });
+  const SurfaceCard({super.key, required this.child, this.margin, this.border});
 
   final Widget child;
   final EdgeInsetsGeometry? margin;
@@ -269,7 +290,11 @@ class GaonHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          GaonSpace.md, GaonSpace.sm, GaonSpace.md, GaonSpace.xs),
+        GaonSpace.md,
+        GaonSpace.sm,
+        GaonSpace.md,
+        GaonSpace.xs,
+      ),
       child: Row(
         children: [
           if (showBack) ...[
@@ -282,8 +307,11 @@ class GaonHeader extends StatelessWidget {
                 child: const SizedBox(
                   width: 32,
                   height: 32,
-                  child: Icon(Icons.arrow_back_rounded,
-                      size: 16, color: GaonColors.primary),
+                  child: Icon(
+                    Icons.arrow_back_rounded,
+                    size: 16,
+                    color: GaonColors.primary,
+                  ),
                 ),
               ),
             ),
@@ -366,7 +394,9 @@ class InfoBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          vertical: GaonSpace.sm, horizontal: GaonSpace.md),
+        vertical: GaonSpace.sm,
+        horizontal: GaonSpace.md,
+      ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(GaonRadius.md),
@@ -383,13 +413,20 @@ class InfoBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(vi,
-                    style: GaonType.caption
-                        .copyWith(color: GaonColors.textPrimary, height: 1.5)),
+                Text(
+                  vi,
+                  style: GaonType.caption.copyWith(
+                    color: GaonColors.textPrimary,
+                    height: 1.5,
+                  ),
+                ),
                 const SizedBox(height: GaonSpace.xxs),
-                Text(ko,
-                    style: GaonType.micro
-                        .copyWith(color: GaonColors.textSecondary)),
+                Text(
+                  ko,
+                  style: GaonType.micro.copyWith(
+                    color: GaonColors.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -422,18 +459,24 @@ class GaonAsyncError extends StatelessWidget {
           children: [
             const Text('🛰️', style: TextStyle(fontSize: 32)),
             const SizedBox(height: GaonSpace.sm),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: GaonType.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: GaonColors.textPrimary,
-                    height: 1.5)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GaonType.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: GaonColors.textPrimary,
+                height: 1.5,
+              ),
+            ),
             if (subMessage != null) ...[
               const SizedBox(height: GaonSpace.xxs),
-              Text(subMessage!,
-                  textAlign: TextAlign.center,
-                  style: GaonType.caption
-                      .copyWith(color: GaonColors.textSecondary)),
+              Text(
+                subMessage!,
+                textAlign: TextAlign.center,
+                style: GaonType.caption.copyWith(
+                  color: GaonColors.textSecondary,
+                ),
+              ),
             ],
             if (onRetry != null) ...[
               const SizedBox(height: GaonSpace.md),

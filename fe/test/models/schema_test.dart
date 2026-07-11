@@ -138,7 +138,8 @@ void main() {
         'situation': 'absence',
         'input_native': 'Ngày mai con bị sốt nên xin phép nghỉ học.',
         'output_ko': '선생님, 안녕하세요. 내일 아이가 열이 나서 결석하겠습니다.',
-        'admin_guide_native': 'Nếu nghỉ quá 3 ngày liên tục, cần nộp giấy khám bệnh.',
+        'admin_guide_native':
+            'Nếu nghỉ quá 3 ngày liên tục, cần nộp giấy khám bệnh.',
       });
       expect(msg.situation, MessageSituation.absence);
       expect(TeacherMessage.fromJson(msg.toJson()).outputKo, msg.outputKo);

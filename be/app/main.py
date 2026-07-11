@@ -6,12 +6,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.chain_deps import close_retriever, warmup_retriever
+from app.chain_deps import close_retriever, current_llm_mode, current_rag_mode, warmup_retriever
 from app.routers import (
     auth,
     calendar,
     children,
     documents,
+    notifications,
     onboarding,
     profile,
     report,
@@ -52,9 +53,12 @@ app.include_router(profile.router)
 app.include_router(children.router)
 app.include_router(teacher_message.router)
 app.include_router(report.router)
+app.include_router(notifications.router)
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True}
+    # llm/rag 모드 노출 — 배포 서버가 fake로 떠서 더미 결과를 내는 사고를 밖에서
+    # 감지할 수 있게 한다(2026-07-11 보고: 미니PC가 고정 더미 데이터만 반환 의심).
+    return {"ok": True, "llm_mode": current_llm_mode(), "rag_mode": current_rag_mode()}

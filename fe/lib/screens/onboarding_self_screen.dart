@@ -19,7 +19,13 @@ class OnboardingSelfScreen extends StatefulWidget {
 }
 
 class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
-  static const _countries = ['🇻🇳 베트남', '🇨🇳 중국', '🇵🇭 필리핀', '🇹🇭 태국', '🇰🇷 한국'];
+  static const _countries = [
+    '🇻🇳 베트남',
+    '🇨🇳 중국',
+    '🇵🇭 필리핀',
+    '🇹🇭 태국',
+    '🇰🇷 한국',
+  ];
   static const _langs = ['Tiếng Việt', '中文', 'Filipino', 'ภาษาไทย'];
 
   int _country = 0;
@@ -36,21 +42,32 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    GaonSpace.md, GaonSpace.sm, GaonSpace.md, GaonSpace.md),
+                  GaonSpace.md,
+                  GaonSpace.sm,
+                  GaonSpace.md,
+                  GaonSpace.md,
+                ),
                 children: [
-                  Text('내 정보를 알려주세요',
-                      style:
-                          GaonType.h1.copyWith(color: GaonColors.textPrimary)),
+                  Text(
+                    '내 정보를 알려주세요',
+                    style: GaonType.h1.copyWith(color: GaonColors.textPrimary),
+                  ),
                   const SizedBox(height: GaonSpace.xxs),
-                  Text(bi('Cho chúng tôi biết về bạn', '请介绍一下您自己'),
-                      style: GaonType.label
-                          .copyWith(color: GaonColors.textSecondary)),
+                  Text(
+                    bi('Cho chúng tôi biết về bạn', '请介绍一下您自己'),
+                    style: GaonType.label.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: GaonSpace.lg),
 
                   // 출신국
-                  Text('출신국 · ${bi('Quốc gia', '国家')}',
-                      style: GaonType.label
-                          .copyWith(color: GaonColors.textSecondary)),
+                  Text(
+                    '출신국 · ${bi('Quốc gia', '国家')}',
+                    style: GaonType.label.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: GaonSpace.xs),
                   Wrap(
                     spacing: GaonSpace.xs,
@@ -67,9 +84,12 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                   const SizedBox(height: GaonSpace.lg),
 
                   // 모국어
-                  Text('모국어 · ${bi('Ngôn ngữ mẹ đẻ', '母语')}',
-                      style: GaonType.label
-                          .copyWith(color: GaonColors.textSecondary)),
+                  Text(
+                    '모국어 · ${bi('Ngôn ngữ mẹ đẻ', '母语')}',
+                    style: GaonType.label.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: GaonSpace.xs),
                   Wrap(
                     spacing: GaonSpace.xs,
@@ -107,22 +127,32 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                             shape: BoxShape.circle,
                             color: GaonColors.textPrimary,
                           ),
-                          child: const Icon(Icons.check_rounded,
-                              size: 16, color: GaonColors.bg),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            size: 16,
+                            color: GaonColors.bg,
+                          ),
                         ),
                         const SizedBox(width: GaonSpace.xs),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('선택한 언어로 알림장이 번역됩니다',
-                                  style: GaonType.caption.copyWith(
-                                      color: GaonColors.textPrimary)),
                               Text(
-                                  bi('Thông báo sẽ được dịch sang ngôn ngữ của bạn',
-                                      '通知将翻译成您的语言'),
-                                  style: GaonType.micro.copyWith(
-                                      color: GaonColors.textSecondary)),
+                                '선택한 언어로 알림장이 번역됩니다',
+                                style: GaonType.caption.copyWith(
+                                  color: GaonColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                bi(
+                                  'Thông báo sẽ được dịch sang ngôn ngữ của bạn',
+                                  '通知将翻译成您的语言',
+                                ),
+                                style: GaonType.micro.copyWith(
+                                  color: GaonColors.textSecondary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -134,7 +164,11 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  GaonSpace.md, GaonSpace.xs, GaonSpace.md, GaonSpace.lg),
+                GaonSpace.md,
+                GaonSpace.xs,
+                GaonSpace.md,
+                GaonSpace.lg,
+              ),
               child: GaonButton(
                 label: '다음',
                 subLabel: '${bi('Tiếp tục', '继续')} →',
@@ -174,8 +208,12 @@ class _ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.fromLTRB(GaonSpace.md, GaonSpace.sm, GaonSpace.md, 0),
+      padding: const EdgeInsets.fromLTRB(
+        GaonSpace.md,
+        GaonSpace.sm,
+        GaonSpace.md,
+        0,
+      ),
       child: Row(
         children: [
           for (var i = 1; i <= 2; i++) ...[
@@ -193,9 +231,10 @@ class _ProgressBar extends StatelessWidget {
             ),
             const SizedBox(width: 6),
           ],
-          Text('$step / 2',
-              style:
-                  GaonType.caption.copyWith(color: GaonColors.textSecondary)),
+          Text(
+            '$step / 2',
+            style: GaonType.caption.copyWith(color: GaonColors.textSecondary),
+          ),
         ],
       ),
     );
@@ -223,10 +262,12 @@ class _SelectChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(GaonRadius.pill),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-          child: Text(label,
-              style: GaonType.label.copyWith(
-                  color:
-                      selected ? GaonColors.bg : GaonColors.textPrimary)),
+          child: Text(
+            label,
+            style: GaonType.label.copyWith(
+              color: selected ? GaonColors.bg : GaonColors.textPrimary,
+            ),
+          ),
         ),
       ),
     );

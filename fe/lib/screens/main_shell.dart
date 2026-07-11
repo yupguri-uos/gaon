@@ -27,7 +27,9 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     mainTabIndex.addListener(_onTabChanged);
     // 병기 언어 = 사용자 모국어(vi/zh)
-    repository.getCurrentUser().then((u) => appLanguage.value = u.nativeLanguage);
+    repository.getCurrentUser().then(
+      (u) => appLanguage.value = u.nativeLanguage,
+    );
   }
 
   @override
@@ -65,21 +67,33 @@ class _MainShellState extends State<MainShell> {
                 label: '알림장',
                 icon: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Image.asset('assets/images/gaon_icon.png',
-                      width: 22, height: 22, fit: BoxFit.contain),
+                  child: Image.asset(
+                    'assets/images/gaon_icon.png',
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
-              _tab(1,
-                  label: '캘린더',
-                  icon: Icon(Icons.calendar_month_rounded,
-                      size: 20, color: _color(1))),
-              _tab(2,
-                  label: '문자',
-                  icon: Icon(Icons.chat_rounded, size: 20, color: _color(2))),
-              _tab(3,
-                  label: '설정',
-                  icon: Icon(Icons.settings_rounded,
-                      size: 20, color: _color(3))),
+              _tab(
+                1,
+                label: '캘린더',
+                icon: Icon(
+                  Icons.calendar_month_rounded,
+                  size: 20,
+                  color: _color(1),
+                ),
+              ),
+              _tab(
+                2,
+                label: '문자',
+                icon: Icon(Icons.chat_rounded, size: 20, color: _color(2)),
+              ),
+              _tab(
+                3,
+                label: '설정',
+                icon: Icon(Icons.settings_rounded, size: 20, color: _color(3)),
+              ),
             ],
           ),
         ),
@@ -101,12 +115,14 @@ class _MainShellState extends State<MainShell> {
             children: [
               icon,
               const SizedBox(height: 3),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight:
-                          _index == i ? FontWeight.w700 : FontWeight.w400,
-                      color: _color(i))),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: _index == i ? FontWeight.w700 : FontWeight.w400,
+                  color: _color(i),
+                ),
+              ),
             ],
           ),
         ),

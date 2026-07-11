@@ -18,6 +18,19 @@
 	<string>가온 GAON</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<!-- Kakao OAuth 복귀 딥링크 (F-ON-3): gaon://auth/callback
+	     — BE auth.py APP_CALLBACK_URL·lib/main.dart와 일치해야 함 -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>uk.gaon.app.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>gaon</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

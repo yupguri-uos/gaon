@@ -41,6 +41,23 @@ class DocumentUploadResponse(BaseModel):
     status: str
 
 
+def _sniff_image(data: bytes) -> tuple[str, str] | None:
+    """매직 바이트 → (mime, 확장자). 판별 불가면 None.
+
+    갤러리 스크린샷(PNG) 등을 image/jpeg로 고정 신고하는 클라이언트가 있어(F-DOC-1 보고)
+    선언된 Content-Type 대신 실제 바이트로 판별한다. 여기서 정한 확장자가 객체 키에
+    보존되고, Chain A 이미지 로더(chain_deps._s3_image_loader)가 그 확장자로 mime을
+    정하므로 지원 3종은 ai의 mime_for_ext와 반드시 일치해야 한다.
+    """
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg", "jpg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png", "png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp", "webp"
+    return None
+
+
 class DocumentResultResponse(BaseModel):
     document: DocumentSchema
     extracted: ExtractedItemSchema | None
@@ -185,10 +202,6 @@ async def upload_document(
 ) -> DocumentUploadResponse:
     if current_user.needs_onboarding:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="온보딩이 필요합니다")
-    if not (image.content_type or "").startswith("image/"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="이미지 파일만 업로드할 수 있습니다"
-        )
     if child_id is not None:
         child = db.get(Child, child_id)
         if child is None or child.user_id != current_user.id:
@@ -196,9 +209,17 @@ async def upload_document(
                 status_code=status.HTTP_404_NOT_FOUND, detail="자녀를 찾을 수 없습니다"
             )
 
+    # 선언된 Content-Type·파일명은 믿지 않는다 — 매직 바이트가 정본(_sniff_image 참조)
     data = await image.read()
-    key = object_key(str(current_user.id), image.filename or "upload")
-    upload_image(key, data, image.content_type)
+    sniffed = _sniff_image(data)
+    if sniffed is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="지원하지 않는 이미지 형식입니다 — JPEG·PNG·WebP만 업로드할 수 있습니다",
+        )
+    mime, ext = sniffed
+    key = object_key(str(current_user.id), f"notice.{ext}")
+    upload_image(key, data, mime)
 
     document = Document(
         user_id=current_user.id, child_id=child_id, image_ref=key, status="uploaded"
@@ -220,7 +241,8 @@ def get_document_status(
 ) -> dict:
     document = _get_owned_document(db, document_id, current_user)
     # Document.status 자체가 단계명(parsing/translating/action/done/failed)이라 step과 동일하게 노출한다(§11 F-DOC-4).
-    return {"status": document.status, "step": document.status}
+    # error = failed일 때 기록된 실패 원인(documents.error 컬럼) — FE 콘솔 트래킹용, 평시 null.
+    return {"status": document.status, "step": document.status, "error": document.error}
 
 
 @router.get("/documents/{document_id}/result", response_model=DocumentResultResponse)

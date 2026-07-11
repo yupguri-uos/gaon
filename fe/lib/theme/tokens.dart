@@ -82,10 +82,6 @@ abstract final class GaonShadow {
     ),
   ];
   static const kakao = [
-    BoxShadow(
-      color: Color(0x66FEE500),
-      blurRadius: 16,
-      offset: Offset(0, 4),
-    ),
+    BoxShadow(color: Color(0x66FEE500), blurRadius: 16, offset: Offset(0, 4)),
   ];
 }

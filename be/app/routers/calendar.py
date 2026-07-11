@@ -87,7 +87,7 @@ def create_calendar_events(
 def list_calendar_events(
     month: str | None = Query(
         default=None,
-        description="YYYY-MM. 지정 시 해당 월 전체(캘린더 페이지), 생략 시 오늘 이후 예정 일정(홈)",
+        description="YYYY-MM. 지정 시 해당 월만, 생략 시 과거 포함 전체 일정(캘린더 페이지 누적 조회)",
     ),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -105,8 +105,9 @@ def list_calendar_events(
         _, days_in_month = _calendar_module.monthrange(year, mon)
         end = date_type(year, mon, days_in_month)
         stmt = stmt.where(CalendarEventRow.event_date.between(start, end))
-    else:
-        stmt = stmt.where(CalendarEventRow.event_date >= date_type.today())
+    # month 생략 시 날짜 필터 없음 — 알림장 일정은 지난 행사 등 과거 날짜가 많아
+    # '오늘 이후' 디폴트면 저장 직후에도 캘린더 탭에 안 보인다(2026-07-11 보고).
+    # 홈 '다가오는 일정'은 FE(chat_screen)가 클라이언트에서 오늘 이후로 거른다.
 
     stmt = stmt.order_by(CalendarEventRow.event_date)
     rows = db.execute(stmt).scalars().all()

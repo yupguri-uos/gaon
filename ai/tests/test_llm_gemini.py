@@ -102,6 +102,21 @@ async def test_env_override_models(monkeypatch):
     assert seen == ["custom-fast", "custom-quality"]
 
 
+async def test_max_output_tokens_covers_gemini3_thinking_budget():
+    """Gemini 3는 내부 thinking 토큰이 max_output_tokens를 함께 소모한다 — 한도가 작으면
+    긴 문서에서 출력이 절단돼 JSON 검증 실패가 반복된다(2026-07-11 보고, 8192 회귀 가드)."""
+    client = GeminiLLMClient(api_key="test-key")
+    seen: dict = {}
+
+    async def generate(**kwargs):
+        seen["config"] = kwargs["config"]
+        return make_response(parsed=Answer(value="ok"))
+
+    wire_fake_generate(client, generate)
+    await client.generate_structured(messages=[user_text("hi")], output_model=Answer)
+    assert seen["config"].max_output_tokens >= 32768
+
+
 # ── _convert ────────────────────────────────────────────────────────────────
 
 

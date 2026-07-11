@@ -20,13 +20,13 @@ class DocumentAnalysis {
 const childColorPalette = ['#011D14', '#E05A2B', '#3D7A6E', '#5270E0'];
 
 /// FE 데이터 접근 계약. 화면은 이 인터페이스만 안다.
-/// 지금은 MockRepository, BE 연동 시 ApiRepository로 교체(화면 코드 무변경).
+/// 구현은 ApiRepository 단일(locator.dart) — 테스트 대역은 test/fakes/FakeRepository.
 ///
 /// 라우팅 규칙(CLAUDE.md): 이미지 업로드 → Chain A(POST /documents),
 /// 교사 메시지 → Chain B(POST /teacher-message). 별도 orchestrate 없음.
 abstract interface class GaonRepository {
-  /// 데모 시나리오 기준 '오늘' — mock은 2025-06-10 고정, 실서비스는 DateTime.now().
-  /// D-day 계산은 반드시 이 값을 기준으로 한다.
+  /// D-day 계산 기준 '오늘' — 실서비스는 DateTime.now(),
+  /// 테스트 대역은 데모 기준일(2025-06-10) 고정. 직접 DateTime.now() 사용 금지.
   DateTime now();
 
   Future<User> getCurrentUser();
@@ -43,8 +43,29 @@ abstract interface class GaonRepository {
     String? color, // 미지정 시 구현체가 팔레트에서 자동 배정
   });
 
+  /// 자녀 수정(F-ON-4) = PATCH /children/{id}. 보낸 필드만 갱신.
+  /// name·classNo는 미성년 PII — 동의 시에만 전달(결정 #7-PII).
+  Future<Child> updateChild({
+    required String childId,
+    ChildGrade? grade,
+    String? name,
+    String? classNo,
+    String? schoolName,
+    String? color,
+  });
+
   /// 자녀 삭제(F-ON-4) = DELETE /children/{id}.
   Future<void> deleteChild(String childId);
+
+  /// 프로필 부분 수정(F-ON-1) = PATCH /profile. 보낸 필드만 갱신.
+  Future<User> updateProfile({
+    String? displayName,
+    OriginCountry? originCountry,
+    NativeLanguage? nativeLanguage,
+  });
+
+  /// 로그아웃(F-ON-3) = POST /auth/logout + 로컬 토큰 폐기(§12 stateless JWT).
+  Future<void> logout();
 
   /// Chain A 시작(F-DOC-1). Document 생성 후 status가 비동기로 진행된다.
   Future<Document> uploadDocument({required String imageRef, String? childId});

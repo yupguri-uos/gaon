@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../data/api_repository.dart';
-import '../data/demo_data.dart';
 import '../data/locator.dart';
 import '../models/display.dart';
 import '../data/app_lang.dart';
@@ -28,7 +27,7 @@ class OnboardingChildScreen extends StatefulWidget {
 }
 
 class _ChildForm {
-  final school = TextEditingController(text: demoSchoolName);
+  final school = TextEditingController(); // 프리필 없음 — 힌트 텍스트로 안내
   final name = TextEditingController();
   ChildGrade grade = ChildGrade.elem2;
   String classNo = '3';
@@ -55,8 +54,9 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
       context: context,
       backgroundColor: GaonColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -65,18 +65,24 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('학년 · ${bi('Lớp', '年级')}',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '학년 · ${bi('Lớp', '年级')}',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.sm),
               for (final g in ChildGrade.values)
                 ListTile(
                   onTap: () => Navigator.of(context).pop(g),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(GaonRadius.md)),
+                    borderRadius: BorderRadius.circular(GaonRadius.md),
+                  ),
                   tileColor: g == form.grade ? GaonColors.primaryLight : null,
-                  title: Text(g.label,
-                      style: GaonType.bodyLg
-                          .copyWith(color: GaonColors.textPrimary)),
+                  title: Text(
+                    g.label,
+                    style: GaonType.bodyLg.copyWith(
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -91,8 +97,9 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
       context: context,
       backgroundColor: GaonColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(GaonRadius.xxl)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(GaonRadius.xxl),
+        ),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -101,19 +108,26 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('반 · Ban',
-                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary)),
+              Text(
+                '반 · Ban',
+                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+              ),
               const SizedBox(height: GaonSpace.sm),
               for (var n = 1; n <= 5; n++)
                 ListTile(
                   onTap: () => Navigator.of(context).pop('$n'),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(GaonRadius.md)),
-                  tileColor:
-                      '$n' == form.classNo ? GaonColors.primaryLight : null,
-                  title: Text('$n반 / Ban $n',
-                      style: GaonType.bodyLg
-                          .copyWith(color: GaonColors.textPrimary)),
+                    borderRadius: BorderRadius.circular(GaonRadius.md),
+                  ),
+                  tileColor: '$n' == form.classNo
+                      ? GaonColors.primaryLight
+                      : null,
+                  title: Text(
+                    '$n반 / Ban $n',
+                    style: GaonType.bodyLg.copyWith(
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -133,7 +147,11 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             // 진행 표시 2/2
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  GaonSpace.md, GaonSpace.sm, GaonSpace.md, 0),
+                GaonSpace.md,
+                GaonSpace.sm,
+                GaonSpace.md,
+                0,
+              ),
               child: Row(
                 children: [
                   for (var i = 0; i < 2; i++) ...[
@@ -142,31 +160,41 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                         height: 5,
                         decoration: BoxDecoration(
                           color: GaonColors.textPrimary,
-                          borderRadius:
-                              BorderRadius.circular(GaonRadius.pill),
+                          borderRadius: BorderRadius.circular(GaonRadius.pill),
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
                   ],
-                  Text('2 / 2',
-                      style: GaonType.caption
-                          .copyWith(color: GaonColors.textSecondary)),
+                  Text(
+                    '2 / 2',
+                    style: GaonType.caption.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    GaonSpace.md, GaonSpace.sm, GaonSpace.md, GaonSpace.md),
+                  GaonSpace.md,
+                  GaonSpace.sm,
+                  GaonSpace.md,
+                  GaonSpace.md,
+                ),
                 children: [
-                  Text('자녀 정보를 등록해요',
-                      style:
-                          GaonType.h1.copyWith(color: GaonColors.textPrimary)),
+                  Text(
+                    '자녀 정보를 등록해요',
+                    style: GaonType.h1.copyWith(color: GaonColors.textPrimary),
+                  ),
                   const SizedBox(height: GaonSpace.xxs),
-                  Text(bi('Đăng ký thông tin con', '登记孩子信息'),
-                      style: GaonType.label
-                          .copyWith(color: GaonColors.textSecondary)),
+                  Text(
+                    bi('Đăng ký thông tin con', '登记孩子信息'),
+                    style: GaonType.label.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: GaonSpace.lg),
 
                   for (final (i, form) in _children.indexed)
@@ -176,34 +204,40 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                       onPickGrade: () => _pickGrade(form),
                       onPickClassNo: () => _pickClassNo(form),
                       onRemove: _children.length > 1
-                          ? () => setState(() =>
-                              _children.removeAt(i).dispose())
+                          ? () =>
+                                setState(() => _children.removeAt(i).dispose())
                           : null,
                     ),
 
                   // 자녀 추가
                   InkWell(
-                    onTap: () =>
-                        setState(() => _children.add(_ChildForm())),
+                    onTap: () => setState(() => _children.add(_ChildForm())),
                     borderRadius: BorderRadius.circular(GaonRadius.xl),
                     child: Container(
                       padding: const EdgeInsets.all(GaonSpace.md),
                       decoration: BoxDecoration(
                         border: Border.all(
-                            width: 2,
-                            color: GaonColors.primary,
-                            style: BorderStyle.solid),
+                          width: 2,
+                          color: GaonColors.primary,
+                          style: BorderStyle.solid,
+                        ),
                         borderRadius: BorderRadius.circular(GaonRadius.xl),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.add_rounded,
-                              size: 16, color: GaonColors.textSecondary),
+                          const Icon(
+                            Icons.add_rounded,
+                            size: 16,
+                            color: GaonColors.textSecondary,
+                          ),
                           const SizedBox(width: GaonSpace.xs),
-                          Text('자녀 추가 · ${bi('Thêm con', '添加子女')}',
-                              style: GaonType.body.copyWith(
-                                  color: GaonColors.textSecondary)),
+                          Text(
+                            '자녀 추가 · ${bi('Thêm con', '添加子女')}',
+                            style: GaonType.body.copyWith(
+                              color: GaonColors.textSecondary,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -213,7 +247,11 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  GaonSpace.md, GaonSpace.xs, GaonSpace.md, GaonSpace.lg),
+                GaonSpace.md,
+                GaonSpace.xs,
+                GaonSpace.md,
+                GaonSpace.lg,
+              ),
               child: GaonButton(
                 label: '시작하기',
                 subLabel: '${bi('Bắt đầu', '开始')} →',
@@ -246,8 +284,9 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                       }
                     }
                   } catch (e) {
-                    messenger.showSnackBar(SnackBar(
-                        content: Text('등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)')));
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)')),
+                    );
                     return;
                   }
                   navigator.pushAndRemoveUntil(
@@ -296,39 +335,52 @@ class _ChildCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('자녀 ${index + 1}',
-                    style: GaonType.body.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: GaonColors.textPrimary)),
+                child: Text(
+                  '자녀 ${index + 1}',
+                  style: GaonType.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: GaonColors.textPrimary,
+                  ),
+                ),
               ),
               if (onRemove != null)
                 GestureDetector(
                   onTap: onRemove,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 3, horizontal: 10),
+                      vertical: 3,
+                      horizontal: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: GaonColors.warningLight,
                       borderRadius: BorderRadius.circular(GaonRadius.pill),
                     ),
-                    child: Text('삭제',
-                        style: GaonType.micro.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: GaonColors.warning)),
+                    child: Text(
+                      '삭제',
+                      style: GaonType.micro.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: GaonColors.warning,
+                      ),
+                    ),
                   ),
                 )
               else
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      vertical: 3, horizontal: 10),
+                    vertical: 3,
+                    horizontal: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: GaonColors.primaryLight,
                     borderRadius: BorderRadius.circular(GaonRadius.pill),
                   ),
-                  child: Text('등록 중',
-                      style: GaonType.micro.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: GaonColors.textPrimary)),
+                  child: Text(
+                    '등록 중',
+                    style: GaonType.micro.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: GaonColors.textPrimary,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -337,20 +389,19 @@ class _ChildCard extends StatelessWidget {
           const SizedBox(height: GaonSpace.xs),
           _field('이름 · ${bi('Tên con', '孩子姓名')}', form.name, '자녀 이름'),
           const SizedBox(height: GaonSpace.xs),
-          Text('학년·반 · ${bi('Lớp', '年级')}',
-              style: GaonType.micro.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: GaonColors.textSecondary)),
+          Text(
+            '학년·반 · ${bi('Lớp', '年级')}',
+            style: GaonType.micro.copyWith(
+              fontWeight: FontWeight.w600,
+              color: GaonColors.textSecondary,
+            ),
+          ),
           const SizedBox(height: 3),
           Row(
             children: [
-              Expanded(
-                child: _darkSelector(form.grade.label, onPickGrade),
-              ),
+              Expanded(child: _darkSelector(form.grade.label, onPickGrade)),
               const SizedBox(width: GaonSpace.xs),
-              Expanded(
-                child: _darkSelector('${form.classNo}반', onPickClassNo),
-              ),
+              Expanded(child: _darkSelector('${form.classNo}반', onPickClassNo)),
             ],
           ),
         ],
@@ -358,15 +409,17 @@ class _ChildCard extends StatelessWidget {
     );
   }
 
-  Widget _field(
-      String label, TextEditingController controller, String hint) {
+  Widget _field(String label, TextEditingController controller, String hint) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: GaonType.micro.copyWith(
-                fontWeight: FontWeight.w600,
-                color: GaonColors.textSecondary)),
+        Text(
+          label,
+          style: GaonType.micro.copyWith(
+            fontWeight: FontWeight.w600,
+            color: GaonColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: 3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -382,8 +435,9 @@ class _ChildCard extends StatelessWidget {
               isDense: true,
               border: InputBorder.none,
               hintText: hint,
-              hintStyle:
-                  GaonType.body.copyWith(color: GaonColors.textSecondary),
+              hintStyle: GaonType.body.copyWith(
+                color: GaonColors.textSecondary,
+              ),
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
           ),
@@ -402,9 +456,13 @@ class _ChildCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
-          child: Text(label,
-              style: GaonType.body.copyWith(
-                  fontWeight: FontWeight.w700, color: GaonColors.bg)),
+          child: Text(
+            label,
+            style: GaonType.body.copyWith(
+              fontWeight: FontWeight.w700,
+              color: GaonColors.bg,
+            ),
+          ),
         ),
       ),
     );
