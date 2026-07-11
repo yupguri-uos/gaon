@@ -150,6 +150,45 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  /// 분석 중 홈 복귀는 실수로 흐름을 잃기 쉬워 확인을 받는다(QA 2026-07-11).
+  Future<void> _confirmAbortAnalysis() async {
+    final abort = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GaonColors.surface,
+        title: Text(
+          '분석을 중단할까요?',
+          style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+        ),
+        content: Text(
+          '${bi('Dừng phân tích thông báo?', '要中断分析吗？')}\n'
+          '진행 중인 알림장 분석이 사라져요',
+          style: GaonType.caption.copyWith(color: GaonColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              '계속 분석',
+              style: GaonType.body.copyWith(color: GaonColors.textPrimary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              '중단',
+              style: GaonType.body.copyWith(
+                fontWeight: FontWeight.w700,
+                color: GaonColors.warning,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (abort == true && mounted) _resetToHome();
+  }
+
   /// 업로드·폴링 실패 시 안내 후 초기 화면 복귀(시연 가드 — 멈춘 화면 방지).
   void _failBack(String message) {
     _pollTimer?.cancel();
@@ -224,22 +263,30 @@ class _ChatScreenState extends State<ChatScreen> {
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
               const SizedBox(height: GaonSpace.sm),
-              for (final c in _children)
-                ListTile(
-                  onTap: () => Navigator.of(context).pop(c),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(GaonRadius.md),
-                  ),
-                  tileColor: c.childId == _selectedChild?.childId
-                      ? GaonColors.primaryLight
-                      : null,
-                  title: Text(
-                    _childLabel(c),
-                    style: GaonType.bodyLg.copyWith(
-                      color: GaonColors.textPrimary,
-                    ),
-                  ),
+              // 다자녀가 많아도 시트가 넘치지 않게 목록만 스크롤(QA: 10명 overflow)
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final c in _children)
+                      ListTile(
+                        onTap: () => Navigator.of(context).pop(c),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(GaonRadius.md),
+                        ),
+                        tileColor: c.childId == _selectedChild?.childId
+                            ? GaonColors.primaryLight
+                            : null,
+                        title: Text(
+                          _childLabel(c),
+                          style: GaonType.bodyLg.copyWith(
+                            color: GaonColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
@@ -281,13 +328,16 @@ class _ChatScreenState extends State<ChatScreen> {
                     style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
                   ),
                 ),
-                // 홈 복귀 — 잘못 눌렀을 때/새 알림장 분석 시 초기 화면으로
+                // 홈 복귀 — 잘못 눌렀을 때/새 알림장 분석 시 초기 화면으로.
+                // 분석 중에는 확인 다이얼로그를 거친다(실수로 flow 소실 방지).
                 if (_phase != _Phase.idle) ...[
                   Material(
                     color: GaonColors.primaryLight,
                     shape: const CircleBorder(),
                     child: InkWell(
-                      onTap: _resetToHome,
+                      onTap: _phase == _Phase.analyzing
+                          ? _confirmAbortAnalysis
+                          : _resetToHome,
                       customBorder: const CircleBorder(),
                       child: const SizedBox(
                         width: 32,
@@ -439,10 +489,10 @@ class _EmptyState extends StatelessWidget {
                     children: [
                       Expanded(
                         child: BiText(
-                          vi: bi('Lịch sắp tới', '即将到来的日程'),
                           ko: '다가오는 일정',
-                          viStyle: GaonType.h3,
-                          koStyle: GaonType.micro,
+                          native: bi('Lịch sắp tới', '即将到来的日程'),
+                          koStyle: GaonType.h3,
+                          nativeStyle: GaonType.micro,
                         ),
                       ),
                       GestureDetector(
@@ -998,6 +1048,7 @@ class _ResultState extends StatelessWidget {
                     child: GaonButton(
                       variant: GaonButtonVariant.ghost,
                       label: '나중에',
+                      subLabel: bi('Để sau', '以后'),
                       onTap: () => Navigator.of(dialogContext).pop(),
                     ),
                   ),
@@ -1072,6 +1123,7 @@ class _ResultState extends StatelessWidget {
                     child: GaonButton(
                       variant: GaonButtonVariant.ghost,
                       label: '건너뛰기',
+                      subLabel: bi('Bỏ qua', '跳过'),
                       onTap: () => Navigator.of(context).pop(),
                     ),
                   ),

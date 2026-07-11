@@ -12,7 +12,10 @@ import '../widgets/common.dart';
 /// S14 개인정보 수정 — 학부모 정보 + 자녀 카드 관리.
 /// 프로필 변경 = PATCH /profile, 자녀 추가/수정/삭제 = POST·PATCH·DELETE /children (F-ON-1·4).
 class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({super.key});
+  const ProfileEditScreen({super.key, this.focusChildren = false});
+
+  /// 설정의 '자녀 관리'로 진입하면 자녀 섹션으로 바로 스크롤(진입 구분, QA 2026-07-11).
+  final bool focusChildren;
 
   @override
   State<ProfileEditScreen> createState() => _ProfileEditScreenState();
@@ -20,6 +23,33 @@ class ProfileEditScreen extends StatefulWidget {
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late Future<(User, List<Child>)> _future = _load();
+
+  final _childrenSectionKey = GlobalKey();
+  int _focusRetries = 30; // 초기 로드(FutureBuilder) 완료까지 프레임 단위 재시도 한도
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.focusChildren) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToChildren());
+    }
+  }
+
+  void _scrollToChildren() {
+    if (!mounted) return;
+    final ctx = _childrenSectionKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 300),
+      );
+      return;
+    }
+    // 데이터 로드 전이면 섹션이 아직 없다 — 다음 프레임에 재시도
+    if (_focusRetries-- > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToChildren());
+    }
+  }
 
   // 낙관적 UI — 삭제/추가 직후 서버 재조회를 기다리지 않고 즉시 화면 반영.
   // null이면 _future 결과를, 값이 있으면 이 리스트를 그린다.
@@ -56,8 +86,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _showChildSheet(int existingCount, {Child? edit}) async {
     final nameCtrl = TextEditingController(text: edit?.name ?? '');
     final schoolCtrl = TextEditingController(text: edit?.schoolName ?? '');
+    // 반은 자유 입력 — 숫자 반 외에 순우리말 반(예: 다솜)도 있다(QA 2026-07-11)
+    final classCtrl = TextEditingController(text: edit?.classNo ?? '');
     var grade = edit?.grade ?? ChildGrade.elem1;
-    var classNo = edit?.classNo ?? '1';
 
     final submitted = await showModalBottomSheet<bool>(
       context: context,
@@ -117,25 +148,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ],
               ),
               const SizedBox(height: GaonSpace.sm),
-              Text(
-                '반 · ${bi('Ban', '班')}',
-                style: GaonType.micro.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: GaonColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: GaonSpace.xxs),
-              Wrap(
-                spacing: 6,
-                children: [
-                  for (var n = 1; n <= 5; n++)
-                    _sheetChip(
-                      label: '$n반',
-                      selected: classNo == '$n',
-                      onTap: () => setSheetState(() => classNo = '$n'),
-                    ),
-                ],
-              ),
+              _sheetField('반 · ${bi('Ban', '班')}', classCtrl, '예) 3 또는 다솜'),
               const SizedBox(height: GaonSpace.lg),
               GaonButton(
                 label: edit == null
@@ -153,17 +166,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     Future.delayed(const Duration(seconds: 1), () {
       nameCtrl.dispose();
       schoolCtrl.dispose();
+      classCtrl.dispose();
     });
     if (submitted != true) return;
 
     final name = nameCtrl.text.trim();
     final school = schoolCtrl.text.trim();
+    final classNo = classCtrl.text.trim();
     try {
       if (edit == null) {
         await repository.addChild(
           grade: grade,
           name: name.isEmpty ? null : name,
-          classNo: classNo,
+          classNo: classNo.isEmpty ? null : classNo,
           schoolName: school.isEmpty ? null : school,
           // 색은 팔레트 순환 배정(§17.4) — 기존 자녀 수 기준
           color: childColorPalette[existingCount % childColorPalette.length],
@@ -175,7 +190,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           childId: edit.childId,
           grade: grade,
           name: name.isEmpty ? null : name,
-          classNo: classNo,
+          classNo: classNo.isEmpty ? null : classNo,
           schoolName: school.isEmpty ? null : school,
         );
         if (!mounted) return;
@@ -439,7 +454,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       const SizedBox(height: GaonSpace.md),
 
                       Text(
-                        '자녀 정보 · Thông tin con',
+                        '자녀 정보 · ${bi('Thông tin con', '子女信息')}',
+                        key: _childrenSectionKey,
                         style: GaonType.label.copyWith(
                           color: GaonColors.textSecondary,
                         ),

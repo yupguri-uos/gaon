@@ -61,8 +61,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
         child: Column(
           children: [
             GaonHeader(
-              vi: bi('Thẻ hành động', '行动卡'),
               ko: '행동 카드',
+              native: bi('Thẻ hành động', '行动卡'),
               showBack: true,
             ),
             Expanded(
@@ -95,7 +95,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 회신 초안 (F-DOC-8) — requiresReply일 때만 ──
                       if (card.replyDraftKo != null) ...[
                         _sectionLabel(
-                          '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo'
+                          '할 일 ${++actionNo} · ${bi('HÀNH ĐỘNG', '行动')} $actionNo'
                           '${deadline != null ? ' — ${_dday(deadline)}' : ''}',
                           GaonColors.warning,
                         ),
@@ -119,14 +119,13 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                     ),
                                   const SizedBox(width: GaonSpace.xs),
                                   Expanded(
+                                    // 문서와 무관하게 '현장체험학습…'이 박혀 있던
+                                    // 하드코딩 제거 — 실제 문서 제목으로 표시(QA 9)
                                     child: BiText(
-                                      vi: bi(
-                                        'Trả lời đơn đồng ý dã ngoại',
-                                        '回复校外活动同意书',
-                                      ),
-                                      ko: '현장체험학습 동의서 회신',
-                                      viStyle: GaonType.body,
-                                      koStyle: GaonType.micro,
+                                      ko: '${analysis.extractedItem.title} 회신',
+                                      native: bi('Trả lời đơn đồng ý', '回复同意书'),
+                                      koStyle: GaonType.body,
+                                      nativeStyle: GaonType.micro,
                                     ),
                                   ),
                                 ],
@@ -149,7 +148,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '${bi('Bản nháp trả lời', '回复草稿')} · 회신 초안',
+                                      '회신 초안 · ${bi('Bản nháp trả lời', '回复草稿')}',
                                       style: GaonType.micro.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: GaonColors.textSecondary,
@@ -230,12 +229,25 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                             color: Colors.white,
                                           ),
                                           const SizedBox(width: GaonSpace.xxs),
-                                          Text(
-                                            '캘린더 추가',
-                                            style: GaonType.micro.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '캘린더 추가',
+                                                style: GaonType.micro.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              Text(
+                                                bi('Thêm vào lịch', '添加到日历'),
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  color: Color(0xB3FFFFFF),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -259,12 +271,26 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                             color: GaonColors.kakaoText,
                                           ),
                                           const SizedBox(width: GaonSpace.xxs),
-                                          Text(
-                                            '카톡공유',
-                                            style: GaonType.micro.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                              color: GaonColors.kakaoText,
-                                            ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '카톡공유',
+                                                style: GaonType.micro.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: GaonColors.kakaoText,
+                                                ),
+                                              ),
+                                              Text(
+                                                bi('Chia sẻ', '分享'),
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  color:
+                                                      GaonColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -280,7 +306,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 준비물 (F-DOC-6) — Supply마다 카드 ──
                       for (final supply in card.supplies) ...[
                         _sectionLabel(
-                          '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo',
+                          '할 일 ${++actionNo} · ${bi('HÀNH ĐỘNG', '行动')} $actionNo',
                           GaonColors.textSecondary,
                         ),
                         const SizedBox(height: GaonSpace.xs),
@@ -294,10 +320,11 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               BiText(
-                                vi: '${bi('Chuẩn bị', '准备')} ${supply.nameNative}',
                                 ko: '${supply.nameKo} 준비',
-                                viStyle: GaonType.body,
-                                koStyle: GaonType.micro,
+                                native:
+                                    '${bi('Chuẩn bị', '准备')} ${supply.nameNative}',
+                                koStyle: GaonType.body,
+                                nativeStyle: GaonType.micro,
                               ),
                               const SizedBox(height: GaonSpace.sm),
                               // 규격 + 모국어 설명
@@ -368,7 +395,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   case final keyword?) ...[
                                 const SizedBox(height: GaonSpace.sm),
                                 Text(
-                                  '${bi('Từ khóa mua sắm', '购物关键词')} · 구매 검색어',
+                                  '구매 검색어 · ${bi('Từ khóa mua sắm', '购物关键词')}',
                                   style: GaonType.micro.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: GaonColors.textSecondary,
@@ -454,6 +481,14 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                         style: GaonType.micro.copyWith(
                                           fontWeight: FontWeight.w600,
                                           color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: GaonSpace.xxs),
+                                      Text(
+                                        bi('Thêm sự kiện', '添加活动'),
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          color: Color(0xB3FFFFFF),
                                         ),
                                       ),
                                     ],

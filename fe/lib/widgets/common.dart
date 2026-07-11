@@ -3,22 +3,24 @@ import 'package:flutter/material.dart';
 import '../data/app_lang.dart';
 import '../theme/tokens.dart';
 
-/// 이중언어 라벨 — 베트남어(주, 크게) + 한국어(보조 병기, 작게).
+/// 이중언어 라벨 — 한국어(주, 크게) 먼저 + 모국어(병기, 작게) 아래.
+/// 언어 순서 규칙(2026-07-11 팀 결정): 시스템 전체 '한국어 → 모국어'.
+/// [native]에는 appLanguage 기준 문자열(bi() 래핑)을 넘긴다.
 /// 고정 높이 금지(성조 기호·긴 문장 대응) — 항상 가변 높이.
 class BiText extends StatelessWidget {
   const BiText({
     super.key,
-    required this.vi,
     required this.ko,
-    this.viStyle = GaonType.body,
-    this.koStyle = GaonType.caption,
+    required this.native,
+    this.koStyle = GaonType.body,
+    this.nativeStyle = GaonType.caption,
     this.align = TextAlign.left,
   });
 
-  final String vi;
   final String ko;
-  final TextStyle viStyle;
+  final String native;
   final TextStyle koStyle;
+  final TextStyle nativeStyle;
   final TextAlign align;
 
   @override
@@ -30,15 +32,18 @@ class BiText extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         Text(
-          vi,
+          ko,
           textAlign: align,
-          style: viStyle.copyWith(color: GaonColors.textPrimary, height: 1.4),
+          style: koStyle.copyWith(color: GaonColors.textPrimary, height: 1.4),
         ),
         const SizedBox(height: GaonSpace.xxs),
         Text(
-          ko,
+          native,
           textAlign: align,
-          style: koStyle.copyWith(color: GaonColors.textSecondary, height: 1.4),
+          style: nativeStyle.copyWith(
+            color: GaonColors.textSecondary,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -76,8 +81,9 @@ class GaonButton extends StatelessWidget {
       ),
       GaonButtonVariant.secondary => (
         GaonColors.success,
-        Colors.white,
-        const Color(0xB3FFFFFF),
+        // 민트 bg + 흰 글씨가 저채도로 안 보인다는 지적('할 일 보기') — 진초록으로
+        GaonColors.textPrimary,
+        GaonColors.textSecondary,
       ),
       GaonButtonVariant.kakao => (
         GaonColors.kakao,
@@ -86,7 +92,8 @@ class GaonButton extends StatelessWidget {
       ),
       GaonButtonVariant.ghost => (
         GaonColors.successLight,
-        GaonColors.success,
+        // 민트 on 연민트가 저대비('복사'·'건너뛰기' 안 보임 지적) — 진초록으로
+        GaonColors.textPrimary,
         GaonColors.textSecondary,
       ),
     };
@@ -127,19 +134,19 @@ class GaonButton extends StatelessWidget {
   }
 }
 
-/// 틴트 라운드 입력/드롭다운 표시 카드.
+/// 틴트 라운드 입력/드롭다운 표시 카드. 라벨 순서: 한국어 → 모국어.
 class InputCard extends StatelessWidget {
   const InputCard({
     super.key,
-    required this.viLabel,
     required this.koLabel,
+    required this.nativeLabel,
     required this.value,
     this.showChevron = true,
     this.onTap,
   });
 
-  final String viLabel;
   final String koLabel;
+  final String nativeLabel;
   final String value;
   final bool showChevron;
   final VoidCallback? onTap;
@@ -164,7 +171,7 @@ class InputCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$viLabel / $koLabel',
+                      '$koLabel · $nativeLabel',
                       style: GaonType.micro.copyWith(
                         color: GaonColors.textSecondary,
                       ),
@@ -195,17 +202,18 @@ class InputCard extends StatelessWidget {
 }
 
 /// pill 필터 칩. 선택 = success 채움, 미선택 = primaryLight.
+/// 언어 순서: 한국어(주) → 모국어(병기).
 class GaonChip extends StatelessWidget {
   const GaonChip({
     super.key,
-    required this.vi,
     required this.ko,
+    required this.native,
     this.selected = false,
     this.onTap,
   });
 
-  final String vi;
   final String ko;
+  final String native;
   final bool selected;
   final VoidCallback? onTap;
 
@@ -227,13 +235,13 @@ class GaonChip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                vi,
+                ko,
                 style: GaonType.label.copyWith(
                   color: selected ? Colors.white : GaonColors.primary,
                 ),
               ),
               Text(
-                ko,
+                native,
                 style: GaonType.micro.copyWith(
                   color: selected
                       ? const Color(0xB3FFFFFF)
@@ -273,17 +281,17 @@ class SurfaceCard extends StatelessWidget {
   }
 }
 
-/// 화면 헤더 (뒤로가기 옵션).
+/// 화면 헤더 (뒤로가기 옵션). 언어 순서: 한국어(주) → 모국어(병기).
 class GaonHeader extends StatelessWidget {
   const GaonHeader({
     super.key,
-    required this.vi,
     required this.ko,
+    required this.native,
     this.showBack = false,
   });
 
-  final String vi;
   final String ko;
+  final String native;
   final bool showBack;
 
   @override
@@ -310,14 +318,20 @@ class GaonHeader extends StatelessWidget {
                   child: Icon(
                     Icons.arrow_back_rounded,
                     size: 16,
-                    color: GaonColors.primary,
+                    // 저대비(민트 on 연민트) 지적으로 진초록으로 변경(2026-07-11 QA)
+                    color: GaonColors.textPrimary,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: GaonSpace.xs),
           ],
-          BiText(vi: vi, ko: ko, viStyle: GaonType.h2, koStyle: GaonType.micro),
+          BiText(
+            ko: ko,
+            native: native,
+            koStyle: GaonType.h2,
+            nativeStyle: GaonType.micro,
+          ),
         ],
       ),
     );
@@ -376,17 +390,18 @@ class IconCircle extends StatelessWidget {
 }
 
 /// 틴트 정보 배너 — 팁·AI 행정 안내용.
+/// 한국어 라벨(작게) 먼저, 모국어 본문(주 내용) 아래 — 본문이 모국어로만 오는 경우용.
 class InfoBanner extends StatelessWidget {
   const InfoBanner({
     super.key,
-    required this.vi,
     required this.ko,
+    required this.native,
     required this.color,
     required this.bg,
   });
 
-  final String vi;
   final String ko;
+  final String native;
   final Color color;
   final Color bg;
 
@@ -414,17 +429,18 @@ class InfoBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  vi,
-                  style: GaonType.caption.copyWith(
-                    color: GaonColors.textPrimary,
-                    height: 1.5,
+                  ko,
+                  style: GaonType.micro.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: GaonColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: GaonSpace.xxs),
                 Text(
-                  ko,
-                  style: GaonType.micro.copyWith(
-                    color: GaonColors.textSecondary,
+                  native,
+                  style: GaonType.caption.copyWith(
+                    color: GaonColors.textPrimary,
+                    height: 1.5,
                   ),
                 ),
               ],

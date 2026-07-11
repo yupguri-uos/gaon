@@ -20,9 +20,8 @@ class MessageScreen extends StatefulWidget {
 }
 
 class _MessageScreenState extends State<MessageScreen> {
-  final _inputController = TextEditingController(
-    text: bi('Ngày mai con bị sốt nên xin phép nghỉ học.', '孩子明天发烧，想请假一天。'),
-  );
+  // 프리필 없음(QA: 처음부터 문장이 들어가 있음) — 예시는 힌트로만 보여준다.
+  final _inputController = TextEditingController();
   MessageSituation _situation = MessageSituation.absence;
   int _teacherIndex = 0;
   List<Child> _children = const [];
@@ -50,7 +49,8 @@ class _MessageScreenState extends State<MessageScreen> {
 
   String _childLabel(Child c) {
     final gradeNo = c.grade.wire.split('_').last;
-    return '${c.name ?? '자녀'} · $gradeNo학년 ${c.classNo ?? '?'}반';
+    final cls = c.classNo != null ? ' ${c.classNo}반' : '';
+    return '${c.name ?? '자녀'} · $gradeNo학년$cls';
   }
 
   Future<void> _pickChild() async {
@@ -74,22 +74,30 @@ class _MessageScreenState extends State<MessageScreen> {
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
               const SizedBox(height: GaonSpace.sm),
-              for (final c in _children)
-                ListTile(
-                  onTap: () => Navigator.of(context).pop(c),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(GaonRadius.md),
-                  ),
-                  tileColor: c.childId == _selectedChild?.childId
-                      ? GaonColors.primaryLight
-                      : null,
-                  title: Text(
-                    _childLabel(c),
-                    style: GaonType.bodyLg.copyWith(
-                      color: GaonColors.textPrimary,
-                    ),
-                  ),
+              // 다자녀가 많아도 시트가 넘치지 않게 목록만 스크롤(QA: 10명 overflow)
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final c in _children)
+                      ListTile(
+                        onTap: () => Navigator.of(context).pop(c),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(GaonRadius.md),
+                        ),
+                        tileColor: c.childId == _selectedChild?.childId
+                            ? GaonColors.primaryLight
+                            : null,
+                        title: Text(
+                          _childLabel(c),
+                          style: GaonType.bodyLg.copyWith(
+                            color: GaonColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
@@ -530,8 +538,8 @@ class _MessageScreenState extends State<MessageScreen> {
                   const SizedBox(height: GaonSpace.sm),
                   // 행정 안내 (RAG)
                   InfoBanner(
-                    vi: _message!.adminGuideNative,
                     ko: '행정 절차 안내',
+                    native: _message!.adminGuideNative,
                     color: GaonColors.textSecondary,
                     bg: GaonColors.successLight,
                   ),
@@ -542,6 +550,7 @@ class _MessageScreenState extends State<MessageScreen> {
                         child: GaonButton(
                           variant: GaonButtonVariant.ghost,
                           label: '복사',
+                          subLabel: bi('Sao chép', '复制'),
                           icon: const Icon(
                             Icons.copy_rounded,
                             size: 14,
@@ -554,6 +563,7 @@ class _MessageScreenState extends State<MessageScreen> {
                       Expanded(
                         child: GaonButton(
                           label: '카톡 공유',
+                          subLabel: bi('Chia sẻ', '分享'),
                           icon: const Icon(
                             Icons.share_rounded,
                             size: 14,

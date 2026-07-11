@@ -77,7 +77,16 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                         _SelectChip(
                           label: c,
                           selected: _country == i,
-                          onTap: () => setState(() => _country = i),
+                          onTap: () => setState(() {
+                            _country = i;
+                            // 국가에 맞춰 모국어도 자동 선택 + 병기 즉시 전환(QA:
+                            // 국가만 골라도 바로 바뀌길 기대). 한국(4)은 대응
+                            // 언어가 없어 유지 — 모국어 칩에서 따로 고른다.
+                            if (i < _langs.length) _lang = i;
+                            appLanguage.value = _lang == 1
+                                ? NativeLanguage.zh
+                                : NativeLanguage.vi;
+                          }),
                         ),
                     ],
                   ),

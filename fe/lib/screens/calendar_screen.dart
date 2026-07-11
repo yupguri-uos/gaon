@@ -51,12 +51,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     calendarFocus.addListener(_onFocus);
     _onFocus(); // 진입 시점에 이미 포커스가 있으면 적용
+    mainTabIndex.addListener(_onTabChanged);
   }
 
   @override
   void dispose() {
     calendarFocus.removeListener(_onFocus);
+    mainTabIndex.removeListener(_onTabChanged);
     super.dispose();
+  }
+
+  /// 캘린더 탭 진입 시 재조회 — IndexedStack이라 탭 전환만으로는 rebuild가 없어
+  /// 다른 화면에서 저장한 일정('나중에' 선택·행동 카드 추가)이 반영되지 않았다(QA).
+  void _onTabChanged() {
+    if (mainTabIndex.value != 1 || !mounted) return;
+    setState(() => _future = _load());
   }
 
   /// 저장 직후 "확인" 등으로 특정 일정에 포커스 — 해당 월로 이동 + 목록 갱신.
@@ -97,9 +106,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _copyKeyword(String keyword) async {
     await Clipboard.setData(ClipboardData(text: keyword));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("'$keyword' 복사했어요 · Đã sao chép")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("'$keyword' 복사했어요 · ${bi('Đã sao chép', '已复制')}")),
+    );
   }
 
   // ── S10: 날짜 상세 바텀시트 ──
@@ -470,102 +479,136 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 날짜 그리드 — 표시 월의 시작 요일·일수에 맞춰 계산
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: GaonSpace.xs,
-                  ),
-                  child: Builder(
-                    builder: (context) {
-                      final offset = _visibleMonth.weekday % 7; // 일요일 시작
-                      final daysInMonth = DateTime(
-                        _visibleMonth.year,
-                        _visibleMonth.month + 1,
-                        0,
-                      ).day;
-                      final rows = ((offset + daysInMonth) / 7).ceil();
-                      return Column(
-                        children: [
-                          for (var week = 0; week < rows; week++)
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  for (var wd = 0; wd < 7; wd++)
-                                    Expanded(
-                                      child: _dayCell(
-                                        week * 7 + wd + 1 - offset,
-                                        daysInMonth,
-                                        selectedDay,
-                                        children,
-                                        eventsByDay,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
+              // 날짜 그리드 — 행 높이 고정(QA 2026-07-11: 선택 여부와 무관하게
+              // 달력 크기 불변, 터치 구획도 날짜 행에 밀착)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                  horizontal: GaonSpace.xs,
                 ),
-              ),
-
-              // 선택일 프리뷰 바
-              if (selectedEvents.isNotEmpty)
-                Material(
-                  color: GaonColors.surface,
-                  child: InkWell(
-                    onTap: () => _showDetail(analysis, selectedEvents.first),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: GaonColors.border),
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: GaonSpace.sm,
-                        horizontal: GaonSpace.md,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                child: Builder(
+                  builder: (context) {
+                    final offset = _visibleMonth.weekday % 7; // 일요일 시작
+                    final daysInMonth = DateTime(
+                      _visibleMonth.year,
+                      _visibleMonth.month + 1,
+                      0,
+                    ).day;
+                    final rows = ((offset + daysInMonth) / 7).ceil();
+                    return Column(
+                      children: [
+                        for (var week = 0; week < rows; week++)
+                          SizedBox(
+                            height: 52,
+                            child: Row(
                               children: [
-                                Text(
-                                  '${_visibleMonth.month}월 $selectedDay일 · '
-                                  '${_dday(selectedEvents.first.date)}',
-                                  style: GaonType.h3.copyWith(
-                                    color:
-                                        selectedEvents.first.type ==
-                                            CalendarEventType.deadline
-                                        ? GaonColors.warning
-                                        : GaonColors.textPrimary,
+                                for (var wd = 0; wd < 7; wd++)
+                                  Expanded(
+                                    child: _dayCell(
+                                      week * 7 + wd + 1 - offset,
+                                      daysInMonth,
+                                      selectedDay,
+                                      children,
+                                      eventsByDay,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  selectedEvents
-                                      .map((e) => e.title)
-                                      .join(' · '),
-                                  style: GaonType.caption.copyWith(
-                                    color: GaonColors.textSecondary,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: GaonColors.textSecondary,
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              // 하단 — 선택일 일정 목록(iOS 캘린더식). 일정 없는 날은 빈 영역.
+              Expanded(
+                child: selectedEvents.isEmpty
+                    ? const SizedBox.shrink()
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          GaonSpace.md,
+                          GaonSpace.xs,
+                          GaonSpace.md,
+                          GaonSpace.md,
+                        ),
+                        children: [
+                          Text(
+                            '${_visibleMonth.month}월 $selectedDay일 · '
+                            '${_dday(selectedEvents.first.date)}',
+                            style: GaonType.h3.copyWith(
+                              color:
+                                  selectedEvents.first.type ==
+                                      CalendarEventType.deadline
+                                  ? GaonColors.warning
+                                  : GaonColors.textPrimary,
+                            ),
                           ),
+                          const SizedBox(height: GaonSpace.xs),
+                          for (final e in selectedEvents)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: GaonSpace.xs,
+                              ),
+                              child: Material(
+                                color: GaonColors.surface,
+                                borderRadius: BorderRadius.circular(
+                                  GaonRadius.lg,
+                                ),
+                                child: InkWell(
+                                  onTap: () => _showDetail(analysis, e),
+                                  borderRadius: BorderRadius.circular(
+                                    GaonRadius.lg,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: GaonSpace.sm,
+                                      horizontal: GaonSpace.md,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: _dotColor(children, e),
+                                          ),
+                                        ),
+                                        const SizedBox(width: GaonSpace.xs),
+                                        Expanded(
+                                          child: Text(
+                                            e.title,
+                                            style: GaonType.body.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  e.type ==
+                                                      CalendarEventType.deadline
+                                                  ? GaonColors.warning
+                                                  : GaonColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          _dday(e.date),
+                                          style: GaonType.caption.copyWith(
+                                            color: GaonColors.textSecondary,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.chevron_right_rounded,
+                                          size: 16,
+                                          color: GaonColors.textSecondary,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
+              ),
             ],
           );
         },
