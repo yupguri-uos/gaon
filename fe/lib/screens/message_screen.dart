@@ -125,6 +125,16 @@ class _MessageScreenState extends State<MessageScreen> {
     });
   }
 
+  Future<void> _copyAdminGuide() async {
+    final guide = _message?.adminGuideNative;
+    if (guide == null || guide.isEmpty) return; // _message null 방어 겸용
+    await Clipboard.setData(ClipboardData(text: guide));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('행정 안내를 복사했어요 · ${bi('Đã sao chép', '已复制')}')),
+    );
+  }
+
   Future<void> _copyMessage() async {
     final message = _message;
     if (message == null) return;
@@ -536,13 +546,30 @@ class _MessageScreenState extends State<MessageScreen> {
 
                 if (_message != null) ...[
                   const SizedBox(height: GaonSpace.sm),
-                  // 행정 안내 (RAG)
+                  // 행정 안내 (RAG) — 복사 가능(QA 2026-07-11). 전송 없음(결정 #2).
                   InfoBanner(
                     ko: '행정 절차 안내',
                     native: _message!.adminGuideNative,
                     color: GaonColors.textSecondary,
                     bg: GaonColors.successLight,
                   ),
+                  if (_message!.adminGuideNative.isNotEmpty) ...[
+                    const SizedBox(height: GaonSpace.xs),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: GaonButton(
+                        variant: GaonButtonVariant.ghost,
+                        label: '안내 복사',
+                        subLabel: bi('Sao chép', '复制'),
+                        icon: const Icon(
+                          Icons.copy_rounded,
+                          size: 14,
+                          color: GaonColors.textPrimary,
+                        ),
+                        onTap: _copyAdminGuide,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: GaonSpace.sm),
                   Row(
                     children: [

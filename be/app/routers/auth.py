@@ -163,3 +163,18 @@ def logout(current_user: User = Depends(get_current_user)) -> OkResponse:
     """로그아웃(§11: POST /auth/logout). 세션은 stateless JWT(§12 확정)라 서버 상태가
     없다 — 클라이언트가 토큰을 폐기하면 끝. 형식적 확인 응답만 준다(토큰 유효성 검증 겸용)."""
     return OkResponse()
+
+
+@router.delete("/me", response_model=OkResponse)
+def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OkResponse:
+    """회원 탈퇴 — 본인 계정 삭제. users 한 줄만 지우면 자녀·문서·캘린더·활동로그·
+    메시지·알림·디바이스토큰이 FK ON DELETE CASCADE로 함께 삭제된다.
+
+    주: MinIO 이미지 오브젝트는 여기서 지우지 않는다(DB row만 삭제) — 고아 오브젝트
+    정리는 별도 배치 범위. stateless JWT라 토큰 폐기는 클라이언트가 담당한다."""
+    db.delete(current_user)
+    db.commit()
+    return OkResponse()

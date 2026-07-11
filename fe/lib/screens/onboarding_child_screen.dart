@@ -41,6 +41,7 @@ class _ChildForm {
 }
 
 class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
+  static const _maxChildren = 5; // BE MAX_CHILDREN과 동일(자녀 수 상한, QA 2026-07-11)
   final _children = [_ChildForm()];
 
   @override
@@ -193,9 +194,11 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                           : null,
                     ),
 
-                  // 자녀 추가
+                  // 자녀 추가 — BE 상한(5명)과 동일. 도달 시 비활성 + 안내.
                   InkWell(
-                    onTap: () => setState(() => _children.add(_ChildForm())),
+                    onTap: _children.length >= _maxChildren
+                        ? null
+                        : () => setState(() => _children.add(_ChildForm())),
                     borderRadius: BorderRadius.circular(GaonRadius.xl),
                     child: Container(
                       padding: const EdgeInsets.all(GaonSpace.md),
