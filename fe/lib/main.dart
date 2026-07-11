@@ -95,6 +95,12 @@ class _GaonAppState extends State<GaonApp> {
       title: 'GAON',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey, // 딥링크 복귀 내비게이션용
+      // 입력창 밖 탭으로 키보드 닫기 — 전 화면 공통(QA: iOS에서 키보드 못 닫음)
+      builder: (context, child) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: child ?? const SizedBox.shrink(),
+      ),
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: GaonColors.bg,

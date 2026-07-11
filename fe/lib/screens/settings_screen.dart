@@ -260,9 +260,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: Icons.family_restroom_rounded,
                         label: '자녀 관리',
                         sub: bi('Quản lý con', '子女管理'),
+                        // 같은 화면이지만 자녀 섹션으로 바로 스크롤해 진입을 구분
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const ProfileEditScreen(),
+                            builder: (_) =>
+                                const ProfileEditScreen(focusChildren: true),
                           ),
                         ),
                       ),
@@ -272,7 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _row(
                         icon: Icons.lock_clock_rounded,
                         label: '잠금화면 알림 미리보기',
-                        sub: bi('Xem trước thông báo (5s)', '通知预览 (5秒)'),
+                        sub: bi('Xem trước thông báo', '通知预览'),
                         onTap: () async {
                           final messenger = ScaffoldMessenger.of(context);
                           // GET /notifications는 실배선됐지만 Proactive 스캐너(배치)가
@@ -321,9 +323,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           await NotificationService.instance.schedulePreview(
                             notification,
                           );
+                          // OS 스케줄러(배터리 최적화 등)가 수 초 지연시킬 수 있어
+                          // '5초'를 약속하지 않는다(QA 2026-07-11)
                           messenger.showSnackBar(
                             const SnackBar(
-                              content: Text('5초 후 알림이 옵니다 — 화면을 잠가보세요 🔒'),
+                              content: Text('잠시 후 알림이 와요 — 화면을 잠가보세요 🔒'),
                             ),
                           );
                         },
@@ -393,22 +397,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ]),
                     const SizedBox(height: GaonSpace.md),
                     Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            'GAON v1.0.0',
-                            style: GaonType.micro.copyWith(
-                              color: GaonColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Translation → Action',
-                            style: GaonType.micro.copyWith(
-                              color: GaonColors.textSecondary,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        'GAON v1.0.0',
+                        style: GaonType.micro.copyWith(
+                          color: GaonColors.textSecondary,
+                        ),
                       ),
                     ),
                   ],
