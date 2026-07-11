@@ -216,14 +216,16 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     if (!mounted) return;
     // 실서버 Chain A는 LLM 호출이라 폴링 간격을 1초로(과호출 방지).
+    var pollMisses = 0; // 일시적 네트워크/게이트웨이 오류 허용 횟수
     _pollTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
       try {
         final updated = await repository.getDocument(doc.documentId);
         if (!mounted) return;
+        pollMisses = 0;
         setState(() => _status = updated.status);
         if (updated.status == DocStatus.failed) {
           t.cancel();
-          _failBack('분석에 실패했어요 — 다시 시도해 주세요');
+          _failBack('알림장을 읽지 못했어요 — 알림장 사진이 맞는지 확인 후 다시 시도해 주세요');
           return;
         }
         if (updated.status == DocStatus.done) {
@@ -236,6 +238,8 @@ class _ChatScreenState extends State<ChatScreen> {
           });
         }
       } catch (e) {
+        // 분석이 오래 걸리는 동안 한두 번 응답이 튀어도 바로 포기하지 않는다
+        if (++pollMisses < 5) return;
         t.cancel();
         _failBack('분석 상태를 확인하지 못했어요 — 네트워크를 확인해 주세요');
       }

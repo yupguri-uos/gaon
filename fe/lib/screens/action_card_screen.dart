@@ -40,6 +40,24 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
     return diff >= 0 ? 'D-$diff' : 'D+${-diff}';
   }
 
+  /// 쿠팡 열기 — 앱 스킴 우선(웹은 봇 차단으로 Access Denied가 날 수 있음),
+  /// 앱이 없으면 웹으로 폴백. 시뮬레이터엔 쿠팡 앱이 없으니 실기기에서 확인.
+  Future<void> _openCoupang(String webUrl) async {
+    final q = Uri.tryParse(webUrl)?.queryParameters['q'];
+    if (q != null) {
+      final app = Uri.parse('coupang://search?q=${Uri.encodeComponent(q)}');
+      if (await canLaunchUrl(app)) {
+        await launchUrl(app);
+        return;
+      }
+    }
+    final ok = await launchUrl(
+      Uri.parse(webUrl),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && mounted) _snack('쿠팡을 열지 못했어요 — 실기기에서 확인해 주세요');
+  }
+
   /// F-DOC-7: 캘린더 실저장 + 리마인드 예약.
   Future<void> _saveToCalendar(String documentId) async {
     try {
@@ -433,10 +451,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 // 쿠팡 검색 링크(자동결제 아님 — 검색 페이지로만)
                                 _MiniAction(
                                   bg: const Color(0xFFFF3B2F),
-                                  onTap: () => launchUrl(
-                                    Uri.parse(supply.ecommerceDeeplink!),
-                                    mode: LaunchMode.externalApplication,
-                                  ),
+                                  onTap: () =>
+                                      _openCoupang(supply.ecommerceDeeplink!),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -459,7 +475,18 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   ),
                                 ),
                               ],
-                              // 행사 캘린더 추가 (F-DOC-7)
+                              // 행사 캘린더 추가 (F-DOC-7) — 날짜 출처를 표시(QA:
+                              // "16일·20일 어디서 온 건지")하고 일정 제목을 함께 보여준다.
+                              if (eventDates.isNotEmpty) ...[
+                                const SizedBox(height: GaonSpace.sm),
+                                Text(
+                                  '📌 알림장에서 추출된 일정 · ${bi('Lịch từ thông báo', '来自通知单的日程')}',
+                                  style: GaonType.micro.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: GaonColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                               for (final e in eventDates) ...[
                                 const SizedBox(height: GaonSpace.xs),
                                 _MiniAction(
@@ -476,11 +503,15 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                         color: Colors.white,
                                       ),
                                       const SizedBox(width: GaonSpace.xxs),
-                                      Text(
-                                        '${e.date.month}/${e.date.day} 행사 캘린더 추가',
-                                        style: GaonType.micro.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
+                                      Flexible(
+                                        child: Text(
+                                          '${e.date.month}/${e.date.day} 「${e.title}」 캘린더 추가',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GaonType.micro.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: GaonSpace.xxs),
