@@ -99,6 +99,15 @@ class _OnboardingSelfScreenState extends State<OnboardingSelfScreen> {
                       color: GaonColors.textSecondary,
                     ),
                   ),
+                  const SizedBox(height: GaonSpace.xxs),
+                  // 국가 선택 시 모국어가 자동 지정되지만, 다르면 여기서 바꾸라는 안내(QA).
+                  Text(
+                    '출신국과 다르면 직접 선택하세요 · '
+                    '${bi('Chọn nếu khác', '不同请另选')}',
+                    style: GaonType.micro.copyWith(
+                      color: GaonColors.textSecondary,
+                    ),
+                  ),
                   const SizedBox(height: GaonSpace.xs),
                   Wrap(
                     spacing: GaonSpace.xs,

@@ -23,6 +23,10 @@ class _MessageScreenState extends State<MessageScreen> {
   // 프리필 없음(QA: 처음부터 문장이 들어가 있음) — 예시는 힌트로만 보여준다.
   final _inputController = TextEditingController();
   MessageSituation _situation = MessageSituation.absence;
+  // 사용자가 직접 추가한 상황(custom 활용). 세션 한정 — 선택 시 wire=custom으로 보내고
+  // 라벨은 input_native 앞에 붙여 AI에 맥락 전달(스키마 변경 없음, QA 2026-07-11).
+  final List<String> _customSituations = [];
+  String? _selectedCustom; // 선택된 커스텀 라벨. null이면 프리셋 _situation 사용.
   int _teacherIndex = 0;
   List<Child> _children = const [];
   Child? _selectedChild; // Chain B child_info(§8) 필수 — 어느 자녀 건인지
@@ -113,15 +117,79 @@ class _MessageScreenState extends State<MessageScreen> {
       _generating = true;
       _message = null;
     });
+    // 커스텀 상황이면 wire는 custom, 라벨을 입력 앞에 붙여 AI에 맥락 전달.
+    final custom = _selectedCustom;
     final message = await repository.generateTeacherMessage(
-      situation: _situation,
-      inputNative: _inputController.text,
+      situation: custom != null ? MessageSituation.custom : _situation,
+      inputNative: custom != null
+          ? '[$custom] ${_inputController.text}'
+          : _inputController.text,
       childId: child.childId,
     );
     if (!mounted) return;
     setState(() {
       _message = message;
       _generating = false;
+    });
+  }
+
+  Widget _situationChip({
+    required String text,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: selected ? GaonColors.textPrimary : GaonColors.primaryLight,
+      borderRadius: BorderRadius.circular(GaonRadius.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GaonRadius.pill),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
+          child: Text(
+            text,
+            style: GaonType.label.copyWith(
+              color: selected ? GaonColors.onPrimary : GaonColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addCustomSituation() async {
+    final controller = TextEditingController();
+    final label = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GaonColors.surface,
+        title: Text('상황 직접 추가 · ${bi('Thêm tình huống', '添加情况')}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 20,
+          decoration: const InputDecoration(hintText: '예: 준비물 문의, 전학 상담'),
+          onSubmitted: (v) => Navigator.of(dialogContext).pop(v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('추가'),
+          ),
+        ],
+      ),
+    );
+    if (label == null || label.isEmpty) return;
+    if (!mounted) return;
+    setState(() {
+      // 중복이면 기존 것을 선택만.
+      if (!_customSituations.contains(label)) _customSituations.add(label);
+      _selectedCustom = label;
     });
   }
 
@@ -401,31 +469,29 @@ class _MessageScreenState extends State<MessageScreen> {
                   spacing: GaonSpace.xs,
                   runSpacing: GaonSpace.xs,
                   children: [
+                    // 프리셋 상황 — 선택 시 커스텀 해제.
                     for (final s in MessageSituation.values)
-                      Material(
-                        color: _situation == s
-                            ? GaonColors.textPrimary
-                            : GaonColors.primaryLight,
-                        borderRadius: BorderRadius.circular(GaonRadius.pill),
-                        child: InkWell(
-                          onTap: () => setState(() => _situation = s),
-                          borderRadius: BorderRadius.circular(GaonRadius.pill),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 7,
-                              horizontal: 14,
-                            ),
-                            child: Text(
-                              s.label.$2,
-                              style: GaonType.label.copyWith(
-                                color: _situation == s
-                                    ? GaonColors.onPrimary
-                                    : GaonColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ),
+                      _situationChip(
+                        text: s.label.$2,
+                        selected: _selectedCustom == null && _situation == s,
+                        onTap: () => setState(() {
+                          _situation = s;
+                          _selectedCustom = null;
+                        }),
                       ),
+                    // 사용자가 추가한 상황(custom).
+                    for (final c in _customSituations)
+                      _situationChip(
+                        text: c,
+                        selected: _selectedCustom == c,
+                        onTap: () => setState(() => _selectedCustom = c),
+                      ),
+                    // 직접 추가.
+                    _situationChip(
+                      text: '+ ${bi('Thêm', '添加')}',
+                      selected: false,
+                      onTap: _addCustomSituation,
+                    ),
                   ],
                 ),
                 const SizedBox(height: GaonSpace.md),
