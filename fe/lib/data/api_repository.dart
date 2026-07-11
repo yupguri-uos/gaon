@@ -154,9 +154,7 @@ class ApiRepository implements GaonRepository {
   Future<void> deleteAccount() async {
     // DELETE /auth/me — 서버가 users 삭제 → 연관 데이터 CASCADE. logout과 달리
     // 삭제가 성공해야 토큰을 폐기한다(실패 시 계정이 남았는데 세션만 끊기는 것 방지).
-    _decode(
-      await _client.delete(_uri('/auth/me'), headers: _authHeaders),
-    );
+    _decode(await _client.delete(_uri('/auth/me'), headers: _authHeaders));
     _cachedUser = null;
     await AuthStore.clear();
   }

@@ -4,7 +4,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/app_lang.dart';
 import '../data/locator.dart';
-import '../data/ui_placeholders.dart';
+import '../data/teacher_store.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -23,6 +23,23 @@ class _MessageScreenState extends State<MessageScreen> {
   // 프리필 없음(QA: 처음부터 문장이 들어가 있음) — 예시는 힌트로만 보여준다.
   final _inputController = TextEditingController();
   MessageSituation _situation = MessageSituation.absence;
+
+  /// 상황별 모국어 예시문 — 상황 칩을 바꾸면 입력창 힌트가 함께 바뀐다.
+  String _hintFor(MessageSituation s) => switch (s) {
+    MessageSituation.absence => bi(
+      'VD: Ngày mai con bị sốt nên xin phép nghỉ học.',
+      '例: 孩子明天发烧，想请假一天。',
+    ),
+    MessageSituation.sickNote => bi(
+      'VD: Con đã đi khám bệnh, tôi sẽ nộp giấy khám bệnh sau.',
+      '例: 孩子已经去医院看过了，稍后会提交诊断书。',
+    ),
+    MessageSituation.consultation => bi(
+      'VD: Tôi muốn hẹn thời gian tư vấn về việc học của con.',
+      '例: 想和老师约时间咨询孩子的学习情况。',
+    ),
+    MessageSituation.custom => bi('Nhập bằng tiếng Việt...', '请用中文输入...'),
+  };
   int _teacherIndex = 0;
   List<Child> _children = const [];
   Child? _selectedChild; // Chain B child_info(§8) 필수 — 어느 자녀 건인지
@@ -109,6 +126,16 @@ class _MessageScreenState extends State<MessageScreen> {
   Future<void> _generate() async {
     final child = _selectedChild;
     if (_generating || child == null) return;
+    if (_inputController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '보낼 내용을 먼저 입력해 주세요 · ${bi('Hãy nhập nội dung', '请先输入内容')}',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() {
       _generating = true;
       _message = null;
@@ -146,7 +173,8 @@ class _MessageScreenState extends State<MessageScreen> {
   }
 
   // ── S12: 받는 사람 선택 시트 ──
-  // 교사 목록은 schema에 없어 UI 전용 플레이스홀더(ui_placeholders.demoTeachers) 사용.
+  // 교사 목록은 schema에 Teacher 엔티티가 없어(SSOT 대기) TeacherStore(기기 로컬)로
+  // 관리한다 — 추가/삭제 가능(QA: 선생님 목록 수정).
   Future<void> _pickTeacher() async {
     final picked = await showModalBottomSheet<int>(
       context: context,
@@ -157,100 +185,130 @@ class _MessageScreenState extends State<MessageScreen> {
           top: Radius.circular(GaonRadius.xxl),
         ),
       ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(GaonSpace.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: GaonColors.primary,
-                    borderRadius: BorderRadius.circular(GaonRadius.pill),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(GaonSpace.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: GaonColors.primary,
+                      borderRadius: BorderRadius.circular(GaonRadius.pill),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: GaonSpace.sm),
-              Text(
-                '받는 사람 · ${bi('Người nhận', '收件人')}',
-                style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
-              ),
-              const SizedBox(height: GaonSpace.sm),
-              // 검색(데모)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                  horizontal: 14,
+                const SizedBox(height: GaonSpace.sm),
+                Text(
+                  '받는 사람 · ${bi('Người nhận', '收件人')}',
+                  style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
                 ),
-                decoration: BoxDecoration(
-                  color: GaonColors.bg,
-                  borderRadius: BorderRadius.circular(GaonRadius.pill),
+                const SizedBox(height: GaonSpace.sm),
+                // 검색(데모)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: GaonColors.bg,
+                    borderRadius: BorderRadius.circular(GaonRadius.pill),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.search_rounded,
+                        size: 14,
+                        color: GaonColors.textSecondary,
+                      ),
+                      const SizedBox(width: GaonSpace.xs),
+                      Text(
+                        '선생님 이름 검색...',
+                        style: GaonType.body.copyWith(
+                          color: GaonColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.search_rounded,
-                      size: 14,
-                      color: GaonColors.textSecondary,
+                const SizedBox(height: GaonSpace.xs),
+                for (final (i, t) in TeacherStore.teachers.value.indexed)
+                  ListTile(
+                    onTap: () => Navigator.of(context).pop(i),
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i == _teacherIndex
+                            ? GaonColors.textPrimary
+                            : GaonColors.primaryLight,
+                      ),
+                      alignment: Alignment.center,
+                      child: i == _teacherIndex
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: GaonColors.onPrimary,
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              size: 16,
+                              color: GaonColors.textSecondary,
+                            ),
                     ),
-                    const SizedBox(width: GaonSpace.xs),
-                    Text(
-                      '선생님 이름 검색...',
+                    title: Text(
+                      t.name,
                       style: GaonType.body.copyWith(
+                        fontWeight: i == _teacherIndex
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                        color: GaonColors.textPrimary,
+                      ),
+                    ),
+                    subtitle: Text(
+                      t.role,
+                      style: GaonType.caption.copyWith(
                         color: GaonColors.textSecondary,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: GaonSpace.xs),
-              for (final (i, t) in demoTeachers.indexed)
-                ListTile(
-                  onTap: () => Navigator.of(context).pop(i),
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i == _teacherIndex
-                          ? GaonColors.textPrimary
-                          : GaonColors.primaryLight,
+                    trailing: IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: GaonColors.textSecondary,
+                      ),
+                      onPressed: () async {
+                        await TeacherStore.removeAt(i);
+                        if (!context.mounted) return;
+                        setSheetState(() {});
+                        setState(() => _teacherIndex = 0);
+                      },
                     ),
-                    alignment: Alignment.center,
-                    child: i == _teacherIndex
-                        ? const Icon(
-                            Icons.check_rounded,
-                            size: 16,
-                            color: GaonColors.onPrimary,
-                          )
-                        : const Icon(
-                            Icons.person_rounded,
-                            size: 16,
-                            color: GaonColors.textSecondary,
-                          ),
                   ),
-                  title: Text(
-                    t.name,
+                // 받는 사람 추가 — 기기 로컬 관리(Teacher 엔티티 SSOT 대기)
+                TextButton.icon(
+                  onPressed: () => _addTeacher(setSheetState),
+                  icon: const Icon(
+                    Icons.add_rounded,
+                    size: 18,
+                    color: GaonColors.textPrimary,
+                  ),
+                  label: Text(
+                    '받는 사람 추가 · ${bi('Thêm người nhận', '添加收件人')}',
                     style: GaonType.body.copyWith(
-                      fontWeight: i == _teacherIndex
-                          ? FontWeight.w700
-                          : FontWeight.w400,
                       color: GaonColors.textPrimary,
                     ),
                   ),
-                  subtitle: Text(
-                    t.role,
-                    style: GaonType.caption.copyWith(
-                      color: GaonColors.textSecondary,
-                    ),
-                  ),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -258,9 +316,75 @@ class _MessageScreenState extends State<MessageScreen> {
     if (picked != null) setState(() => _teacherIndex = picked);
   }
 
+  /// 받는 사람 추가 다이얼로그 — 이름·역할 입력 후 기기 로컬 저장.
+  Future<void> _addTeacher(StateSetter setSheetState) async {
+    final nameCtrl = TextEditingController();
+    final roleCtrl = TextEditingController();
+    final added = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GaonColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GaonRadius.xl),
+        ),
+        title: Text(
+          '받는 사람 추가',
+          style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(hintText: '예) 최수민 선생님'),
+            ),
+            TextField(
+              controller: roleCtrl,
+              decoration: const InputDecoration(hintText: '예) 3학년 1반 담임'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              '취소',
+              style: GaonType.body.copyWith(color: GaonColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              '추가',
+              style: GaonType.body.copyWith(
+                fontWeight: FontWeight.w700,
+                color: GaonColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (added == true && nameCtrl.text.trim().isNotEmpty) {
+      await TeacherStore.add(
+        nameCtrl.text.trim(),
+        roleCtrl.text.trim().isEmpty ? '선생님' : roleCtrl.text.trim(),
+      );
+      setSheetState(() {});
+    }
+    // 다이얼로그 닫힘 애니메이션 후 정리(profile_edit 시트와 동일 패턴)
+    Future.delayed(const Duration(seconds: 1), () {
+      nameCtrl.dispose();
+      roleCtrl.dispose();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final teacher = demoTeachers[_teacherIndex];
+    final teachers = TeacherStore.teachers.value;
+    // 삭제 직후 인덱스가 목록 밖을 가리킬 수 있어 방어
+    final teacher =
+        teachers[_teacherIndex < teachers.length ? _teacherIndex : 0];
 
     return SafeArea(
       child: Column(
@@ -470,7 +594,7 @@ class _MessageScreenState extends State<MessageScreen> {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: bi('Nhập bằng tiếng Việt...', '请用中文输入...'),
+                      hintText: _hintFor(_situation),
                     ),
                   ),
                 ),

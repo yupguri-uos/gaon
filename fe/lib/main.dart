@@ -7,6 +7,7 @@ import 'data/api_repository.dart';
 import 'data/app_lang.dart';
 import 'data/auth_store.dart';
 import 'data/locator.dart';
+import 'data/teacher_store.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/onboarding_self_screen.dart';
@@ -15,6 +16,7 @@ import 'theme/tokens.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthStore.init(); // 저장된 세션 토큰(F-ON-3) 로드 — ApiRepository가 사용
+  await TeacherStore.load(); // 받는 사람(교사) 목록 — 기기 로컬 관리(F-TCH)
   runApp(const GaonApp());
 }
 
