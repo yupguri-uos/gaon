@@ -122,10 +122,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       label: '탈퇴 · ${bi('Xóa', '注销')}',
                       bg: GaonColors.warning,
                       fg: Colors.white,
-                      onTap: () {
+                      onTap: () async {
+                        // DELETE /auth/me → 토큰 폐기 → 로그인 화면(로그아웃과 동일 복귀).
+                        // 다이얼로그 context는 pop 후 죽으므로 State의 navigator를 미리 잡는다.
+                        final navigator = Navigator.of(
+                          this.context,
+                          rootNavigator: true,
+                        );
                         Navigator.of(context).pop();
-                        // BE에 계정 삭제 엔드포인트 없음(§11 범위 밖) — SSOT 결정 대기
-                        _snack('회원탈퇴는 준비 중이에요');
+                        try {
+                          await repository.deleteAccount();
+                        } catch (_) {
+                          _snack('회원탈퇴에 실패했어요. 잠시 후 다시 시도해 주세요');
+                          return;
+                        }
+                        navigator.pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                          (_) => false,
+                        );
                       },
                     ),
                   ),

@@ -52,6 +52,9 @@ class FakeRepository implements GaonRepository {
   @override
   Future<void> logout() => _delayed(null); // 서버 상태 없음(§12 stateless JWT)
 
+  @override
+  Future<void> deleteAccount() => _delayed(null); // 탈퇴 — 테스트 대역은 no-op
+
   // 온보딩에서 등록한 자녀. 등록 전에는 데모 자녀(이서준·이민아)를 보여준다.
   List<Child>? _registeredChildren;
   int _childSeq = 0;

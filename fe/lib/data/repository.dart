@@ -67,6 +67,9 @@ abstract interface class GaonRepository {
   /// 로그아웃(F-ON-3) = POST /auth/logout + 로컬 토큰 폐기(§12 stateless JWT).
   Future<void> logout();
 
+  /// 회원 탈퇴 = DELETE /auth/me + 로컬 토큰 폐기. 서버에서 연관 데이터 CASCADE 삭제.
+  Future<void> deleteAccount();
+
   /// Chain A 시작(F-DOC-1). Document 생성 후 status가 비동기로 진행된다.
   Future<Document> uploadDocument({required String imageRef, String? childId});
 
