@@ -26,6 +26,8 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     mainTabIndex.addListener(_onTabChanged);
+    // 언어 전환 시 탭 전체를 새로 그린다(아래 KeyedSubtree와 한 쌍)
+    appLanguage.addListener(_onTabChanged);
     // 병기 언어 = 사용자 모국어(vi/zh)
     repository.getCurrentUser().then(
       (u) => appLanguage.value = u.nativeLanguage,
@@ -35,6 +37,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void dispose() {
     mainTabIndex.removeListener(_onTabChanged);
+    appLanguage.removeListener(_onTabChanged);
     super.dispose();
   }
 
@@ -44,14 +47,19 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GaonColors.bg,
-      body: IndexedStack(
-        index: _index,
-        children: [
-          const ChatScreen(),
-          const CalendarScreen(),
-          const MessageScreen(),
-          const SettingsScreen(),
-        ],
+      // const 화면은 리빌드를 건너뛰므로, 언어가 바뀌면 key로 탭 전체를 재생성
+      // (bi()가 build 시점에 평가돼 — 재생성 없이는 옛 언어가 남는다)
+      body: KeyedSubtree(
+        key: ValueKey(appLanguage.value),
+        child: IndexedStack(
+          index: _index,
+          children: [
+            const ChatScreen(),
+            const CalendarScreen(),
+            const MessageScreen(),
+            const SettingsScreen(),
+          ],
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
