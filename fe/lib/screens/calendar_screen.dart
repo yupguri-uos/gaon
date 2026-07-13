@@ -46,7 +46,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   /// 표시 중인 월(1일 고정) — ◀▶로 자유 이동.
-  late DateTime _visibleMonth = DateTime(_today.year, _today.month);
+  /// 초기값: 마지막으로 보던 월(전역 보존, QA C-4) → 없으면 오늘 기준 월.
+  late DateTime _visibleMonth =
+      calendarLastMonth ?? DateTime(_today.year, _today.month);
   int? _selectedDay;
 
   DateTime get _today => repository.now();
@@ -80,6 +82,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     calendarFocus.value = null; // 소비
     setState(() {
       _visibleMonth = DateTime(date.year, date.month);
+      calendarLastMonth = _visibleMonth; // 마지막 월 보존(QA C-4)
       _selectedDay = date.day;
       _future = _load(); // 방금 저장된 일정 반영
     });
@@ -88,6 +91,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _shiftMonth(int delta) {
     setState(() {
       _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+      calendarLastMonth = _visibleMonth; // 마지막 월 보존(QA C-4)
       _selectedDay = null;
     });
   }
@@ -489,11 +493,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 요일 헤더
+              // 요일 헤더 — 첫 주와의 과다 여백 축소(QA C-3)
               Container(
                 color: GaonColors.surface,
                 padding: const EdgeInsets.symmetric(
-                  vertical: GaonSpace.xs,
+                  vertical: GaonSpace.xxs,
                   horizontal: GaonSpace.sm,
                 ),
                 child: Row(
@@ -529,12 +533,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 날짜 그리드 — 행 높이 고정(QA 2026-07-11: 선택 여부와 무관하게
-              // 달력 크기 불변, 터치 구획도 날짜 행에 밀착)
+              // 날짜 그리드 — iOS 캘린더식 고정 크기(QA C-1): 항상 6주 × 고정
+              // 행 높이라 월 이동·날짜 선택에도 달력 높이가 변하지 않는다.
+              // crossAxisAlignment.stretch로 셀 전체(가로×세로)가 히트 영역(QA C-2).
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                  horizontal: GaonSpace.xs,
+                padding: const EdgeInsets.fromLTRB(
+                  GaonSpace.xs,
+                  0, // 요일 헤더 바로 아래 밀착(QA C-3)
+                  GaonSpace.xs,
+                  GaonSpace.xxs,
                 ),
                 child: Builder(
                   builder: (context) {
@@ -544,13 +551,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       _visibleMonth.month + 1,
                       0,
                     ).day;
-                    final rows = ((offset + daysInMonth) / 7).ceil();
+                    // 항상 6주 — 4~5주 달도 같은 높이(빈 행 유지)
+                    const rows = 6;
                     return Column(
                       children: [
                         for (var week = 0; week < rows; week++)
                           SizedBox(
-                            height: 52,
+                            height: 48,
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 for (var wd = 0; wd < 7; wd++)
                                   Expanded(
@@ -571,10 +580,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 하단 — 선택일 일정 목록(iOS 캘린더식). 일정 없는 날은 빈 영역.
+              // 하단 — 고정 영역(Expanded)의 선택일 일정 목록(iOS 캘린더식).
+              // 일정 없는 날도 영역 자체는 유지하고 옅은 안내만(QA C-1 — 점프 없음).
               Expanded(
                 child: selectedEvents.isEmpty
-                    ? const SizedBox.shrink()
+                    ? Center(
+                        child: Text(
+                          biLine('일정이 없는 날이에요', 'Không có lịch', '当天没有日程'),
+                          style: GaonType.caption.copyWith(
+                            color: GaonColors.textSecondary,
+                          ),
+                        ),
+                      )
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(
                           GaonSpace.md,
