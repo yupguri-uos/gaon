@@ -149,6 +149,9 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             ),
             Expanded(
               child: ListView(
+                // 스크롤로 키보드 닫기(QA T-4 — iOS 공통 처리)
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(
                   GaonSpace.md,
                   GaonSpace.sm,
@@ -475,6 +478,7 @@ class _ChildCard extends StatelessWidget {
                   ),
                   child: TextField(
                     controller: form.classNo,
+                    textInputAction: TextInputAction.done, // QA T-4
                     style: GaonType.body.copyWith(
                       color: GaonColors.textPrimary,
                     ),
@@ -518,6 +522,7 @@ class _ChildCard extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
+            textInputAction: TextInputAction.done, // 완료로 키보드 닫기(QA T-4)
             style: GaonType.body.copyWith(color: GaonColors.textPrimary),
             decoration: InputDecoration(
               isDense: true,

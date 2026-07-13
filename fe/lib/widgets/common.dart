@@ -104,9 +104,10 @@ class GaonButton extends StatelessWidget {
       ),
       GaonButtonVariant.ghost => (
         GaonColors.successLight,
-        // 민트 on 연민트가 저대비('복사'·'건너뛰기' 안 보임 지적) — 진초록으로
+        // 민트 on 연민트가 저대비('복사'·'건너뛰기' 안 보임 지적) — 진초록으로.
+        // 병기(subLabel)도 teal이 연민트 위에서 흐리다는 재지적(QA T-5) — 진초록 통일
         GaonColors.textPrimary,
-        GaonColors.textSecondary,
+        GaonColors.textPrimary,
       ),
     };
 

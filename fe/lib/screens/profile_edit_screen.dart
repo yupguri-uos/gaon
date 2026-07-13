@@ -280,6 +280,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
           child: TextField(
             controller: controller,
+            textInputAction: TextInputAction.done, // 완료로 키보드 닫기(QA T-4)
             style: GaonType.body.copyWith(color: GaonColors.textPrimary),
             decoration: InputDecoration(
               isDense: true,
@@ -484,6 +485,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   final children = _childrenOverride ?? loaded;
 
                   return ListView(
+                    // 스크롤로 키보드 닫기(QA T-4 — iOS 공통 처리)
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(GaonSpace.md),
                     children: [
                       Text(

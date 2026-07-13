@@ -4,7 +4,7 @@
 
 ## 구조
 lib/models/   shared-schema Dart 미러(schema.dart) + 표시 라벨(display.dart)
-lib/data/     GaonRepository 인터페이스 · ApiRepository(실 BE) · auth_store · ui_placeholders · locator
+lib/data/     GaonRepository 인터페이스 · ApiRepository(실 BE) · auth_store · teacher_store(FE 로컬) · locator
 lib/theme/    디자인 토큰 (GaonColors · GaonType · GaonSpace · GaonRadius · GaonShadow)
 lib/widgets/  공용 컴포넌트 (BiText · GaonButton · SurfaceCard 등)
 lib/screens/  화면 (v2 시안: 5 Flows · 15 Screens)
@@ -14,7 +14,8 @@ test/fakes/   테스트 대역 FakeRepository + 데모 시나리오 픽스처(de
 - **데이터 접근은 GaonRepository 인터페이스만, 구현은 ApiRepository 단일**(locator.dart).
   테스트는 locator의 전역 `repository`를 test/fakes/FakeRepository로 교체해 화면을 격리한다
   — 화면 코드 무변경이 원칙. 앱 번들(lib/)에 목·데모 데이터 금지.
-  UI 전용 플레이스홀더(교사 목록 — schema에 없는 개념)만 data/ui_placeholders.dart에, 주석으로 표시.
+  예외는 교사 목록뿐 — 팀 결정(2026-07-13): Teacher는 shared-schema 엔티티로 만들지 않고
+  자녀별 기기 로컬 저장(data/teacher_store.dart, shared_preferences)으로만 관리. 데모 프리셋 금지(초기 빈 목록).
 - **models/schema.dart는 shared-schema의 1:1 미러.** 필드·값 임의 추가 금지.
   변경은 SSOT → schema.py → schema.dart 순. JSON은 snake_case, date는 'yyyy-MM-dd',
   enum wire 문자열은 Pydantic Literal과 동일해야 함 (test/models/schema_test.dart가 검증).
@@ -31,7 +32,10 @@ test/fakes/   테스트 대역 FakeRepository + 데모 시나리오 픽스처(de
 ## schema보다 앞서간 UI (SSOT 결정 대기 — schema 반영 전까지 UI 전용)
 - ~~출신국 필리핀·태국·한국 / 모국어 Filipino·태국어~~ → '언어=국가 통합' 결정(2026-07-13)으로 해소 —
   온보딩은 언어 선택(vi/zh) 단일 화면, vi→VN·zh→CN 자동 매핑(language_select_screen.dart)
-- 교사 목록(문자 받는 사람) (Teacher 엔티티 없음 — data/ui_placeholders.dart)
+- ~~교사 목록(문자 받는 사람)~~ → 팀 결정(2026-07-13): schema 엔티티로 만들지 않음 —
+  자녀별 FE 로컬 저장(data/teacher_store.dart)으로 확정, DB·BE 무변경
+- F-TCH-4(행정 절차 안내): 기능 비활성(결정 #13, 2026-07-13) — admin_guide_native 필드·AI 출력·BE 저장은
+  유지하고 FE 표시만 제거(결정 #11·#12와 동일한 코드 잔존 방식)
 - ~~학년 초1~6~~ · ~~학교명~~ → schema 정본 반영 완료(마이그레이션 0007·0009), FE 미러 동기화됨
 
 ## BE 연동 (INF 공지 2026-07-08)

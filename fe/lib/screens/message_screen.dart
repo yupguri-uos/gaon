@@ -44,11 +44,18 @@ class _MessageScreenState extends State<MessageScreen> {
     ),
     MessageSituation.custom => bi('Nhập bằng tiếng Việt...', '请用中文输入...'),
   };
+  // 받는 사람(교사) — 자녀별 로컬 목록(TeacherStore, 팀 결정 2026-07-13).
   int _teacherIndex = 0;
   List<Child> _children = const [];
   Child? _selectedChild; // Chain B child_info(§8) 필수 — 어느 자녀 건인지
   TeacherMessage? _message;
   bool _generating = false;
+
+  /// 선택된 자녀의 교사 목록 — 자녀 미선택이면 빈 목록.
+  List<Teacher> get _teachers {
+    final child = _selectedChild;
+    return child == null ? const [] : TeacherStore.forChild(child.childId);
+  }
 
   @override
   void initState() {
@@ -124,7 +131,12 @@ class _MessageScreenState extends State<MessageScreen> {
         ),
       ),
     );
-    if (picked != null) setState(() => _selectedChild = picked);
+    if (picked != null) {
+      setState(() {
+        _selectedChild = picked;
+        _teacherIndex = 0; // 자녀가 바뀌면 그 자녀의 교사 목록으로 초기화
+      });
+    }
   }
 
   Future<void> _generate() async {
@@ -244,16 +256,6 @@ class _MessageScreenState extends State<MessageScreen> {
     });
   }
 
-  Future<void> _copyAdminGuide() async {
-    final guide = _message?.adminGuideNative;
-    if (guide == null || guide.isEmpty) return; // _message null 방어 겸용
-    await Clipboard.setData(ClipboardData(text: guide));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(biLine('행정 안내를 복사했어요', 'Đã sao chép', '已复制'))),
-    );
-  }
-
   Future<void> _copyMessage() async {
     final message = _message;
     if (message == null) return;
@@ -301,35 +303,22 @@ class _MessageScreenState extends State<MessageScreen> {
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
                 ),
                 const SizedBox(height: GaonSpace.sm),
-                // 검색(데모)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: GaonColors.bg,
-                    borderRadius: BorderRadius.circular(GaonRadius.pill),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.search_rounded,
-                        size: 14,
-                        color: GaonColors.textSecondary,
+                // 빈 목록 — 교사 추가 유도(QA T-1: 데모 프리셋 제거, 초기 상태 빈 목록)
+                if (_teachers.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: GaonSpace.md),
+                    child: BiText(
+                      native: bi(
+                        'Hãy thêm giáo viên của con',
+                        '请添加孩子的老师',
                       ),
-                      const SizedBox(width: GaonSpace.xs),
-                      Text(
-                        biLine('선생님 이름 검색...', 'Tìm tên giáo viên', '搜索老师姓名'),
-                        style: GaonType.body.copyWith(
-                          color: GaonColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                      ko: '교사를 추가해주세요',
+                      align: TextAlign.center,
+                      nativeStyle: GaonType.body,
+                      koStyle: GaonType.caption,
+                    ),
                   ),
-                ),
-                const SizedBox(height: GaonSpace.xs),
-                for (final (i, t) in TeacherStore.teachers.value.indexed)
+                for (final (i, t) in _teachers.indexed)
                   ListTile(
                     onTap: () => Navigator.of(context).pop(i),
                     contentPadding: EdgeInsets.zero,
@@ -370,23 +359,40 @@ class _MessageScreenState extends State<MessageScreen> {
                         color: GaonColors.textSecondary,
                       ),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline_rounded,
-                        size: 18,
-                        color: GaonColors.textSecondary,
-                      ),
-                      onPressed: () async {
-                        await TeacherStore.removeAt(i);
-                        if (!context.mounted) return;
-                        setSheetState(() {});
-                        setState(() => _teacherIndex = 0);
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 수정(QA T-1)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: GaonColors.textSecondary,
+                          ),
+                          onPressed: () =>
+                              _editTeacherDialog(setSheetState, editIndex: i),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            size: 18,
+                            color: GaonColors.textSecondary,
+                          ),
+                          onPressed: () async {
+                            final child = _selectedChild;
+                            if (child == null) return;
+                            await TeacherStore.removeAt(child.childId, i);
+                            if (!context.mounted) return;
+                            setSheetState(() {});
+                            setState(() => _teacherIndex = 0);
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                // 받는 사람 추가 — 기기 로컬 관리(Teacher 엔티티 SSOT 대기)
+                // 받는 사람 추가 — 자녀별 기기 로컬 관리(팀 결정 2026-07-13)
                 TextButton.icon(
-                  onPressed: () => _addTeacher(setSheetState),
+                  onPressed: () => _editTeacherDialog(setSheetState),
                   icon: const Icon(
                     Icons.add_rounded,
                     size: 18,
@@ -408,11 +414,18 @@ class _MessageScreenState extends State<MessageScreen> {
     if (picked != null) setState(() => _teacherIndex = picked);
   }
 
-  /// 받는 사람 추가 다이얼로그 — 이름·역할 입력 후 기기 로컬 저장.
-  Future<void> _addTeacher(StateSetter setSheetState) async {
-    final nameCtrl = TextEditingController();
-    final roleCtrl = TextEditingController();
-    final added = await showDialog<bool>(
+  /// 받는 사람 추가/수정 다이얼로그(QA T-1) — 이름·직책 입력 후 자녀별 로컬 저장.
+  /// [editIndex]가 null이면 추가, 있으면 해당 교사 수정.
+  Future<void> _editTeacherDialog(
+    StateSetter setSheetState, {
+    int? editIndex,
+  }) async {
+    final child = _selectedChild;
+    if (child == null) return;
+    final editing = editIndex == null ? null : _teachers[editIndex];
+    final nameCtrl = TextEditingController(text: editing?.name ?? '');
+    final roleCtrl = TextEditingController(text: editing?.role ?? '');
+    final submitted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: GaonColors.surface,
@@ -420,7 +433,9 @@ class _MessageScreenState extends State<MessageScreen> {
           borderRadius: BorderRadius.circular(GaonRadius.xl),
         ),
         title: Text(
-          biLine('받는 사람 추가', 'Thêm người nhận', '添加收件人'),
+          editing == null
+              ? biLine('받는 사람 추가', 'Thêm người nhận', '添加收件人')
+              : biLine('받는 사람 수정', 'Sửa người nhận', '修改收件人'),
           style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
         ),
         content: Column(
@@ -428,12 +443,15 @@ class _MessageScreenState extends State<MessageScreen> {
           children: [
             TextField(
               controller: nameCtrl,
+              textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 hintText: '${bi('VD', '例')}) 최수민 선생님',
               ),
             ),
             TextField(
               controller: roleCtrl,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => Navigator.of(dialogContext).pop(true),
               decoration: InputDecoration(
                 hintText: '${bi('VD', '例')}) 3학년 1반 담임',
               ),
@@ -451,7 +469,9 @@ class _MessageScreenState extends State<MessageScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
-              biLine('추가', 'Thêm', '添加'),
+              editing == null
+                  ? biLine('추가', 'Thêm', '添加')
+                  : biLine('저장', 'Lưu', '保存'),
               style: GaonType.body.copyWith(
                 fontWeight: FontWeight.w700,
                 color: GaonColors.textPrimary,
@@ -461,12 +481,19 @@ class _MessageScreenState extends State<MessageScreen> {
         ],
       ),
     );
-    if (added == true && nameCtrl.text.trim().isNotEmpty) {
-      await TeacherStore.add(
-        nameCtrl.text.trim(),
-        roleCtrl.text.trim().isEmpty ? '선생님' : roleCtrl.text.trim(),
+    if (submitted == true && nameCtrl.text.trim().isNotEmpty) {
+      final teacher = Teacher(
+        name: nameCtrl.text.trim(),
+        // 직책 미입력 기본값 — 저장 데이터라 병기 없이 한국어 고정('선생님')
+        role: roleCtrl.text.trim().isEmpty ? '선생님' : roleCtrl.text.trim(),
       );
+      if (editIndex == null) {
+        await TeacherStore.add(child.childId, teacher);
+      } else {
+        await TeacherStore.update(child.childId, editIndex, teacher);
+      }
       setSheetState(() {});
+      if (mounted) setState(() {});
     }
     // 다이얼로그 닫힘 애니메이션 후 정리(profile_edit 시트와 동일 패턴)
     Future.delayed(const Duration(seconds: 1), () {
@@ -477,10 +504,11 @@ class _MessageScreenState extends State<MessageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final teachers = TeacherStore.teachers.value;
-    // 삭제 직후 인덱스가 목록 밖을 가리킬 수 있어 방어
-    final teacher =
-        teachers[_teacherIndex < teachers.length ? _teacherIndex : 0];
+    final teachers = _teachers;
+    // 삭제 직후 인덱스가 목록 밖을 가리킬 수 있어 방어. 빈 목록이면 null.
+    final teacher = teachers.isEmpty
+        ? null
+        : teachers[_teacherIndex < teachers.length ? _teacherIndex : 0];
 
     return SafeArea(
       child: Column(
@@ -516,7 +544,7 @@ class _MessageScreenState extends State<MessageScreen> {
                     ],
                   ),
                 ),
-                // 받는 사람
+                // 받는 사람 — 선택된 자녀의 교사(없으면 추가 유도, QA T-1)
                 Material(
                   color: GaonColors.primaryLight,
                   borderRadius: BorderRadius.circular(GaonRadius.pill),
@@ -531,14 +559,17 @@ class _MessageScreenState extends State<MessageScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.person_rounded,
+                          Icon(
+                            teacher == null
+                                ? Icons.person_add_alt_rounded
+                                : Icons.person_rounded,
                             size: 13,
                             color: GaonColors.textPrimary,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            teacher.name,
+                            teacher?.name ??
+                                biLine('선생님 추가', 'Thêm giáo viên', '添加老师'),
                             style: GaonType.label.copyWith(
                               color: GaonColors.textPrimary,
                             ),
@@ -559,6 +590,8 @@ class _MessageScreenState extends State<MessageScreen> {
 
           Expanded(
             child: ListView(
+              // 스크롤로 키보드 닫기(QA T-4 ① — iOS에서 키보드 못 닫는 문제)
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(GaonSpace.md),
               children: [
                 // 자녀 선택 — Chain B child_info(§8) 필수
@@ -684,6 +717,9 @@ class _MessageScreenState extends State<MessageScreen> {
                   child: TextField(
                     controller: _inputController,
                     maxLines: null,
+                    // 여러 줄 입력이라 완료 대신 줄바꿈(QA T-4 ③) —
+                    // 닫기는 스크롤(onDrag)·빈 영역 탭(main.dart 전역)으로.
+                    textInputAction: TextInputAction.newline,
                     style: GaonType.bodyLg.copyWith(
                       color: GaonColors.textPrimary,
                       height: 1.7,
@@ -771,35 +807,9 @@ class _MessageScreenState extends State<MessageScreen> {
                 ),
 
                 if (_message != null) ...[
-                  const SizedBox(height: GaonSpace.sm),
-                  // 행정 안내 (RAG) — 복사 가능(QA 2026-07-11). 전송 없음(결정 #2).
-                  InfoBanner(
-                    ko: biLine(
-                      '행정 절차 안내',
-                      'Hướng dẫn thủ tục hành chính',
-                      '行政程序指南',
-                    ),
-                    native: _message!.adminGuideNative,
-                    color: GaonColors.textSecondary,
-                    bg: GaonColors.successLight,
-                  ),
-                  if (_message!.adminGuideNative.isNotEmpty) ...[
-                    const SizedBox(height: GaonSpace.xs),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: GaonButton(
-                        variant: GaonButtonVariant.ghost,
-                        label: bi('Sao chép hướng dẫn', '复制指南'),
-                        subLabel: '안내 복사',
-                        icon: const Icon(
-                          Icons.copy_rounded,
-                          size: 14,
-                          color: GaonColors.textPrimary,
-                        ),
-                        onTap: _copyAdminGuide,
-                      ),
-                    ),
-                  ],
+                  // 행정 절차 안내(admin_guide_native) 표시 제거 — 학교마다 절차가
+                  // 달라 오정보 위험(팀 결정 #13, 2026-07-13: F-TCH-4 기능 비활성).
+                  // 필드·AI 출력·BE 저장은 유지(결정 #11·#12와 동일한 코드 잔존 방식).
                   const SizedBox(height: GaonSpace.sm),
                   Row(
                     children: [
