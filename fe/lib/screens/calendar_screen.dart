@@ -28,14 +28,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   static const _weekdaysVi = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   static const _weekdaysZh = ['一', '二', '三', '四', '五', '六', '日'];
 
-  late Future<(List<Child>, List<CalendarEvent>, DocumentAnalysis?)> _future =
-      _load();
+  late Future<(List<Child>, List<CalendarEventView>, DocumentAnalysis?)>
+  _future = _load();
 
-  Future<(List<Child>, List<CalendarEvent>, DocumentAnalysis?)> _load() async {
+  Future<(List<Child>, List<CalendarEventView>, DocumentAnalysis?)>
+  _load() async {
     // 일정 그리드 = 저장된 전체 캘린더(GET /calendar/events, F-CAL-1) —
     // '최신 분석 1건'이 아니라 여러 문서의 일정이 누적 표시된다.
+    // 뷰 모델(CalendarEventView)로 받아 출처 문서 제목까지 표시(QA D-5).
     final children = repository.getChildren();
-    final events = repository.getCalendarEvents();
+    final events = repository.getCalendarEventViews();
     // 상세 시트의 원문/번역·검색어는 최신 분석에서 — 분석 전이면 null(시트 축약 표시).
     // (§7 CalendarEvent에 document_id가 없어 일정별 원문 역추적은 SSOT 결정 대기)
     DocumentAnalysis? analysis;
@@ -124,7 +126,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   // ── S10: 날짜 상세 바텀시트 ──
   // [analysis]는 최신 분석(원문/번역·검색어 표시용) — 없으면 해당 섹션을 생략한다.
-  void _showDetail(DocumentAnalysis? analysis, CalendarEvent event) {
+  void _showDetail(DocumentAnalysis? analysis, CalendarEventView view) {
+    final event = view.event;
     var showTranslated = true;
     final urgent = event.type == CalendarEventType.deadline;
     showModalBottomSheet<void>(
@@ -185,6 +188,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               color: GaonColors.textSecondary,
                             ),
                           ),
+                          // 출처 문서 — 어느 알림장에서 나온 일정인지(QA D-5).
+                          // source_title 없으면 줄 생략.
+                          if (view.sourceTitle != null)
+                            Text(
+                              '${bi('Nguồn', '来源')} · 출처: ${view.sourceTitle}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GaonType.micro.copyWith(
+                                color: GaonColors.textSecondary,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -396,11 +410,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onRetry: () => setState(() => _future = _load()),
             );
           }
-          final eventsByDay = <int, List<CalendarEvent>>{};
-          for (final e in events) {
-            if (e.date.year == _visibleMonth.year &&
-                e.date.month == _visibleMonth.month) {
-              eventsByDay.putIfAbsent(e.date.day, () => []).add(e);
+          final eventsByDay = <int, List<CalendarEventView>>{};
+          for (final v in events) {
+            if (v.event.date.year == _visibleMonth.year &&
+                v.event.date.month == _visibleMonth.month) {
+              eventsByDay.putIfAbsent(v.event.date.day, () => []).add(v);
             }
           }
           // 선택일이 없으면 이 월의 첫 일정 날로 자동 선택
@@ -410,8 +424,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ? null
                   : eventsByDay.keys.reduce((a, b) => a < b ? a : b));
           final selectedEvents = selectedDay == null
-              ? const <CalendarEvent>[]
-              : (eventsByDay[selectedDay] ?? const <CalendarEvent>[]);
+              ? const <CalendarEventView>[]
+              : (eventsByDay[selectedDay] ?? const <CalendarEventView>[]);
 
           return Column(
             children: [
@@ -603,17 +617,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           Text(
                             '${bi('Ngày $selectedDay/${_visibleMonth.month}', '${_visibleMonth.month}月$selectedDay日')} · '
                             '${_visibleMonth.month}월 $selectedDay일 · '
-                            '${_dday(selectedEvents.first.date)}',
+                            '${_dday(selectedEvents.first.event.date)}',
                             style: GaonType.h3.copyWith(
                               color:
-                                  selectedEvents.first.type ==
+                                  selectedEvents.first.event.type ==
                                       CalendarEventType.deadline
                                   ? GaonColors.warning
                                   : GaonColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: GaonSpace.xs),
-                          for (final e in selectedEvents)
+                          for (final v in selectedEvents)
                             Padding(
                               padding: const EdgeInsets.only(
                                 bottom: GaonSpace.xs,
@@ -624,7 +638,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   GaonRadius.lg,
                                 ),
                                 child: InkWell(
-                                  onTap: () => _showDetail(analysis, e),
+                                  onTap: () => _showDetail(analysis, v),
                                   borderRadius: BorderRadius.circular(
                                     GaonRadius.lg,
                                   ),
@@ -640,25 +654,45 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                           height: 8,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: _dotColor(children, e),
+                                            color: _dotColor(children, v.event),
                                           ),
                                         ),
                                         const SizedBox(width: GaonSpace.xs),
                                         Expanded(
-                                          child: Text(
-                                            e.title,
-                                            style: GaonType.body.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color:
-                                                  e.type ==
-                                                      CalendarEventType.deadline
-                                                  ? GaonColors.warning
-                                                  : GaonColors.textPrimary,
-                                            ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                v.event.title,
+                                                style: GaonType.body.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      v.event.type ==
+                                                          CalendarEventType
+                                                              .deadline
+                                                      ? GaonColors.warning
+                                                      : GaonColors.textPrimary,
+                                                ),
+                                              ),
+                                              // 출처 문서(QA D-5) — 없으면 생략
+                                              if (v.sourceTitle != null)
+                                                Text(
+                                                  '${bi('Nguồn', '来源')} · 출처: ${v.sourceTitle}',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GaonType.micro
+                                                      .copyWith(
+                                                        color: GaonColors
+                                                            .textSecondary,
+                                                      ),
+                                                ),
+                                            ],
                                           ),
                                         ),
                                         Text(
-                                          _dday(e.date),
+                                          _dday(v.event.date),
                                           style: GaonType.caption.copyWith(
                                             color: GaonColors.textSecondary,
                                           ),
@@ -689,10 +723,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     int daysInMonth,
     int? selectedDay,
     List<Child> children,
-    Map<int, List<CalendarEvent>> eventsByDay,
+    Map<int, List<CalendarEventView>> eventsByDay,
   ) {
     if (day < 1 || day > daysInMonth) return const SizedBox();
-    final dayEvents = eventsByDay[day] ?? const [];
+    final dayEvents = eventsByDay[day] ?? const <CalendarEventView>[];
     final isSelected = day == selectedDay;
     return GestureDetector(
       onTap: () => setState(() => _selectedDay = day),
@@ -723,14 +757,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                for (final e in dayEvents)
+                for (final v in dayEvents)
                   Container(
                     width: 4,
                     height: 4,
                     margin: const EdgeInsets.symmetric(horizontal: 1),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _dotColor(children, e),
+                      color: _dotColor(children, v.event),
                     ),
                   ),
               ],

@@ -440,15 +440,23 @@ class ApiRepository implements GaonRepository {
   }
 
   @override
-  Future<List<CalendarEvent>> getCalendarEvents() async {
+  Future<List<CalendarEvent>> getCalendarEvents() async =>
+      [for (final v in await getCalendarEventViews()) v.event];
+
+  @override
+  Future<List<CalendarEventView>> getCalendarEventViews() async {
     final json = await _get('/calendar/events') as Map<String, dynamic>;
     return [
       for (final e in json['events'] as List)
-        CalendarEvent(
-          title: (e as Map<String, dynamic>)['title'] as String,
-          date: DateTime.parse(e['date'] as String),
-          type: CalendarEventType.fromWire(e['type'] as String),
-          childId: e['child_id'] as String?,
+        CalendarEventView(
+          event: CalendarEvent(
+            title: (e as Map<String, dynamic>)['title'] as String,
+            date: DateTime.parse(e['date'] as String),
+            type: CalendarEventType.fromWire(e['type'] as String),
+            childId: e['child_id'] as String?,
+          ),
+          // 출처 문서 제목(QA D-5) — 엔드포인트 로컬 필드, shared 미러엔 없음
+          sourceTitle: e['source_title'] as String?,
         ),
     ];
   }

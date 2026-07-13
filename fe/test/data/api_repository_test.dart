@@ -222,7 +222,7 @@ void main() {
       expect(saved.single.date, DateTime(2026, 7, 12));
     });
 
-    test('GET /calendar/events → events 언래핑 + child_id', () async {
+    test('GET /calendar/events → events 언래핑 + child_id + source_title(D-5)', () async {
       final repo = repoWith(
         (_) async => jsonRes({
           'events': [
@@ -233,13 +233,28 @@ void main() {
               'title': '현장체험학습',
               'date': '2026-07-16',
               'type': 'event',
+              'source_title': '3월 6일 알림장',
+            },
+            {
+              'id': 'e2',
+              'document_id': null,
+              'child_id': null,
+              'title': '수동 일정',
+              'date': '2026-07-20',
+              'type': 'event',
+              'source_title': null,
             },
           ],
         }, 200),
       );
       final events = await repo.getCalendarEvents();
-      expect(events.single.childId, 'c1');
-      expect(events.single.type, CalendarEventType.event);
+      expect(events.first.childId, 'c1');
+      expect(events.first.type, CalendarEventType.event);
+
+      // 출처 제목은 shared CalendarEvent가 아니라 FE 로컬 뷰(D-5)로만 노출
+      final views = await repo.getCalendarEventViews();
+      expect(views.first.sourceTitle, '3월 6일 알림장');
+      expect(views.last.sourceTitle, isNull);
     });
   });
 

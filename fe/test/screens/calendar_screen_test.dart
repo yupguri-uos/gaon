@@ -46,6 +46,21 @@ void main() {
     expect(find.byWidgetPredicate(isWeekRow), findsNWidgets(6));
   });
 
+  testWidgets('일정 행·상세 시트에 출처 문서 제목 표시 (D-5)', (tester) async {
+    await pumpCalendar(tester);
+    // 하단 일정 행 — 출처 줄(모국어 주 + 한국어 병기)
+    expect(find.textContaining('출처:'), findsWidgets);
+    expect(
+      find.textContaining('서울대공원 현장체험학습 안내 및 동의서'),
+      findsWidgets, // FakeRepository의 데모 문서 제목
+    );
+
+    // 상세 시트에도 출처 줄
+    await tester.tap(find.byIcon(Icons.chevron_right_rounded).last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('출처:'), findsWidgets);
+  });
+
   testWidgets('일정 없는 날 선택 시 하단은 옅은 안내로 유지 (C-1)', (tester) async {
     await pumpCalendar(tester);
     // 6/25는 데모 일정이 없는 날 — 하단 영역이 사라지지 않고 안내 문구 표시
