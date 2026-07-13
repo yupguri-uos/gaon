@@ -5,16 +5,18 @@ import 'schema.dart';
 /// 확장값(country/language/grade)이 늘어나면 여기도 함께 늘린다.
 
 extension OriginCountryDisplay on OriginCountry {
+  // 모국어(주) · 한국어(병기) + 국기
   String get label => switch (this) {
-    OriginCountry.vn => '${bi('Việt Nam', '越南')} 🇻🇳',
-    OriginCountry.cn => '${bi('Trung Quốc', '中国')} 🇨🇳',
+    OriginCountry.vn => '${bi('Việt Nam', '越南')} · 베트남 🇻🇳',
+    OriginCountry.cn => '${bi('Trung Quốc', '中国')} · 중국 🇨🇳',
   };
 }
 
 extension NativeLanguageDisplay on NativeLanguage {
+  // 언어명은 해당 언어 표기(주) · 한국어(병기)
   String get label => switch (this) {
-    NativeLanguage.vi => 'Tiếng Việt',
-    NativeLanguage.zh => '中文',
+    NativeLanguage.vi => 'Tiếng Việt · 베트남어',
+    NativeLanguage.zh => '中文 · 중국어',
   };
 }
 
@@ -30,7 +32,8 @@ extension ChildGradeDisplay on ChildGrade {
 }
 
 extension MessageSituationDisplay on MessageSituation {
-  (String vi, String ko) get label => switch (this) {
+  // (모국어 주, 한국어 병기)
+  (String native, String ko) get label => switch (this) {
     MessageSituation.absence => (bi('Nghỉ học', '请假'), '결석'),
     MessageSituation.sickNote => (bi('Giấy khám bệnh', '诊断书'), '진단서'),
     MessageSituation.consultation => (bi('Tư vấn', '咨询'), '상담'),

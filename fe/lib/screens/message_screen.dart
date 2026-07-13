@@ -91,7 +91,7 @@ class _MessageScreenState extends State<MessageScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '자녀 선택 · ${bi('Chọn con', '选择孩子')}',
+                biLine('자녀 선택', 'Chọn con', '选择孩子'),
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
               const SizedBox(height: GaonSpace.sm),
@@ -134,7 +134,7 @@ class _MessageScreenState extends State<MessageScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '보낼 내용을 먼저 입력해 주세요 · ${bi('Hãy nhập nội dung', '请先输入内容')}',
+            biLine('보낼 내용을 먼저 입력해 주세요', 'Hãy nhập nội dung', '请先输入内容'),
           ),
         ),
       );
@@ -160,8 +160,10 @@ class _MessageScreenState extends State<MessageScreen> {
     });
   }
 
+  /// 상황 칩 — 모국어(주) + 한국어(병기). [sub]가 없으면 단일 라벨(커스텀 상황).
   Widget _situationChip({
     required String text,
+    String? sub,
     required bool selected,
     required VoidCallback onTap,
   }) {
@@ -173,11 +175,28 @@ class _MessageScreenState extends State<MessageScreen> {
         borderRadius: BorderRadius.circular(GaonRadius.pill),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 14),
-          child: Text(
-            text,
-            style: GaonType.label.copyWith(
-              color: selected ? GaonColors.onPrimary : GaonColors.textPrimary,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: GaonType.label.copyWith(
+                  color: selected
+                      ? GaonColors.onPrimary
+                      : GaonColors.textPrimary,
+                ),
+              ),
+              if (sub != null)
+                Text(
+                  sub,
+                  style: GaonType.micro.copyWith(
+                    color: selected
+                        ? GaonColors.primary
+                        : GaonColors.textSecondary,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -190,23 +209,28 @@ class _MessageScreenState extends State<MessageScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: GaonColors.surface,
-        title: Text('상황 직접 추가 · ${bi('Thêm tình huống', '添加情况')}'),
+        title: Text(biLine('상황 직접 추가', 'Thêm tình huống', '添加情况')),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLength: 20,
-          decoration: const InputDecoration(hintText: '예: 준비물 문의, 전학 상담'),
+          decoration: InputDecoration(
+            hintText: bi(
+              'VD: hỏi đồ dùng học tập, tư vấn chuyển trường',
+              '例: 咨询学习用品、转学咨询',
+            ),
+          ),
           onSubmitted: (v) => Navigator.of(dialogContext).pop(v.trim()),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('취소'),
+            child: Text(biLine('취소', 'Hủy', '取消')),
           ),
           TextButton(
             onPressed: () =>
                 Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('추가'),
+            child: Text(biLine('추가', 'Thêm', '添加')),
           ),
         ],
       ),
@@ -226,7 +250,7 @@ class _MessageScreenState extends State<MessageScreen> {
     await Clipboard.setData(ClipboardData(text: guide));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('행정 안내를 복사했어요 · ${bi('Đã sao chép', '已复制')}')),
+      SnackBar(content: Text(biLine('행정 안내를 복사했어요', 'Đã sao chép', '已复制'))),
     );
   }
 
@@ -236,7 +260,7 @@ class _MessageScreenState extends State<MessageScreen> {
     await Clipboard.setData(ClipboardData(text: message.outputKo));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('메시지를 복사했어요 · ${bi('Đã sao chép', '已复制')}')),
+      SnackBar(content: Text(biLine('메시지를 복사했어요', 'Đã sao chép', '已复制'))),
     );
   }
 
@@ -273,7 +297,7 @@ class _MessageScreenState extends State<MessageScreen> {
                 ),
                 const SizedBox(height: GaonSpace.sm),
                 Text(
-                  '받는 사람 · ${bi('Người nhận', '收件人')}',
+                  biLine('받는 사람', 'Người nhận', '收件人'),
                   style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
                 ),
                 const SizedBox(height: GaonSpace.sm),
@@ -296,7 +320,7 @@ class _MessageScreenState extends State<MessageScreen> {
                       ),
                       const SizedBox(width: GaonSpace.xs),
                       Text(
-                        '선생님 이름 검색...',
+                        biLine('선생님 이름 검색...', 'Tìm tên giáo viên', '搜索老师姓名'),
                         style: GaonType.body.copyWith(
                           color: GaonColors.textSecondary,
                         ),
@@ -369,7 +393,7 @@ class _MessageScreenState extends State<MessageScreen> {
                     color: GaonColors.textPrimary,
                   ),
                   label: Text(
-                    '받는 사람 추가 · ${bi('Thêm người nhận', '添加收件人')}',
+                    biLine('받는 사람 추가', 'Thêm người nhận', '添加收件人'),
                     style: GaonType.body.copyWith(
                       color: GaonColors.textPrimary,
                     ),
@@ -396,7 +420,7 @@ class _MessageScreenState extends State<MessageScreen> {
           borderRadius: BorderRadius.circular(GaonRadius.xl),
         ),
         title: Text(
-          '받는 사람 추가',
+          biLine('받는 사람 추가', 'Thêm người nhận', '添加收件人'),
           style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
         ),
         content: Column(
@@ -404,11 +428,15 @@ class _MessageScreenState extends State<MessageScreen> {
           children: [
             TextField(
               controller: nameCtrl,
-              decoration: const InputDecoration(hintText: '예) 최수민 선생님'),
+              decoration: InputDecoration(
+                hintText: '${bi('VD', '例')}) 최수민 선생님',
+              ),
             ),
             TextField(
               controller: roleCtrl,
-              decoration: const InputDecoration(hintText: '예) 3학년 1반 담임'),
+              decoration: InputDecoration(
+                hintText: '${bi('VD', '例')}) 3학년 1반 담임',
+              ),
             ),
           ],
         ),
@@ -416,14 +444,14 @@ class _MessageScreenState extends State<MessageScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(
-              '취소',
+              biLine('취소', 'Hủy', '取消'),
               style: GaonType.body.copyWith(color: GaonColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
-              '추가',
+              biLine('추가', 'Thêm', '添加'),
               style: GaonType.body.copyWith(
                 fontWeight: FontWeight.w700,
                 color: GaonColors.textPrimary,
@@ -474,13 +502,13 @@ class _MessageScreenState extends State<MessageScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '선생님께 문자',
+                        bi('Nhắn cho giáo viên', '给老师发消息'),
                         style: GaonType.h3.copyWith(
                           color: GaonColors.textPrimary,
                         ),
                       ),
                       Text(
-                        bi('Nhắn cho giáo viên', '给老师发消息'),
+                        '선생님께 문자',
                         style: GaonType.micro.copyWith(
                           color: GaonColors.textSecondary,
                         ),
@@ -538,7 +566,8 @@ class _MessageScreenState extends State<MessageScreen> {
                   Row(
                     children: [
                       Text(
-                        '자녀 · Con',
+                        // 'Con' 하드코딩(zh에서도 베트남어 노출되던 버그) → bi()로 수정
+                        biLine('자녀', 'Con', '孩子'),
                         style: GaonType.caption.copyWith(
                           fontWeight: FontWeight.w600,
                           color: GaonColors.textSecondary,
@@ -582,7 +611,7 @@ class _MessageScreenState extends State<MessageScreen> {
 
                 // 상황 선택
                 Text(
-                  '상황 선택 · ${bi('Chọn tình huống', '选择情况')}',
+                  biLine('상황 선택', 'Chọn tình huống', '选择情况'),
                   style: GaonType.caption.copyWith(
                     fontWeight: FontWeight.w600,
                     color: GaonColors.textSecondary,
@@ -593,17 +622,18 @@ class _MessageScreenState extends State<MessageScreen> {
                   spacing: GaonSpace.xs,
                   runSpacing: GaonSpace.xs,
                   children: [
-                    // 프리셋 상황 — 선택 시 커스텀 해제.
+                    // 프리셋 상황 — 모국어(주)·한국어(병기), 선택 시 커스텀 해제.
                     for (final s in MessageSituation.values)
                       _situationChip(
-                        text: s.label.$2,
+                        text: s.label.$1,
+                        sub: s.label.$2,
                         selected: _selectedCustom == null && _situation == s,
                         onTap: () => setState(() {
                           _situation = s;
                           _selectedCustom = null;
                         }),
                       ),
-                    // 사용자가 추가한 상황(custom).
+                    // 사용자가 추가한 상황(custom) — 입력한 언어 그대로.
                     for (final c in _customSituations)
                       _situationChip(
                         text: c,
@@ -613,6 +643,7 @@ class _MessageScreenState extends State<MessageScreen> {
                     // 직접 추가.
                     _situationChip(
                       text: '+ ${bi('Thêm', '添加')}',
+                      sub: '직접 추가',
                       selected: false,
                       onTap: _addCustomSituation,
                     ),
@@ -625,7 +656,7 @@ class _MessageScreenState extends State<MessageScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '내 언어로 입력 · ${bi('Nhập bằng tiếng Việt', '用中文输入')}',
+                      biLine('내 언어로 입력', 'Nhập bằng tiếng Việt', '用中文输入'),
                       style: GaonType.caption.copyWith(
                         fontWeight: FontWeight.w600,
                         color: GaonColors.textSecondary,
@@ -701,7 +732,7 @@ class _MessageScreenState extends State<MessageScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '한국어 번역 결과 · ${bi('Bản dịch tiếng Hàn', '韩语翻译结果')}',
+                      biLine('한국어 번역 결과', 'Bản dịch tiếng Hàn', '韩语翻译结果'),
                       style: GaonType.caption.copyWith(
                         fontWeight: FontWeight.w600,
                         color: GaonColors.textSecondary,
@@ -724,7 +755,12 @@ class _MessageScreenState extends State<MessageScreen> {
                     border: Border.all(width: 2, color: GaonColors.primary),
                   ),
                   child: Text(
-                    _message?.outputKo ?? '아래 ↓ 버튼을 누르면 정중한 한국어로 번역돼요',
+                    _message?.outputKo ??
+                        biLines(
+                          '아래 ↓ 버튼을 누르면 정중한 한국어로 번역돼요',
+                          'Nhấn nút ↓ để dịch sang tiếng Hàn lịch sự',
+                          '点击 ↓ 按钮即可翻译成礼貌的韩语',
+                        ),
                     style: GaonType.body.copyWith(
                       color: _message != null
                           ? GaonColors.textPrimary
@@ -738,7 +774,11 @@ class _MessageScreenState extends State<MessageScreen> {
                   const SizedBox(height: GaonSpace.sm),
                   // 행정 안내 (RAG) — 복사 가능(QA 2026-07-11). 전송 없음(결정 #2).
                   InfoBanner(
-                    ko: '행정 절차 안내',
+                    ko: biLine(
+                      '행정 절차 안내',
+                      'Hướng dẫn thủ tục hành chính',
+                      '行政程序指南',
+                    ),
                     native: _message!.adminGuideNative,
                     color: GaonColors.textSecondary,
                     bg: GaonColors.successLight,
@@ -749,8 +789,8 @@ class _MessageScreenState extends State<MessageScreen> {
                       alignment: Alignment.centerRight,
                       child: GaonButton(
                         variant: GaonButtonVariant.ghost,
-                        label: '안내 복사',
-                        subLabel: bi('Sao chép', '复制'),
+                        label: bi('Sao chép hướng dẫn', '复制指南'),
+                        subLabel: '안내 복사',
                         icon: const Icon(
                           Icons.copy_rounded,
                           size: 14,
@@ -766,8 +806,8 @@ class _MessageScreenState extends State<MessageScreen> {
                       Expanded(
                         child: GaonButton(
                           variant: GaonButtonVariant.ghost,
-                          label: '복사',
-                          subLabel: bi('Sao chép', '复制'),
+                          label: bi('Sao chép', '复制'),
+                          subLabel: '복사',
                           icon: const Icon(
                             Icons.copy_rounded,
                             size: 14,
@@ -779,8 +819,8 @@ class _MessageScreenState extends State<MessageScreen> {
                       const SizedBox(width: GaonSpace.xs),
                       Expanded(
                         child: GaonButton(
-                          label: '카톡 공유',
-                          subLabel: bi('Chia sẻ', '分享'),
+                          label: bi('Chia sẻ', '分享'),
+                          subLabel: '카톡 공유',
                           icon: const Icon(
                             Icons.share_rounded,
                             size: 14,

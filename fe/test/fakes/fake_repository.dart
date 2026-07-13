@@ -201,8 +201,18 @@ class FakeRepository implements GaonRepository {
       _delayed(demoActionCard.calendarEvents);
 
   @override
-  Future<List<CalendarEvent>> saveCalendarEvents({required String documentId}) {
-    // 최근 분석의 일정을 그대로 '저장됨'으로 반환.
+  Future<List<CalendarEvent>> saveCalendarEvents({
+    required String documentId,
+    List<CalendarEvent>? selected,
+  }) {
+    // 최근 분석의 일정을 '저장됨'으로 반환 — 선택 저장이면 해당 항목만(QA D-3).
+    if (selected != null) {
+      final keys = {for (final e in selected) (e.title, e.date)};
+      return _delayed([
+        for (final e in demoActionCard.calendarEvents)
+          if (keys.contains((e.title, e.date))) e,
+      ]);
+    }
     return _delayed(demoActionCard.calendarEvents);
   }
 

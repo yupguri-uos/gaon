@@ -8,21 +8,23 @@ import 'data/app_lang.dart';
 import 'data/auth_store.dart';
 import 'data/locator.dart';
 import 'data/teacher_store.dart';
+import 'screens/language_select_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
-import 'screens/onboarding_self_screen.dart';
+import 'screens/onboarding_child_screen.dart';
 import 'theme/tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthStore.init(); // 저장된 세션 토큰(F-ON-3) 로드 — ApiRepository가 사용
+  await AppLangStore.init(); // 선택 언어(F-ON-1) 로드 — 미선택이면 언어 선택부터
   await TeacherStore.load(); // 받는 사람(교사) 목록 — 기기 로컬 관리(F-TCH)
   runApp(const GaonApp());
 }
 
 /// GAON — 이주배경 학부모를 위한 알림장 AI 에이전트.
-/// v2 디자인(5 Flows · 15 Screens): 로그인 → 온보딩(본인·자녀) →
-/// 탭 셸(알림장 챗봇 / 캘린더 / 문자 / 설정).
+/// v2 디자인(5 Flows · 15 Screens): 언어 선택(첫 실행) → 로그인 →
+/// 온보딩(자녀) → 탭 셸(알림장 챗봇 / 캘린더 / 문자 / 설정).
 class GaonApp extends StatefulWidget {
   const GaonApp({super.key});
 
@@ -33,6 +35,10 @@ class GaonApp extends StatefulWidget {
 class _GaonAppState extends State<GaonApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<Uri>? _linkSub;
+
+  // 첫 화면 결정은 시작 시 1회 고정 — 언어 선택 중 저장(hasChoice 변경)으로
+  // home이 로그인으로 갈아끼워지는 화면 점프를 막는다('다음' 버튼으로만 진행).
+  late final bool _startAtLogin = AppLangStore.hasChoice;
 
   @override
   void initState() {
@@ -63,25 +69,37 @@ class _GaonAppState extends State<GaonApp> {
 
     final needsOnboarding = uri.queryParameters['needs_onboarding'] == 'true';
     if (!needsOnboarding) {
-      // 기가입 사용자: 병기 언어(vi/zh)를 프로필 기준으로 맞춘다 — 실패해도 진행
+      // 기가입 사용자: 표시 언어(vi/zh)를 프로필(서버 값) 기준으로 맞추고
+      // 로컬에도 저장한다 — 서버 우선, PATCH 동기화 없음(BE 무변경). 실패해도 진행.
       final repo = repository;
       if (repo is ApiRepository) {
         try {
           final me = await repo.fetchMe();
-          if (me != null) appLanguage.value = me.nativeLanguage;
+          if (me != null) await AppLangStore.save(me.nativeLanguage);
         } catch (_) {}
       }
     }
 
     final navigator = _navigatorKey.currentState;
     if (navigator == null) return;
-    navigator.pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) =>
-            needsOnboarding ? const OnboardingSelfScreen() : const MainShell(),
-      ),
-      (_) => false,
-    );
+    if (needsOnboarding) {
+      // 언어 선택을 루트에 깔고 자녀 등록을 올린다 — 자녀 등록에서 뒤로가기 시
+      // 언어 선택으로 복귀(L-3), 언어를 바꿔도 '다음'으로 다시 자녀 등록 진입.
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const LanguageSelectScreen(toChildOnboarding: true),
+        ),
+        (_) => false,
+      );
+      navigator.push(
+        MaterialPageRoute(builder: (_) => const OnboardingChildScreen()),
+      );
+    } else {
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (_) => false,
+      );
+    }
   }
 
   @override
@@ -115,7 +133,8 @@ class _GaonAppState extends State<GaonApp> {
           behavior: SnackBarBehavior.floating,
         ),
       ),
-      home: const LoginScreen(),
+      // 첫 실행(언어 미선택)은 언어 선택부터 — 이후 재실행은 저장 언어로 로그인부터
+      home: _startAtLogin ? const LoginScreen() : const LanguageSelectScreen(),
     );
   }
 }

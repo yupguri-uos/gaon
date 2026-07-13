@@ -410,9 +410,24 @@ class ApiRepository implements GaonRepository {
   @override
   Future<List<CalendarEvent>> saveCalendarEvents({
     required String documentId,
+    List<CalendarEvent>? selected,
   }) async {
     final json =
-        await _post('/calendar/events', {'document_id': documentId})
+        await _post('/calendar/events', {
+              'document_id': documentId,
+              // 선택 저장(QA D-3) — (title, date) 키만 보낸다. 미전달 = 전체 저장.
+              if (selected != null)
+                'selected': [
+                  for (final e in selected)
+                    {
+                      'title': e.title,
+                      'date':
+                          '${e.date.year.toString().padLeft(4, '0')}-'
+                          '${e.date.month.toString().padLeft(2, '0')}-'
+                          '${e.date.day.toString().padLeft(2, '0')}',
+                    },
+                ],
+            })
             as Map<String, dynamic>;
     return [
       for (final e in json['created'] as List)

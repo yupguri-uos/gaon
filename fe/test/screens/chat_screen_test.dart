@@ -43,10 +43,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1100)); // 폴링 1회(1초 간격)
     await tester.pumpAndSettle();
 
-    // S6 번역 결과: 원문·번역·단어 해설 칩
+    // S6 번역 결과: 원문·번역·단어 해설 칩 (모국어 주 · 한국어 병기)
     expect(find.text('번역 완료'), findsOneWidget);
-    expect(find.text('원문 한국어'), findsOneWidget);
+    expect(find.textContaining('원문 한국어'), findsOneWidget);
     expect(find.text('현장체험학습 ?'), findsOneWidget);
-    expect(find.text('📅 캘린더 저장'), findsOneWidget);
+    expect(find.text('캘린더 저장'), findsOneWidget);
   });
 }

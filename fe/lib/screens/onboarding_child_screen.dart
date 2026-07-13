@@ -12,15 +12,10 @@ import 'main_shell.dart';
 /// S3 온보딩 ② 자녀 등록 (F-ON-4) — 다자녀 지원.
 /// 학년(초1~6)·학교명 모두 shared-schema 정본 반영 완료(마이그레이션 0007·0009).
 /// API 모드: 첫 자녀는 POST /onboarding(프로필+자녀), 나머지는 POST /children.
+/// 출신국·모국어는 언어 선택(appLanguage)에서 도출 — 언어=국가 통합(2026-07-13),
+/// vi→VN·zh→CN 매핑으로 BE에는 기존대로 둘 다 전송한다(BE 무변경).
 class OnboardingChildScreen extends StatefulWidget {
-  const OnboardingChildScreen({
-    super.key,
-    required this.originCountry,
-    required this.nativeLanguage,
-  });
-
-  final OriginCountry originCountry;
-  final NativeLanguage nativeLanguage;
+  const OnboardingChildScreen({super.key});
 
   @override
   State<OnboardingChildScreen> createState() => _OnboardingChildScreenState();
@@ -69,7 +64,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '학년 · ${bi('Lớp', '年级')}',
+                biLine('학년', 'Lớp', '年级'),
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
               const SizedBox(height: GaonSpace.sm),
@@ -162,12 +157,12 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                 ),
                 children: [
                   Text(
-                    '자녀 정보를 등록해요',
+                    bi('Đăng ký thông tin con', '登记孩子信息'),
                     style: GaonType.h1.copyWith(color: GaonColors.textPrimary),
                   ),
                   const SizedBox(height: GaonSpace.xxs),
                   Text(
-                    bi('Đăng ký thông tin con', '登记孩子信息'),
+                    '자녀 정보를 등록해요',
                     style: GaonType.label.copyWith(
                       color: GaonColors.textSecondary,
                     ),
@@ -175,8 +170,11 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                   const SizedBox(height: GaonSpace.xs),
                   // 학교가 한국어 문서로 소통하므로 이름·학교명은 한국어 표기 권장
                   Text(
-                    '이름·학교명은 한국어로 적어 주세요 · '
-                    '${bi('Vui lòng viết bằng tiếng Hàn', '请用韩语填写')}',
+                    biLine(
+                      '이름·학교명은 한국어로 적어 주세요',
+                      'Vui lòng viết tên và tên trường bằng tiếng Hàn',
+                      '姓名和学校名请用韩语填写',
+                    ),
                     style: GaonType.caption.copyWith(
                       color: GaonColors.textSecondary,
                     ),
@@ -220,7 +218,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                           ),
                           const SizedBox(width: GaonSpace.xs),
                           Text(
-                            '자녀 추가 · ${bi('Thêm con', '添加子女')}',
+                            biLine('자녀 추가', 'Thêm con', '添加子女'),
                             style: GaonType.body.copyWith(
                               color: GaonColors.textSecondary,
                             ),
@@ -240,8 +238,8 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                 GaonSpace.lg,
               ),
               child: GaonButton(
-                label: '시작하기',
-                subLabel: '${bi('Bắt đầu', '开始')} →',
+                label: '${bi('Bắt đầu', '开始')} →',
+                subLabel: '시작하기',
                 onTap: () async {
                   final messenger = ScaffoldMessenger.of(context);
                   final navigator = Navigator.of(context);
@@ -258,14 +256,21 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                       builder: (dialogContext) => AlertDialog(
                         backgroundColor: GaonColors.surface,
                         title: Text(
-                          '이름·학교명 없이 등록할까요?',
+                          biLines(
+                            '이름·학교명 없이 등록할까요?',
+                            'Đăng ký mà không có tên/trường?',
+                            '不填姓名/学校继续注册吗？',
+                          ),
                           style: GaonType.h3.copyWith(
                             color: GaonColors.textPrimary,
                           ),
                         ),
                         content: Text(
-                          '${bi('Đăng ký mà không có tên/trường?', '不填姓名/学校继续注册吗？')}\n'
-                          '나중에 설정 > 자녀 관리에서 채울 수 있어요',
+                          biLines(
+                            '나중에 설정 > 자녀 관리에서 채울 수 있어요',
+                            'Có thể bổ sung sau trong Cài đặt > Quản lý con',
+                            '之后可以在 设置 > 子女管理 中补填',
+                          ),
                           style: GaonType.caption.copyWith(
                             color: GaonColors.textSecondary,
                           ),
@@ -275,7 +280,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                             onPressed: () =>
                                 Navigator.of(dialogContext).pop(false),
                             child: Text(
-                              '계속 입력',
+                              biLine('계속 입력', 'Nhập tiếp', '继续填写'),
                               style: GaonType.body.copyWith(
                                 color: GaonColors.textPrimary,
                               ),
@@ -285,7 +290,7 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                             onPressed: () =>
                                 Navigator.of(dialogContext).pop(true),
                             child: Text(
-                              '이대로 등록',
+                              biLine('이대로 등록', 'Đăng ký luôn', '直接注册'),
                               style: GaonType.body.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: GaonColors.textPrimary,
@@ -306,9 +311,13 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                       final school = form.school.text.trim();
                       final classNo = form.classNo.text.trim();
                       if (i == 0 && repo is ApiRepository) {
+                        // 언어=국가 통합: 선택 언어에서 국가 자동 매핑(vi→VN, zh→CN)
+                        final lang = appLanguage.value;
                         await repo.submitOnboarding(
-                          originCountry: widget.originCountry,
-                          nativeLanguage: widget.nativeLanguage,
+                          originCountry: lang == NativeLanguage.zh
+                              ? OriginCountry.cn
+                              : OriginCountry.vn,
+                          nativeLanguage: lang,
                           childGrade: form.grade,
                           childName: name.isEmpty ? null : name,
                           childClassNo: classNo.isEmpty ? null : classNo,
@@ -325,7 +334,15 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                     }
                   } catch (e) {
                     messenger.showSnackBar(
-                      SnackBar(content: Text('등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)')),
+                      SnackBar(
+                        content: Text(
+                          biLines(
+                            '등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)',
+                            'Đăng ký thất bại — hãy kiểm tra mạng',
+                            '注册失败——请检查网络',
+                          ),
+                        ),
+                      ),
                     );
                     return;
                   }
@@ -374,7 +391,7 @@ class _ChildCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '자녀 ${index + 1}',
+                  biLine('자녀 ${index + 1}', 'Con ${index + 1}', '孩子 ${index + 1}'),
                   style: GaonType.body.copyWith(
                     fontWeight: FontWeight.w700,
                     color: GaonColors.textPrimary,
@@ -394,7 +411,7 @@ class _ChildCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(GaonRadius.pill),
                     ),
                     child: Text(
-                      '삭제',
+                      biLine('삭제', 'Xóa', '删除'),
                       style: GaonType.micro.copyWith(
                         fontWeight: FontWeight.w600,
                         color: GaonColors.warning,
@@ -413,7 +430,7 @@ class _ChildCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(GaonRadius.pill),
                   ),
                   child: Text(
-                    '등록 중',
+                    biLine('등록 중', 'Đang đăng ký', '登记中'),
                     style: GaonType.micro.copyWith(
                       fontWeight: FontWeight.w600,
                       color: GaonColors.textPrimary,
@@ -423,12 +440,20 @@ class _ChildCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: GaonSpace.sm),
-          _field('학교명 · ${bi('Tên trường', '学校名称')}', form.school, '예) 가온초등학교'),
+          _field(
+            biLine('학교명', 'Tên trường', '学校名称'),
+            form.school,
+            '${bi('VD', '例')}) 가온초등학교',
+          ),
           const SizedBox(height: GaonSpace.xs),
-          _field('이름 · ${bi('Tên con', '孩子姓名')}', form.name, '자녀 이름 (한국어)'),
+          _field(
+            biLine('이름', 'Tên con', '孩子姓名'),
+            form.name,
+            biLine('자녀 이름(한국어)', 'Tên con (tiếng Hàn)', '孩子姓名（韩语）'),
+          ),
           const SizedBox(height: GaonSpace.xs),
           Text(
-            '학년·반 · ${bi('Lớp', '年级·班')}',
+            biLine('학년·반', 'Lớp · Ban', '年级·班'),
             style: GaonType.micro.copyWith(
               fontWeight: FontWeight.w600,
               color: GaonColors.textSecondary,
@@ -456,7 +481,7 @@ class _ChildCard extends StatelessWidget {
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: '반 (예: 3, 다솜)',
+                      hintText: biLine('반 (예: 3, 다솜)', 'Ban', '班'),
                       hintStyle: GaonType.body.copyWith(
                         color: GaonColors.textSecondary,
                       ),

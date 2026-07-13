@@ -114,21 +114,25 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             children: [
               Text(
                 edit == null
-                    ? '자녀 추가 · ${bi('Thêm con', '添加子女')}'
-                    : '자녀 수정 · ${bi('Sửa thông tin con', '修改子女信息')}',
+                    ? biLine('자녀 추가', 'Thêm con', '添加子女')
+                    : biLine('자녀 수정', 'Sửa thông tin con', '修改子女信息'),
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
               const SizedBox(height: GaonSpace.md),
-              _sheetField('이름 · ${bi('Tên con', '孩子姓名')}', nameCtrl, '자녀 이름'),
+              _sheetField(
+                biLine('이름', 'Tên con', '孩子姓名'),
+                nameCtrl,
+                biLine('자녀 이름(한국어)', 'Tên con (tiếng Hàn)', '孩子姓名（韩语）'),
+              ),
               const SizedBox(height: GaonSpace.sm),
               _sheetField(
-                '학교명 · ${bi('Tên trường', '学校名称')}',
+                biLine('학교명', 'Tên trường', '学校名称'),
                 schoolCtrl,
-                '예) 가온초등학교',
+                '${bi('VD', '例')}) 가온초등학교',
               ),
               const SizedBox(height: GaonSpace.sm),
               Text(
-                '학년 · ${bi('Lớp', '年级')}',
+                biLine('학년', 'Lớp', '年级'),
                 style: GaonType.micro.copyWith(
                   fontWeight: FontWeight.w600,
                   color: GaonColors.textSecondary,
@@ -141,19 +145,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 children: [
                   for (final g in ChildGrade.values)
                     _sheetChip(
-                      label: '초${g.wire.split('_').last}',
+                      label: g.label,
                       selected: grade == g,
                       onTap: () => setSheetState(() => grade = g),
                     ),
                 ],
               ),
               const SizedBox(height: GaonSpace.sm),
-              _sheetField('반 · ${bi('Ban', '班')}', classCtrl, '예) 3 또는 다솜'),
+              _sheetField(
+                biLine('반', 'Ban', '班'),
+                classCtrl,
+                '${bi('VD', '例')}) 3 ${bi('hoặc', '或')} 다솜',
+              ),
               const SizedBox(height: GaonSpace.lg),
               GaonButton(
                 label: edit == null
-                    ? '등록하기 · ${bi('Đăng ký', '注册')}'
-                    : '저장하기 · ${bi('Lưu', '保存')}',
+                    ? biLine('등록하기', 'Đăng ký', '注册')
+                    : biLine('저장하기', 'Lưu', '保存'),
                 onTap: () => Navigator.of(sheetContext).pop(true),
               ),
             ],
@@ -184,7 +192,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           color: childColorPalette[existingCount % childColorPalette.length],
         );
         if (!mounted) return;
-        _snack('${name.isEmpty ? '자녀' : name} 등록 완료!');
+        _snack(
+          biLine(
+            '${name.isEmpty ? '자녀' : name} 등록 완료!',
+            'Đã đăng ký xong!',
+            '登记完成！',
+          ),
+        );
       } else {
         await repository.updateChild(
           childId: edit.childId,
@@ -194,7 +208,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           schoolName: school.isEmpty ? null : school,
         );
         if (!mounted) return;
-        _snack('${name.isEmpty ? '자녀' : name} 정보를 수정했어요');
+        _snack(
+          biLine(
+            '${name.isEmpty ? '자녀' : name} 정보를 수정했어요',
+            'Đã cập nhật thông tin',
+            '已修改信息',
+          ),
+        );
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -203,15 +223,31 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         e.statusCode == 400
             ? e.message
             : (edit == null
-                  ? '등록에 실패했어요 — 잠시 후 다시 시도해 주세요'
-                  : '수정에 실패했어요 — 잠시 후 다시 시도해 주세요'),
+                  ? biLines(
+                      '등록에 실패했어요 — 잠시 후 다시 시도해 주세요',
+                      'Đăng ký thất bại — thử lại sau',
+                      '登记失败——请稍后再试',
+                    )
+                  : biLines(
+                      '수정에 실패했어요 — 잠시 후 다시 시도해 주세요',
+                      'Cập nhật thất bại — thử lại sau',
+                      '修改失败——请稍后再试',
+                    )),
       );
     } catch (e) {
       if (!mounted) return;
       _snack(
         edit == null
-            ? '등록에 실패했어요 — 잠시 후 다시 시도해 주세요'
-            : '수정에 실패했어요 — 잠시 후 다시 시도해 주세요',
+            ? biLines(
+                '등록에 실패했어요 — 잠시 후 다시 시도해 주세요',
+                'Đăng ký thất bại — thử lại sau',
+                '登记失败——请稍后再试',
+              )
+            : biLines(
+                '수정에 실패했어요 — 잠시 후 다시 시도해 주세요',
+                'Cập nhật thất bại — thử lại sau',
+                '修改失败——请稍后再试',
+              ),
       );
     } finally {
       // 스피너 없이 자녀 목록만 갱신(변경 사항 즉시 표시)
@@ -293,25 +329,29 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           borderRadius: BorderRadius.circular(GaonRadius.xl),
         ),
         title: Text(
-          '${child.name ?? '자녀'} 삭제',
+          '${child.name ?? biLine('자녀', 'Con', '孩子')} ${biLine('삭제', 'Xóa', '删除')}',
           style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
         ),
         content: Text(
-          '이 자녀 정보를 삭제할까요?\n${bi('Xóa thông tin con này?', '要删除这个孩子的信息吗？')}',
+          biLines(
+            '이 자녀 정보를 삭제할까요?',
+            'Xóa thông tin con này?',
+            '要删除这个孩子的信息吗？',
+          ),
           style: GaonType.body.copyWith(color: GaonColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
-              '취소',
+              biLine('취소', 'Hủy', '取消'),
               style: GaonType.body.copyWith(color: GaonColors.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              '삭제',
+              biLine('삭제', 'Xóa', '删除'),
               style: GaonType.body.copyWith(
                 fontWeight: FontWeight.w700,
                 color: GaonColors.warning,
@@ -329,19 +369,29 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           if (c.childId != child.childId) c,
       ],
     );
-    _snack('${child.name ?? '자녀'} 정보를 삭제했어요');
+    _snack(
+      biLine('${child.name ?? '자녀'} 정보를 삭제했어요', 'Đã xóa', '已删除'),
+    );
     try {
       await repository.deleteChild(child.childId);
     } on ApiException catch (e) {
       if (!mounted) return;
       // 404 = 이미 삭제됨(중복 탭 등) — 화면 상태 그대로 두면 됨
       if (e.statusCode != 404) {
-        _snack('삭제에 실패했어요 (오류 ${e.statusCode})');
+        _snack(
+          biLine('삭제에 실패했어요 (오류 ${e.statusCode})', 'Xóa thất bại', '删除失败'),
+        );
         await _resyncChildren();
       }
     } catch (e) {
       if (!mounted) return;
-      _snack('삭제에 실패했어요 — 잠시 후 다시 시도해 주세요');
+      _snack(
+        biLines(
+          '삭제에 실패했어요 — 잠시 후 다시 시도해 주세요',
+          'Xóa thất bại — thử lại sau',
+          '删除失败——请稍后再试',
+        ),
+      );
       await _resyncChildren();
     }
   }
@@ -387,13 +437,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '개인정보 수정',
+                        bi('Chỉnh sửa hồ sơ', '修改个人信息'),
                         style: GaonType.h3.copyWith(
                           color: GaonColors.textPrimary,
                         ),
                       ),
                       Text(
-                        bi('Chỉnh sửa hồ sơ', '修改个人信息'),
+                        '개인정보 수정',
                         style: GaonType.micro.copyWith(
                           color: GaonColors.textSecondary,
                         ),
@@ -410,8 +460,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 builder: (context, snap) {
                   if (snap.hasError) {
                     return GaonAsyncError(
-                      message: '정보를 불러오지 못했어요',
-                      subMessage: '네트워크 확인 후 다시 시도해 주세요',
+                      message: biLines(
+                        '정보를 불러오지 못했어요',
+                        'Không tải được thông tin',
+                        '无法加载信息',
+                      ),
+                      subMessage: biLines(
+                        '네트워크 확인 후 다시 시도해 주세요',
+                        'Hãy kiểm tra mạng rồi thử lại',
+                        '请检查网络后重试',
+                      ),
                       onRetry: () => setState(() => _future = _load()),
                     );
                   }
@@ -429,7 +487,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     padding: const EdgeInsets.all(GaonSpace.md),
                     children: [
                       Text(
-                        '학부모 정보',
+                        biLine('학부모 정보', 'Thông tin phụ huynh', '家长信息'),
                         style: GaonType.label.copyWith(
                           color: GaonColors.textSecondary,
                         ),
@@ -448,13 +506,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         child: Column(
                           children: [
                             _infoRow(
-                              '출신국 · ${bi('Quốc gia', '国家')}',
+                              biLine('출신국', 'Quốc gia', '国家'),
                               user.originCountry.label,
                               onEdit: () => _editCountry(user),
                             ),
                             const GaonDivider(),
                             _infoRow(
-                              '모국어 · ${bi('Ngôn ngữ', '语言')}',
+                              biLine('모국어', 'Ngôn ngữ', '语言'),
                               user.nativeLanguage.label,
                               onEdit: () => _editLanguage(user),
                             ),
@@ -464,7 +522,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       const SizedBox(height: GaonSpace.md),
 
                       Text(
-                        '자녀 정보 · ${bi('Thông tin con', '子女信息')}',
+                        biLine('자녀 정보', 'Thông tin con', '子女信息'),
                         key: _childrenSectionKey,
                         style: GaonType.label.copyWith(
                           color: GaonColors.textSecondary,
@@ -490,13 +548,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      child.name ?? '자녀',
+                                      child.name ?? biLine('자녀', 'Con', '孩子'),
                                       style: GaonType.h3.copyWith(
                                         color: GaonColors.textPrimary,
                                       ),
                                     ),
                                     Text(
-                                      '${child.schoolName ?? '학교 미등록'} · '
+                                      '${child.schoolName ?? biLine('학교 미등록', 'Chưa đăng ký trường', '未登记学校')} · '
                                       '${child.grade.label.split(' / ').last} '
                                       '${child.classNo ?? '?'}반',
                                       style: GaonType.caption.copyWith(
@@ -507,7 +565,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                 ),
                               ),
                               _pillButton(
-                                '수정',
+                                biLine('수정', 'Sửa', '修改'),
                                 GaonColors.primaryLight,
                                 GaonColors.textPrimary,
                                 () => _showChildSheet(
@@ -517,7 +575,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               ),
                               const SizedBox(width: 6),
                               _pillButton(
-                                '삭제',
+                                biLine('삭제', 'Xóa', '删除'),
                                 GaonColors.warningLight,
                                 GaonColors.warning,
                                 () => _deleteChild(child, children),
@@ -549,7 +607,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               ),
                               const SizedBox(width: GaonSpace.xs),
                               Text(
-                                '자녀 추가 · ${bi('Thêm con', '添加子女')}',
+                                biLine('자녀 추가', 'Thêm con', '添加子女'),
                                 style: GaonType.body.copyWith(
                                   color: GaonColors.textSecondary,
                                 ),
@@ -572,7 +630,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 GaonSpace.lg,
               ),
               child: GaonButton(
-                label: '저장하기 · ${bi('Lưu thay đổi', '保存')}',
+                label: bi('Lưu thay đổi', '保存'),
+                subLabel: '저장하기',
                 onTap: () => Navigator.of(context).maybePop(),
               ),
             ),
@@ -608,7 +667,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             ),
           ),
           _pillButton(
-            '변경',
+            biLine('변경', 'Đổi', '更改'),
             GaonColors.primaryLight,
             GaonColors.textPrimary,
             onEdit,
@@ -624,7 +683,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   Future<void> _editCountry(User user) async {
     final selected = await _pickOption<OriginCountry>(
-      title: '출신국 변경 · ${bi('Đổi quốc gia', '更改国家')}',
+      title: biLine('출신국 변경', 'Đổi quốc gia', '更改国家'),
       options: OriginCountry.values,
       labelOf: (v) => v.label,
       current: user.originCountry,
@@ -633,17 +692,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     try {
       await repository.updateProfile(originCountry: selected);
       if (!mounted) return;
-      _snack('출신국을 변경했어요');
+      _snack(biLine('출신국을 변경했어요', 'Đã đổi quốc gia', '已更改国家'));
       setState(() => _future = _load());
     } catch (_) {
       if (!mounted) return;
-      _snack('변경에 실패했어요 — 잠시 후 다시 시도해 주세요');
+      _snack(
+        biLines(
+          '변경에 실패했어요 — 잠시 후 다시 시도해 주세요',
+          'Thay đổi thất bại — thử lại sau',
+          '更改失败——请稍后再试',
+        ),
+      );
     }
   }
 
   Future<void> _editLanguage(User user) async {
     final selected = await _pickOption<NativeLanguage>(
-      title: '모국어 변경 · ${bi('Đổi ngôn ngữ', '更改语言')}',
+      title: biLine('모국어 변경', 'Đổi ngôn ngữ', '更改语言'),
       options: NativeLanguage.values,
       labelOf: (v) => v.label,
       current: user.nativeLanguage,
@@ -651,13 +716,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     if (selected == null || selected == user.nativeLanguage) return;
     try {
       await repository.updateProfile(nativeLanguage: selected);
-      appLanguage.value = selected; // 전 화면 병기 언어 즉시 갱신
+      await AppLangStore.save(selected); // 전 화면 표시 언어 즉시 갱신 + 로컬 저장
       if (!mounted) return;
-      _snack('모국어를 변경했어요');
+      _snack(biLine('모국어를 변경했어요', 'Đã đổi ngôn ngữ', '已更改语言'));
       setState(() => _future = _load());
     } catch (_) {
       if (!mounted) return;
-      _snack('변경에 실패했어요 — 잠시 후 다시 시도해 주세요');
+      _snack(
+        biLines(
+          '변경에 실패했어요 — 잠시 후 다시 시도해 주세요',
+          'Thay đổi thất bại — thử lại sau',
+          '更改失败——请稍后再试',
+        ),
+      );
     }
   }
 
