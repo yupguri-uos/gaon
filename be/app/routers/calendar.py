@@ -60,6 +60,9 @@ class CalendarEventItem(BaseModel):
     title: str
     date: str
     type: str
+    # 출처 문서 제목(QA D-5) — 엔드포인트 로컬 필드(shared-schema 무변경).
+    # 출처 문서가 없거나 제목 미상이면 null(FE는 출처 줄 생략).
+    source_title: str | None = None
 
 
 class CalendarEventListResponse(BaseModel):
@@ -147,6 +150,13 @@ def list_calendar_events(
     stmt = stmt.order_by(CalendarEventRow.event_date)
     rows = db.execute(stmt).scalars().all()
 
+    # 출처 문서 제목(QA D-5) — N+1 방지를 위해 document_id를 모아 한 번에 조회
+    doc_ids = {row.document_id for row in rows if row.document_id is not None}
+    source_titles: dict = {}
+    if doc_ids:
+        documents = db.execute(select(Document).where(Document.id.in_(doc_ids))).scalars().all()
+        source_titles = {d.id: d.title for d in documents}
+
     return CalendarEventListResponse(
         events=[
             CalendarEventItem(
@@ -156,6 +166,8 @@ def list_calendar_events(
                 title=row.title,
                 date=row.event_date.isoformat(),
                 type=row.type,
+                # 빈 제목("")도 null 취급 — FE가 빈 출처 줄을 그리지 않게
+                source_title=source_titles.get(row.document_id) or None,
             )
             for row in rows
         ]
