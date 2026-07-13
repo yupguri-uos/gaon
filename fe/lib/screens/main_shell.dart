@@ -72,7 +72,8 @@ class _MainShellState extends State<MainShell> {
             children: [
               _tab(
                 0,
-                label: '알림장',
+                label: bi('Thông báo', '通知单'),
+                sub: '알림장',
                 icon: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
                   child: Image.asset(
@@ -85,7 +86,8 @@ class _MainShellState extends State<MainShell> {
               ),
               _tab(
                 1,
-                label: '캘린더',
+                label: bi('Lịch', '日历'),
+                sub: '캘린더',
                 icon: Icon(
                   Icons.calendar_month_rounded,
                   size: 20,
@@ -94,12 +96,14 @@ class _MainShellState extends State<MainShell> {
               ),
               _tab(
                 2,
-                label: '문자',
+                label: bi('Tin nhắn', '短信'),
+                sub: '문자',
                 icon: Icon(Icons.chat_rounded, size: 20, color: _color(2)),
               ),
               _tab(
                 3,
-                label: '설정',
+                label: bi('Cài đặt', '设置'),
+                sub: '설정',
                 icon: Icon(Icons.settings_rounded, size: 20, color: _color(3)),
               ),
             ],
@@ -112,12 +116,18 @@ class _MainShellState extends State<MainShell> {
   Color _color(int i) =>
       _index == i ? GaonColors.textPrimary : GaonColors.textSecondary;
 
-  Widget _tab(int i, {required String label, required Widget icon}) {
+  // 탭 라벨 — 모국어(주) + 한국어(병기, 더 작게)
+  Widget _tab(
+    int i, {
+    required String label,
+    required String sub,
+    required Widget icon,
+  }) {
     return Expanded(
       child: InkWell(
         onTap: () => mainTabIndex.value = i,
         child: Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 6),
+          padding: const EdgeInsets.only(top: 8, bottom: 5),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -125,10 +135,19 @@ class _MainShellState extends State<MainShell> {
               const SizedBox(height: 3),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: _index == i ? FontWeight.w700 : FontWeight.w400,
                   color: _color(i),
+                ),
+              ),
+              Text(
+                sub,
+                style: TextStyle(
+                  fontSize: 8,
+                  color: GaonColors.textSecondary,
                 ),
               ),
             ],

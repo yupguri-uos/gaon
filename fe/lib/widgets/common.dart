@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../data/app_lang.dart';
 import '../theme/tokens.dart';
 
-/// 이중언어 라벨 — 한국어(주, 크게) 먼저 + 모국어(병기, 작게) 아래.
-/// 언어 순서 규칙(2026-07-11 팀 결정): 시스템 전체 '한국어 → 모국어'.
+/// 이중언어 라벨 — 모국어(주, 크게) 먼저 + 한국어(병기, 작게) 아래.
+/// 언어 순서 규칙(2026-07-13 팀 결정): 시스템 전체 '모국어 → 한국어'.
 /// [native]에는 appLanguage 기준 문자열(bi() 래핑)을 넘긴다.
 /// 고정 높이 금지(성조 기호·긴 문장 대응) — 항상 가변 높이.
 class BiText extends StatelessWidget {
@@ -12,8 +12,8 @@ class BiText extends StatelessWidget {
     super.key,
     required this.ko,
     required this.native,
-    this.koStyle = GaonType.body,
-    this.nativeStyle = GaonType.caption,
+    this.nativeStyle = GaonType.body,
+    this.koStyle = GaonType.caption,
     this.align = TextAlign.left,
   });
 
@@ -25,26 +25,38 @@ class BiText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 데이터 결손 방어(QA D-7): 한쪽이 비면 빈 줄을 그리지 않는다 —
+    // 서버 데이터(name_ko 등)가 비어 와도 고아 줄·빈 공백이 생기지 않게.
+    final hasNative = native.trim().isNotEmpty;
+    final hasKo = ko.trim().isNotEmpty;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: align == TextAlign.center
           ? CrossAxisAlignment.center
           : CrossAxisAlignment.start,
       children: [
-        Text(
-          ko,
-          textAlign: align,
-          style: koStyle.copyWith(color: GaonColors.textPrimary, height: 1.4),
-        ),
-        const SizedBox(height: GaonSpace.xxs),
-        Text(
-          native,
-          textAlign: align,
-          style: nativeStyle.copyWith(
-            color: GaonColors.textSecondary,
-            height: 1.4,
+        if (hasNative)
+          Text(
+            native,
+            textAlign: align,
+            style: nativeStyle.copyWith(
+              color: GaonColors.textPrimary,
+              height: 1.4,
+            ),
           ),
-        ),
+        if (hasNative && hasKo) const SizedBox(height: GaonSpace.xxs),
+        if (hasKo)
+          Text(
+            ko,
+            textAlign: align,
+            style: koStyle.copyWith(
+              // 단독 표기(모국어 결손 시)면 주 텍스트 색으로 승격
+              color: hasNative
+                  ? GaonColors.textSecondary
+                  : GaonColors.textPrimary,
+              height: 1.4,
+            ),
+          ),
       ],
     );
   }
@@ -110,6 +122,14 @@ class GaonButton extends StatelessWidget {
             vertical: GaonSpace.sm,
             horizontal: GaonSpace.lg,
           ),
+          decoration: variant == GaonButtonVariant.ghost
+              // 연민트 bg가 흰 다이얼로그에 묻힌다는 지적('건너뛰기', QA D-3) —
+              // 진초록 외곽선으로 버튼 경계를 확보(토큰만 사용)
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(GaonRadius.pill),
+                  border: Border.all(color: GaonColors.textPrimary, width: 1.2),
+                )
+              : null,
           child: Row(
             mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -134,7 +154,7 @@ class GaonButton extends StatelessWidget {
   }
 }
 
-/// 틴트 라운드 입력/드롭다운 표시 카드. 라벨 순서: 한국어 → 모국어.
+/// 틴트 라운드 입력/드롭다운 표시 카드. 라벨 순서: 모국어 → 한국어.
 class InputCard extends StatelessWidget {
   const InputCard({
     super.key,
@@ -171,7 +191,7 @@ class InputCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$koLabel · $nativeLabel',
+                      '$nativeLabel · $koLabel',
                       style: GaonType.micro.copyWith(
                         color: GaonColors.textSecondary,
                       ),
@@ -202,7 +222,7 @@ class InputCard extends StatelessWidget {
 }
 
 /// pill 필터 칩. 선택 = success 채움, 미선택 = primaryLight.
-/// 언어 순서: 한국어(주) → 모국어(병기).
+/// 언어 순서: 모국어(주) → 한국어(병기).
 class GaonChip extends StatelessWidget {
   const GaonChip({
     super.key,
@@ -235,13 +255,13 @@ class GaonChip extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                ko,
+                native,
                 style: GaonType.label.copyWith(
                   color: selected ? Colors.white : GaonColors.primary,
                 ),
               ),
               Text(
-                native,
+                ko,
                 style: GaonType.micro.copyWith(
                   color: selected
                       ? const Color(0xB3FFFFFF)
@@ -281,7 +301,7 @@ class SurfaceCard extends StatelessWidget {
   }
 }
 
-/// 화면 헤더 (뒤로가기 옵션). 언어 순서: 한국어(주) → 모국어(병기).
+/// 화면 헤더 (뒤로가기 옵션). 언어 순서: 모국어(주) → 한국어(병기).
 class GaonHeader extends StatelessWidget {
   const GaonHeader({
     super.key,
@@ -307,7 +327,9 @@ class GaonHeader extends StatelessWidget {
         children: [
           if (showBack) ...[
             Material(
-              color: GaonColors.primaryLight,
+              // 민트 계열 원 안 화살표가 민트 화면 배경에 묻힌다는 지적(QA D-8) —
+              // 진초록 원 + 밝은 화살표로 반전(토큰만 사용, 최고 대비)
+              color: GaonColors.textPrimary,
               shape: const CircleBorder(),
               child: InkWell(
                 onTap: () => Navigator.of(context).maybePop(),
@@ -318,8 +340,7 @@ class GaonHeader extends StatelessWidget {
                   child: Icon(
                     Icons.arrow_back_rounded,
                     size: 16,
-                    // 저대비(민트 on 연민트) 지적으로 진초록으로 변경(2026-07-11 QA)
-                    color: GaonColors.textPrimary,
+                    color: GaonColors.onPrimary,
                   ),
                 ),
               ),
@@ -329,8 +350,8 @@ class GaonHeader extends StatelessWidget {
           BiText(
             ko: ko,
             native: native,
-            koStyle: GaonType.h2,
-            nativeStyle: GaonType.micro,
+            nativeStyle: GaonType.h2,
+            koStyle: GaonType.micro,
           ),
         ],
       ),
@@ -497,7 +518,7 @@ class GaonAsyncError extends StatelessWidget {
             if (onRetry != null) ...[
               const SizedBox(height: GaonSpace.md),
               GaonButton(
-                label: '다시 시도 · ${bi('Thử lại', '重试')}',
+                label: biLine('다시 시도', 'Thử lại', '重试'),
                 fullWidth: false,
                 onTap: onRetry,
               ),

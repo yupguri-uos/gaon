@@ -82,8 +82,8 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: e.hashCode & 0x7fffffff, // 이벤트별 안정 id
         title: isDeadline
-            ? '⏰ 마감 임박 (D-2) · ${bi('Sắp đến hạn', '截止临近')}'
-            : '📅 내일 일정 · ${bi('Ngày mai', '明天日程')}',
+            ? '⏰ ${biLine('마감 임박 (D-2)', 'Sắp đến hạn', '截止临近')}'
+            : '📅 ${biLine('내일 일정', 'Ngày mai', '明天日程')}',
         body: '${e.title} — ${e.date.month}/${e.date.day}',
         scheduledDate: fireAt,
         notificationDetails: _details,

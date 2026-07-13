@@ -19,14 +19,18 @@ test/fakes/   테스트 대역 FakeRepository + 데모 시나리오 픽스처(de
   변경은 SSOT → schema.py → schema.dart 순. JSON은 snake_case, date는 'yyyy-MM-dd',
   enum wire 문자열은 Pydantic Literal과 동일해야 함 (test/models/schema_test.dart가 검증).
 - **색·크기 하드코딩 금지** — theme/tokens.dart의 토큰만 사용. 시안에만 있는 일회성 색은 예외로 인라인 허용.
-- **이중언어**: 주 텍스트 + 병기(작게, textSecondary). 고정 높이 금지 — 베트남어는 길고 성조 기호가 있다.
+- **이중언어**: 주 텍스트 = 사용자 모국어(vi/zh), 병기(작게, textSecondary) = 한국어(2026-07-13 팀 결정 — 이전 '한국어 주'에서 반전).
+  공용 패턴은 BiText(두 줄)·biLine(한 줄)·biLines(문장 두 줄, data/app_lang.dart)만 사용 — 수제 문자열 조합 금지.
+  단, 서버 생성 콘텐츠는 언어가 데이터에 내재(output_ko·reply_draft_ko·raw_text=한국어가 기능, *_native=이미 모국어) — 내용은 뒤집지 않고 라벨만 병기.
+  고정 높이 금지 — 베트남어는 길고 성조 기호가 있다.
 - **데모 시나리오 픽스처는 test/fakes/demo_fixtures.dart에만(테스트 전용).** 화면에 시나리오 문자열 하드코딩 금지.
 - D-day 등 날짜 계산 기준일은 `repository.now()` — DateTime.now() 직접 사용 금지
   (ApiRepository는 DateTime.now(), FakeRepository는 데모 기준일 6/10 고정).
 - Chain B(교사 메시지)는 생성·복사·공유까지만. 전송 버튼 금지(제품 결정, 루트 CLAUDE.md 참조).
 
 ## schema보다 앞서간 UI (SSOT 결정 대기 — schema 반영 전까지 UI 전용)
-- 출신국 필리핀·태국·한국 / 모국어 Filipino·태국어 (schema: VN/CN · vi/zh)
+- ~~출신국 필리핀·태국·한국 / 모국어 Filipino·태국어~~ → '언어=국가 통합' 결정(2026-07-13)으로 해소 —
+  온보딩은 언어 선택(vi/zh) 단일 화면, vi→VN·zh→CN 자동 매핑(language_select_screen.dart)
 - 교사 목록(문자 받는 사람) (Teacher 엔티티 없음 — data/ui_placeholders.dart)
 - ~~학년 초1~6~~ · ~~학교명~~ → schema 정본 반영 완료(마이그레이션 0007·0009), FE 미러 동기화됨
 

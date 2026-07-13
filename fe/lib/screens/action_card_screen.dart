@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data/app_lang.dart';
+import '../data/app_nav.dart';
 import '../data/locator.dart';
 import '../data/notification_service.dart';
 import '../data/repository.dart';
@@ -55,19 +56,61 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
       Uri.parse(webUrl),
       mode: LaunchMode.externalApplication,
     );
-    if (!ok && mounted) _snack('쿠팡을 열지 못했어요 — 실기기에서 확인해 주세요');
+    if (!ok && mounted) {
+      _snack(
+        biLines(
+          '쿠팡을 열지 못했어요 — 실기기에서 확인해 주세요',
+          'Không mở được Coupang',
+          '无法打开Coupang',
+        ),
+      );
+    }
   }
 
   /// F-DOC-7: 캘린더 실저장 + 리마인드 예약.
-  Future<void> _saveToCalendar(String documentId) async {
+  /// [selected] 전달 시 해당 일정만 저장(QA D-3b·D-4 — 일정별 '추가' 버튼).
+  /// 저장한 일정이 과거·다른 달이면 현재 월 캘린더에 안 보여 "추가 안 됨"으로
+  /// 오인된다(QA D-4 조사 결과) — 성공 스낵바에 '캘린더 보기'(해당 월 포커스 이동)를 단다.
+  Future<void> _saveToCalendar(
+    String documentId, {
+    List<CalendarEvent>? selected,
+  }) async {
     try {
-      final saved = await repository.saveCalendarEvents(documentId: documentId);
+      final saved = await repository.saveCalendarEvents(
+        documentId: documentId,
+        selected: selected,
+      );
       await NotificationService.instance.scheduleEventReminders(saved);
       if (!mounted) return;
-      _snack('일정 ${saved.length}개를 캘린더에 저장했어요 · ${bi('Đã lưu', '已保存')}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            biLine(
+              '일정 ${saved.length}개를 캘린더에 저장했어요',
+              'Đã lưu ${saved.length} lịch',
+              '已保存 ${saved.length} 个日程',
+            ),
+          ),
+          action: SnackBarAction(
+            label: biLine('캘린더 보기', 'Xem lịch', '查看日历'),
+            textColor: GaonColors.primary,
+            onPressed: () {
+              // 행동 카드(푸시 화면)를 닫고 저장된 일정의 월로 캘린더 포커스
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              goToCalendar(saved.firstOrNull?.date);
+            },
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      _snack('캘린더 저장에 실패했어요 — 네트워크를 확인해 주세요');
+      _snack(
+        biLines(
+          '캘린더 저장에 실패했어요 — 네트워크를 확인해 주세요',
+          'Lưu lịch thất bại — hãy kiểm tra mạng',
+          '保存日历失败——请检查网络',
+        ),
+      );
     }
   }
 
@@ -97,9 +140,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                   final analysis = snap.data!;
                   final card = analysis.actionCard;
                   final deadline = analysis.extractedItem.deadline;
-                  final eventDates = card.calendarEvents
-                      .where((e) => e.type == CalendarEventType.event)
-                      .toList();
+                  // 마감·행사 모두 표시(QA D-5) — 타입 배지로 구분한다
+                  final eventDates = card.calendarEvents.toList();
                   var actionNo = 0;
 
                   return ListView(
@@ -113,7 +155,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 회신 초안 (F-DOC-8) — requiresReply일 때만 ──
                       if (card.replyDraftKo != null) ...[
                         _sectionLabel(
-                          '할 일 ${++actionNo} · ${bi('HÀNH ĐỘNG', '行动')} $actionNo'
+                          '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo'
                           '${deadline != null ? ' — ${_dday(deadline)}' : ''}',
                           GaonColors.warning,
                         ),
@@ -142,8 +184,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                     child: BiText(
                                       ko: '${analysis.extractedItem.title} 회신',
                                       native: bi('Trả lời đơn đồng ý', '回复同意书'),
-                                      koStyle: GaonType.body,
-                                      nativeStyle: GaonType.micro,
+                                      nativeStyle: GaonType.body,
+                                      koStyle: GaonType.micro,
                                     ),
                                   ),
                                 ],
@@ -166,7 +208,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      '회신 초안 · ${bi('Bản nháp trả lời', '回复草稿')}',
+                                      biLine('회신 초안', 'Bản nháp trả lời', '回复草稿'),
                                       style: GaonType.micro.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: GaonColors.textSecondary,
@@ -207,7 +249,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '마감 ${deadline.month}/${deadline.day}',
+                                                  '${bi('Hạn nộp', '截止')} ${deadline.month}/${deadline.day}',
                                                   style: GaonType.micro
                                                       .copyWith(
                                                         fontWeight:
@@ -216,8 +258,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                                             GaonColors.warning,
                                                       ),
                                                 ),
-                                                Text(
-                                                  bi('Hạn nộp', '截止日期'),
+                                                const Text(
+                                                  '마감',
                                                   style: TextStyle(
                                                     fontSize: 9,
                                                     color: GaonColors
@@ -252,15 +294,15 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '캘린더 추가',
+                                                bi('Thêm vào lịch', '添加到日历'),
                                                 style: GaonType.micro.copyWith(
                                                   fontWeight: FontWeight.w600,
                                                   color: Colors.white,
                                                 ),
                                               ),
-                                              Text(
-                                                bi('Thêm vào lịch', '添加到日历'),
-                                                style: const TextStyle(
+                                              const Text(
+                                                '캘린더 추가',
+                                                style: TextStyle(
                                                   fontSize: 9,
                                                   color: Color(0xB3FFFFFF),
                                                 ),
@@ -294,14 +336,14 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '카톡공유',
+                                                bi('Chia sẻ', '分享'),
                                                 style: GaonType.micro.copyWith(
                                                   fontWeight: FontWeight.w700,
                                                   color: GaonColors.kakaoText,
                                                 ),
                                               ),
-                                              Text(
-                                                bi('Chia sẻ', '分享'),
+                                              const Text(
+                                                '카톡공유',
                                                 style: TextStyle(
                                                   fontSize: 9,
                                                   color:
@@ -324,7 +366,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                       // ── 준비물 (F-DOC-6) — Supply마다 카드 ──
                       for (final supply in card.supplies) ...[
                         _sectionLabel(
-                          '할 일 ${++actionNo} · ${bi('HÀNH ĐỘNG', '行动')} $actionNo',
+                          '${bi('HÀNH ĐỘNG', '行动')} ${++actionNo} · 할 일 $actionNo',
                           GaonColors.textSecondary,
                         ),
                         const SizedBox(height: GaonSpace.xs),
@@ -338,11 +380,15 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               BiText(
-                                ko: '${supply.nameKo} 준비',
+                                // name_ko 결손(AI가 안 채운 경우) 시 고아 '준비'가
+                                // 남지 않게 한국어 줄 자체를 생략(QA D-7)
+                                ko: supply.nameKo.trim().isEmpty
+                                    ? ''
+                                    : '${supply.nameKo} 준비',
                                 native:
                                     '${bi('Chuẩn bị', '准备')} ${supply.nameNative}',
-                                koStyle: GaonType.body,
-                                nativeStyle: GaonType.micro,
+                                nativeStyle: GaonType.body,
+                                koStyle: GaonType.micro,
                               ),
                               const SizedBox(height: GaonSpace.sm),
                               // 규격 + 모국어 설명
@@ -375,12 +421,18 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          if (supply.spec != null)
+                                          // '규격' 라벨은 규격 값이 실제로 있을 때만
+                                          // (빈 문자열 방어 포함, QA D-6). '매일 지참'
+                                          // 같은 비규격 값이 오는 건 AI 출력 문제 —
+                                          // FE에서 판별 불가, 보고로 이관.
+                                          if (supply.spec != null &&
+                                              supply.spec!.trim().isNotEmpty)
                                             Text.rich(
                                               TextSpan(
                                                 children: [
                                                   TextSpan(
-                                                    text: '규격 ',
+                                                    text:
+                                                        '${biLine('규격', 'Quy cách', '规格')} ',
                                                     style: GaonType.caption
                                                         .copyWith(
                                                           fontWeight:
@@ -413,7 +465,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   case final keyword?) ...[
                                 const SizedBox(height: GaonSpace.sm),
                                 Text(
-                                  '구매 검색어 · ${bi('Từ khóa mua sắm', '购物关键词')}',
+                                  biLine('구매 검색어', 'Từ khóa mua sắm', '购物关键词'),
                                   style: GaonType.micro.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: GaonColors.textSecondary,
@@ -424,7 +476,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   bg: GaonColors.primaryLight,
                                   onTap: () => _copy(
                                     keyword,
-                                    "'$keyword' 복사했어요 · ${bi('Đã sao chép', '已复制')}",
+                                    biLine("'$keyword' 복사했어요", 'Đã sao chép', '已复制'),
                                   ),
                                   child: Row(
                                     mainAxisAlignment:
@@ -457,15 +509,15 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        '🛒 쿠팡에서 검색',
+                                        '🛒 ${bi('Tìm trên Coupang', '在Coupang搜索')}',
                                         style: GaonType.caption.copyWith(
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
                                         ),
                                       ),
                                       const SizedBox(width: GaonSpace.xs),
-                                      Text(
-                                        bi('Tìm trên Coupang', '在Coupang搜索'),
+                                      const Text(
+                                        '쿠팡에서 검색',
                                         style: TextStyle(
                                           fontSize: 9,
                                           color: Color(0xBFFFFFFF),
@@ -475,55 +527,80 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                   ),
                                 ),
                               ],
-                              // 행사 캘린더 추가 (F-DOC-7) — 날짜 출처를 표시(QA:
-                              // "16일·20일 어디서 온 건지")하고 일정 제목을 함께 보여준다.
-                              if (eventDates.isNotEmpty) ...[
-                                const SizedBox(height: GaonSpace.sm),
-                                Text(
-                                  '📌 알림장에서 추출된 일정 · ${bi('Lịch từ thông báo', '来自通知单的日程')}',
-                                  style: GaonType.micro.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: GaonColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                              for (final e in eventDates) ...[
-                                const SizedBox(height: GaonSpace.xs),
-                                _MiniAction(
-                                  bg: GaonColors.textPrimary,
-                                  onTap: () => _saveToCalendar(
-                                    analysis.document.documentId,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.calendar_month_rounded,
-                                        size: 11,
-                                        color: Colors.white,
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      // ── 알림장에서 추출된 일정 (F-DOC-7·QA D-5) ──
+                      // 준비물 카드 안에 반복되던 것을 독립 섹션으로 분리 —
+                      // 날짜 + 제목 + 마감/행사 구분을 함께 표시하고, '추가'는
+                      // 해당 일정만 저장한다(QA D-4, 선택 저장).
+                      if (eventDates.isNotEmpty) ...[
+                        _sectionLabel(
+                          '📌 ${biLine('알림장에서 추출된 일정', 'Lịch từ thông báo', '来自通知单的日程')}',
+                          GaonColors.textSecondary,
+                        ),
+                        const SizedBox(height: GaonSpace.xs),
+                        SurfaceCard(
+                          margin: const EdgeInsets.only(bottom: GaonSpace.sm),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final (i, e) in eventDates.indexed) ...[
+                                if (i > 0) const GaonDivider(),
+                                Row(
+                                  children: [
+                                    GaonBadge(
+                                      label:
+                                          e.type == CalendarEventType.deadline
+                                          ? biLine('마감', 'Hạn chót', '截止')
+                                          : biLine('행사', 'Sự kiện', '活动'),
+                                      color:
+                                          e.type == CalendarEventType.deadline
+                                          ? GaonColors.warning
+                                          : GaonColors.textPrimary,
+                                      bg: e.type == CalendarEventType.deadline
+                                          ? GaonColors.warningLight
+                                          : GaonColors.primaryLight,
+                                    ),
+                                    const SizedBox(width: GaonSpace.xs),
+                                    Expanded(
+                                      child: Text(
+                                        '${e.date.month}/${e.date.day} — ${e.title}',
+                                        style: GaonType.caption.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: GaonColors.textPrimary,
+                                        ),
                                       ),
-                                      const SizedBox(width: GaonSpace.xxs),
-                                      Flexible(
-                                        child: Text(
-                                          '${e.date.month}/${e.date.day} 「${e.title}」 캘린더 추가',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GaonType.micro.copyWith(
-                                            fontWeight: FontWeight.w600,
+                                    ),
+                                    const SizedBox(width: GaonSpace.xs),
+                                    _MiniAction(
+                                      bg: GaonColors.textPrimary,
+                                      onTap: () => _saveToCalendar(
+                                        analysis.document.documentId,
+                                        selected: [e],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.calendar_month_rounded,
+                                            size: 11,
                                             color: Colors.white,
                                           ),
-                                        ),
+                                          const SizedBox(width: GaonSpace.xxs),
+                                          Text(
+                                            biLine('추가', 'Thêm', '添加'),
+                                            style: GaonType.micro.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(width: GaonSpace.xxs),
-                                      Text(
-                                        bi('Thêm sự kiện', '添加活动'),
-                                        style: const TextStyle(
-                                          fontSize: 9,
-                                          color: Color(0xB3FFFFFF),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ],

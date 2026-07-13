@@ -85,9 +85,14 @@ abstract interface class GaonRepository {
   /// 조합해 구현한다. 전용 엔드포인트 신설은 BE와 협의.
   Future<DocumentAnalysis> getLatestAnalysis();
 
-  /// 캘린더 저장(F-DOC-7) = POST /calendar/events { document_id }.
+  /// 캘린더 저장(F-DOC-7) = POST /calendar/events { document_id, selected? }.
   /// 분석 결과의 일정을 앱 내 캘린더에 확정 저장하고 생성된 이벤트를 반환.
-  Future<List<CalendarEvent>> saveCalendarEvents({required String documentId});
+  /// [selected] 전달 시 해당 (title, date) 항목만 저장(QA D-3 선택 저장) —
+  /// 미전달이면 문서의 전체 일정 저장(기존 계약).
+  Future<List<CalendarEvent>> saveCalendarEvents({
+    required String documentId,
+    List<CalendarEvent>? selected,
+  });
 
   /// 캘린더 화면용 — 저장된 전체 일정.
   Future<List<CalendarEvent>> getCalendarEvents();

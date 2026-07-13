@@ -21,7 +21,12 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   static const _days = ['일', '월', '화', '수', '목', '금', '토'];
+  // 요일 헤더 병기 — 모국어(주). 베트남어는 CN(주일)·T2~T7 관례.
+  static const _daysVi = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  static const _daysZh = ['日', '一', '二', '三', '四', '五', '六'];
   static const _weekdaysKo = ['월', '화', '수', '목', '금', '토', '일'];
+  static const _weekdaysVi = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  static const _weekdaysZh = ['一', '二', '三', '四', '五', '六', '日'];
 
   late Future<(List<Child>, List<CalendarEvent>, DocumentAnalysis?)> _future =
       _load();
@@ -41,7 +46,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   /// 표시 중인 월(1일 고정) — ◀▶로 자유 이동.
-  late DateTime _visibleMonth = DateTime(_today.year, _today.month);
+  /// 초기값: 마지막으로 보던 월(전역 보존, QA C-4) → 없으면 오늘 기준 월.
+  late DateTime _visibleMonth =
+      calendarLastMonth ?? DateTime(_today.year, _today.month);
   int? _selectedDay;
 
   DateTime get _today => repository.now();
@@ -75,6 +82,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     calendarFocus.value = null; // 소비
     setState(() {
       _visibleMonth = DateTime(date.year, date.month);
+      calendarLastMonth = _visibleMonth; // 마지막 월 보존(QA C-4)
       _selectedDay = date.day;
       _future = _load(); // 방금 저장된 일정 반영
     });
@@ -83,6 +91,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void _shiftMonth(int delta) {
     setState(() {
       _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
+      calendarLastMonth = _visibleMonth; // 마지막 월 보존(QA C-4)
       _selectedDay = null;
     });
   }
@@ -107,7 +116,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     await Clipboard.setData(ClipboardData(text: keyword));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("'$keyword' 복사했어요 · ${bi('Đã sao chép', '已复制')}")),
+      SnackBar(
+        content: Text(biLine("'$keyword' 복사했어요", 'Đã sao chép', '已复制')),
+      ),
     );
   }
 
@@ -154,8 +165,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${event.date.month}월 ${event.date.day}일 '
-                            '${_weekdaysKo[event.date.weekday - 1]}요일',
+                            bi(
+                              '${event.date.day}/${event.date.month} '
+                                  '(${_weekdaysVi[event.date.weekday - 1]})',
+                              '${event.date.month}月${event.date.day}日 '
+                                  '(周${_weekdaysZh[event.date.weekday - 1]})',
+                            ),
                             style: GaonType.h2.copyWith(
                               color: urgent
                                   ? GaonColors.warning
@@ -163,6 +178,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                           ),
                           Text(
+                            '${event.date.month}월 ${event.date.day}일 '
+                            '${_weekdaysKo[event.date.weekday - 1]}요일 · '
                             '${event.title} · ${_dday(event.date)}',
                             style: GaonType.caption.copyWith(
                               color: GaonColors.textSecondary,
@@ -180,7 +197,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                         child: Row(
                           children: [
-                            for (final (i, t) in const ['원본', '번역'].indexed)
+                            for (final (i, t) in [
+                              biLine('원본', 'Gốc', '原文'),
+                              biLine('번역', 'Dịch', '译文'),
+                            ].indexed)
                               GestureDetector(
                                 onTap: () => setSheetState(
                                   () => showTranslated = i == 1,
@@ -252,7 +272,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🛒 검색어 추천 · ${bi('Từ khóa mua sắm', '购物关键词')}',
+                          '🛒 ${biLine('검색어 추천', 'Từ khóa mua sắm', '购物关键词')}',
                           style: GaonType.caption.copyWith(
                             fontWeight: FontWeight.w600,
                             color: GaonColors.textPrimary,
@@ -307,7 +327,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                 const SizedBox(height: GaonSpace.md),
                 GaonButton(
-                  label: '🔔 리마인드 알림 예약 · ${bi('Đặt nhắc nhở', '设置提醒')}',
+                  label: '🔔 ${bi('Đặt nhắc nhở', '设置提醒')}',
+                  subLabel: '리마인드 알림 예약',
                   onTap: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     Navigator.of(context).pop();
@@ -316,7 +337,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       event,
                     ]);
                     messenger.showSnackBar(
-                      const SnackBar(content: Text('리마인드 알림을 예약했어요 🔔')),
+                      SnackBar(
+                        content: Text(
+                          biLines(
+                            '리마인드 알림을 예약했어요 🔔',
+                            'Đã đặt nhắc nhở 🔔',
+                            '已设置提醒 🔔',
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -336,8 +365,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (context, snap) {
           if (snap.hasError) {
             return GaonAsyncError(
-              message: '캘린더를 불러오지 못했어요',
-              subMessage: '네트워크 확인 후 다시 시도해 주세요',
+              message: biLines(
+                '캘린더를 불러오지 못했어요',
+                'Không tải được lịch',
+                '无法加载日历',
+              ),
+              subMessage: biLines(
+                '네트워크 확인 후 다시 시도해 주세요',
+                'Hãy kiểm tra mạng rồi thử lại',
+                '请检查网络后重试',
+              ),
               onRetry: () => setState(() => _future = _load()),
             );
           }
@@ -350,9 +387,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
           if (events.isEmpty) {
             // 저장된 일정 없음 — 분석 → '캘린더 추가'(F-DOC-7) 유도
             return GaonAsyncError(
-              message: '저장된 일정이 없어요',
-              subMessage:
-                  '알림장을 분석하고 캘린더에 추가해 보세요 · ${bi('Hãy phân tích thông báo và thêm vào lịch', '请分析通知单并添加到日历')}',
+              message: biLines('저장된 일정이 없어요', 'Chưa có lịch nào', '还没有保存的日程'),
+              subMessage: biLines(
+                '알림장을 분석하고 캘린더에 추가해 보세요',
+                'Hãy phân tích thông báo và thêm vào lịch',
+                '请分析通知单并添加到日历',
+              ),
               onRetry: () => setState(() => _future = _load()),
             );
           }
@@ -398,17 +438,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       child: Column(
                         children: [
                           Text(
-                            '${_visibleMonth.year}년 ${_visibleMonth.month}월',
+                            bi(
+                              'Tháng ${_visibleMonth.month}, ${_visibleMonth.year}',
+                              '${_visibleMonth.year}年${_visibleMonth.month}月',
+                            ),
                             textAlign: TextAlign.center,
                             style: GaonType.h2.copyWith(
                               color: GaonColors.textPrimary,
                             ),
                           ),
                           Text(
-                            bi(
-                              'Tháng ${_visibleMonth.month}, ${_visibleMonth.year}',
-                              '${_visibleMonth.year}年${_visibleMonth.month}月',
-                            ),
+                            '${_visibleMonth.year}년 ${_visibleMonth.month}월',
                             textAlign: TextAlign.center,
                             style: GaonType.micro.copyWith(
                               color: GaonColors.textSecondary,
@@ -453,38 +493,55 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 요일 헤더
+              // 요일 헤더 — 첫 주와의 과다 여백 축소(QA C-3)
               Container(
                 color: GaonColors.surface,
                 padding: const EdgeInsets.symmetric(
-                  vertical: GaonSpace.xs,
+                  vertical: GaonSpace.xxs,
                   horizontal: GaonSpace.sm,
                 ),
                 child: Row(
                   children: [
                     for (final (i, d) in _days.indexed)
                       Expanded(
-                        child: Text(
-                          d,
-                          textAlign: TextAlign.center,
-                          style: GaonType.caption.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: i == 0
-                                ? GaonColors.warning
-                                : GaonColors.textSecondary,
-                          ),
+                        child: Column(
+                          children: [
+                            // 모국어(주) + 한국어(병기)
+                            Text(
+                              bi(_daysVi[i], _daysZh[i]),
+                              textAlign: TextAlign.center,
+                              style: GaonType.caption.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: i == 0
+                                    ? GaonColors.warning
+                                    : GaonColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              d,
+                              textAlign: TextAlign.center,
+                              style: GaonType.micro.copyWith(
+                                color: i == 0
+                                    ? GaonColors.warning
+                                    : GaonColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
                 ),
               ),
 
-              // 날짜 그리드 — 행 높이 고정(QA 2026-07-11: 선택 여부와 무관하게
-              // 달력 크기 불변, 터치 구획도 날짜 행에 밀착)
+              // 날짜 그리드 — iOS 캘린더식 고정 크기(QA C-1): 항상 6주 × 고정
+              // 행 높이라 월 이동·날짜 선택에도 달력 높이가 변하지 않는다.
+              // crossAxisAlignment.stretch로 셀 전체(가로×세로)가 히트 영역(QA C-2).
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                  horizontal: GaonSpace.xs,
+                padding: const EdgeInsets.fromLTRB(
+                  GaonSpace.xs,
+                  0, // 요일 헤더 바로 아래 밀착(QA C-3)
+                  GaonSpace.xs,
+                  GaonSpace.xxs,
                 ),
                 child: Builder(
                   builder: (context) {
@@ -494,13 +551,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       _visibleMonth.month + 1,
                       0,
                     ).day;
-                    final rows = ((offset + daysInMonth) / 7).ceil();
+                    // 항상 6주 — 4~5주 달도 같은 높이(빈 행 유지)
+                    const rows = 6;
                     return Column(
                       children: [
                         for (var week = 0; week < rows; week++)
                           SizedBox(
-                            height: 52,
+                            height: 48,
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 for (var wd = 0; wd < 7; wd++)
                                   Expanded(
@@ -521,10 +580,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
 
-              // 하단 — 선택일 일정 목록(iOS 캘린더식). 일정 없는 날은 빈 영역.
+              // 하단 — 고정 영역(Expanded)의 선택일 일정 목록(iOS 캘린더식).
+              // 일정 없는 날도 영역 자체는 유지하고 옅은 안내만(QA C-1 — 점프 없음).
               Expanded(
                 child: selectedEvents.isEmpty
-                    ? const SizedBox.shrink()
+                    ? Center(
+                        child: Text(
+                          biLine('일정이 없는 날이에요', 'Không có lịch', '当天没有日程'),
+                          style: GaonType.caption.copyWith(
+                            color: GaonColors.textSecondary,
+                          ),
+                        ),
+                      )
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(
                           GaonSpace.md,
@@ -534,6 +601,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                         children: [
                           Text(
+                            '${bi('Ngày $selectedDay/${_visibleMonth.month}', '${_visibleMonth.month}月$selectedDay日')} · '
                             '${_visibleMonth.month}월 $selectedDay일 · '
                             '${_dday(selectedEvents.first.date)}',
                             style: GaonType.h3.copyWith(
