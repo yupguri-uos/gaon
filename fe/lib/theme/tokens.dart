@@ -24,9 +24,12 @@ abstract final class GaonColors {
   static const textPrimary = Color(0xFF011D14); // Deep Forest
   static const textSecondary = Color(0xFF3D7A6E); // Forest teal — 보조·병기
   static const onPrimary = Color(0xFFE6FFF8); // 진한 버튼 위 텍스트
+  static const onPrimaryDim = Color(0xB3FFFFFF); // 진한 배경 위 보조 텍스트(70%)
 
   // 유틸
   static const border = Color(0x1A011D14); // rgba(1,29,20,0.10)
+  // 다이얼로그·시트 스크림 — 화면별로 0x59/0x73/0x80이 섞여 있던 것을 통일(QA A-6)
+  static const barrier = Color(0x73011D14);
 }
 
 /// 타이포 스케일 — fontSize + fontWeight 페어. 색은 사용처에서 지정.
@@ -40,6 +43,7 @@ abstract final class GaonType {
   static const label = TextStyle(fontSize: 12, fontWeight: FontWeight.w600);
   static const caption = TextStyle(fontSize: 11, fontWeight: FontWeight.w400);
   static const micro = TextStyle(fontSize: 10, fontWeight: FontWeight.w400);
+  static const nano = TextStyle(fontSize: 9, fontWeight: FontWeight.w400);
   static const btn = TextStyle(fontSize: 14, fontWeight: FontWeight.w700);
 }
 

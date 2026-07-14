@@ -239,6 +239,5 @@ class FakeRepository implements GaonRepository {
   @override
   Future<ActivityLog> getActivityLog() => _delayed(demoActivityLog);
 
-  @override
-  Future<List<Notification>> getNotifications() => _delayed(demoNotifications);
+  // getNotifications 제거(결정 #11) — 인터페이스에서 삭제됨.
 }

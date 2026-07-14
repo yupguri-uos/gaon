@@ -89,7 +89,7 @@ class GaonButton extends StatelessWidget {
       GaonButtonVariant.primary => (
         GaonColors.textPrimary,
         GaonColors.onPrimary,
-        const Color(0xB3FFFFFF),
+        GaonColors.onPrimaryDim,
       ),
       GaonButtonVariant.secondary => (
         GaonColors.success,
@@ -265,7 +265,7 @@ class GaonChip extends StatelessWidget {
                 ko,
                 style: GaonType.micro.copyWith(
                   color: selected
-                      ? const Color(0xB3FFFFFF)
+                      ? GaonColors.onPrimaryDim
                       : GaonColors.textSecondary,
                 ),
               ),

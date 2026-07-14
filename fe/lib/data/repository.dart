@@ -125,6 +125,6 @@ abstract interface class GaonRepository {
   /// 월간 리포트(F-LOG).
   Future<ActivityLog> getActivityLog();
 
-  /// 능동 알림(F-PRO).
-  Future<List<Notification>> getNotifications();
+  // getNotifications 제거(결정 #11, 2026-07-12·13) — 선제 알림 기능 전면 비활성.
+  // BE GET /notifications 라우터·테이블은 코드 잔존(재활성화 시 이 메서드만 복원).
 }

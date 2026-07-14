@@ -6,14 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../data/app_lang.dart';
 import '../data/app_nav.dart';
 import '../data/locator.dart';
-import '../data/notification_service.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 
 /// ⑦ 행동 카드 (F-DOC-6 구매 검색어, F-DOC-7 캘린더 추가, F-DOC-8 회신 초안).
-/// Translation → Action의 핵심 화면. 전송은 항상 사용자 수동(복사/공유).
+/// 번역을 행동으로 잇는 핵심 화면. 전송은 항상 사용자 수동(복사/공유).
 class ActionCardScreen extends StatefulWidget {
   const ActionCardScreen({super.key});
 
@@ -22,7 +21,7 @@ class ActionCardScreen extends StatefulWidget {
 }
 
 class _ActionCardScreenState extends State<ActionCardScreen> {
-  late final Future<DocumentAnalysis> _future = repository.getLatestAnalysis();
+  late Future<DocumentAnalysis> _future = repository.getLatestAnalysis();
 
   void _snack(String message) {
     ScaffoldMessenger.of(
@@ -75,12 +74,16 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
     String documentId, {
     List<CalendarEvent>? selected,
   }) async {
+    // 스낵바는 화면 pop 후에도 살아남는다 — 액션이 dispose된 State의 context를
+    // 조회하면 예외(적대적 리뷰 A-3). await 전에 루트 NavigatorState를 캡처해
+    // 화면 수명과 무관하게 동작하도록 한다(goToCalendar는 전역 신호라 원래 무관).
+    final navigator = Navigator.of(context);
     try {
       final saved = await repository.saveCalendarEvents(
         documentId: documentId,
         selected: selected,
       );
-      await NotificationService.instance.scheduleEventReminders(saved);
+      // 로컬 리마인드 예약 제거(결정 #11 — 선제 알림 비활성)
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -96,7 +99,7 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
             textColor: GaonColors.primary,
             onPressed: () {
               // 행동 카드(푸시 화면)를 닫고 저장된 일정의 월로 캘린더 포커스
-              Navigator.of(context).popUntil((route) => route.isFirst);
+              navigator.popUntil((route) => route.isFirst);
               goToCalendar(saved.firstOrNull?.date);
             },
           ),
@@ -130,6 +133,24 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
               child: FutureBuilder(
                 future: _future,
                 builder: (context, snap) {
+                  // 실패 시 무한 스피너 방지(QA A-6 셀프 리뷰) — 안내 + 재시도
+                  if (snap.hasError) {
+                    return GaonAsyncError(
+                      message: biLines(
+                        '행동 카드를 불러오지 못했어요',
+                        'Không tải được thẻ hành động',
+                        '无法加载行动卡',
+                      ),
+                      subMessage: biLines(
+                        '알림장을 먼저 분석했는지 확인해 주세요',
+                        'Hãy phân tích thông báo trước',
+                        '请先分析通知单',
+                      ),
+                      onRetry: () => setState(
+                        () => _future = repository.getLatestAnalysis(),
+                      ),
+                    );
+                  }
                   if (!snap.hasData) {
                     return const Center(
                       child: CircularProgressIndicator(
@@ -237,36 +258,47 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                               MainAxisAlignment.center,
                                           children: [
                                             const Icon(
-                                              Icons.notifications_rounded,
+                                              // 알림 기능 제거(결정 #11) 후 종
+                                              // 아이콘은 오해 소지 — 시계로 교체
+                                              Icons.schedule_rounded,
                                               size: 12,
                                               color: GaonColors.warning,
                                             ),
                                             const SizedBox(
                                               width: GaonSpace.xxs,
                                             ),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  '${bi('Hạn nộp', '截止')} ${deadline.month}/${deadline.day}',
-                                                  style: GaonType.micro
-                                                      .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color:
-                                                            GaonColors.warning,
-                                                      ),
-                                                ),
-                                                const Text(
-                                                  '마감',
-                                                  style: TextStyle(
-                                                    fontSize: 9,
-                                                    color: GaonColors
-                                                        .textSecondary,
+                                            // 긴 라벨에서 넘치지 않게(B-3)
+                                            Flexible(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    '${bi('Hạn nộp', '截止')} ${deadline.month}/${deadline.day}',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: GaonType.micro
+                                                        .copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: GaonColors
+                                                              .warning,
+                                                        ),
                                                   ),
-                                                ),
-                                              ],
+                                                  Text(
+                                                    '마감',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: GaonType.nano
+                                                        .copyWith(
+                                                          color: GaonColors
+                                                              .textSecondary,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -286,28 +318,41 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                           const Icon(
                                             Icons.calendar_month_rounded,
                                             size: 12,
-                                            color: Colors.white,
+                                            // 진초록 배경 위 전경은 토큰으로(A-6)
+                                            color: GaonColors.onPrimary,
                                           ),
                                           const SizedBox(width: GaonSpace.xxs),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                bi('Thêm vào lịch', '添加到日历'),
-                                                style: GaonType.micro.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
+                                          Flexible(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  bi('Thêm vào lịch', '添加到日历'),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GaonType.micro
+                                                      .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: GaonColors
+                                                            .onPrimary,
+                                                      ),
                                                 ),
-                                              ),
-                                              const Text(
-                                                '캘린더 추가',
-                                                style: TextStyle(
-                                                  fontSize: 9,
-                                                  color: Color(0xB3FFFFFF),
+                                                Text(
+                                                  '캘린더 추가',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GaonType.nano
+                                                      .copyWith(
+                                                        color: GaonColors
+                                                            .onPrimaryDim,
+                                                      ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -331,26 +376,37 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                             color: GaonColors.kakaoText,
                                           ),
                                           const SizedBox(width: GaonSpace.xxs),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                bi('Chia sẻ', '分享'),
-                                                style: GaonType.micro.copyWith(
-                                                  fontWeight: FontWeight.w700,
-                                                  color: GaonColors.kakaoText,
+                                          Flexible(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  bi('Chia sẻ', '分享'),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GaonType.micro
+                                                      .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: GaonColors
+                                                            .kakaoText,
+                                                      ),
                                                 ),
-                                              ),
-                                              const Text(
-                                                '카톡공유',
-                                                style: TextStyle(
-                                                  fontSize: 9,
-                                                  color:
-                                                      GaonColors.textSecondary,
+                                                Text(
+                                                  '카톡공유',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GaonType.nano
+                                                      .copyWith(
+                                                        color: GaonColors
+                                                            .textSecondary,
+                                                      ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -516,11 +572,10 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: GaonSpace.xs),
-                                      const Text(
+                                      Text(
                                         '쿠팡에서 검색',
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          color: Color(0xBFFFFFFF),
+                                        style: GaonType.nano.copyWith(
+                                          color: GaonColors.onPrimaryDim,
                                         ),
                                       ),
                                     ],
@@ -587,14 +642,14 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                           const Icon(
                                             Icons.calendar_month_rounded,
                                             size: 11,
-                                            color: Colors.white,
+                                            color: GaonColors.onPrimary,
                                           ),
                                           const SizedBox(width: GaonSpace.xxs),
                                           Text(
                                             biLine('추가', 'Thêm', '添加'),
                                             style: GaonType.micro.copyWith(
                                               fontWeight: FontWeight.w600,
-                                              color: Colors.white,
+                                              color: GaonColors.onPrimary,
                                             ),
                                           ),
                                         ],

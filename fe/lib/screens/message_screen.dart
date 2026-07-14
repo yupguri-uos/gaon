@@ -158,18 +158,34 @@ class _MessageScreenState extends State<MessageScreen> {
     });
     // 커스텀 상황이면 wire는 custom, 라벨을 입력 앞에 붙여 AI에 맥락 전달.
     final custom = _selectedCustom;
-    final message = await repository.generateTeacherMessage(
-      situation: custom != null ? MessageSituation.custom : _situation,
-      inputNative: custom != null
-          ? '[$custom] ${_inputController.text}'
-          : _inputController.text,
-      childId: child.childId,
-    );
-    if (!mounted) return;
-    setState(() {
-      _message = message;
-      _generating = false;
-    });
+    try {
+      final message = await repository.generateTeacherMessage(
+        situation: custom != null ? MessageSituation.custom : _situation,
+        inputNative: custom != null
+            ? '[$custom] ${_inputController.text}'
+            : _inputController.text,
+        childId: child.childId,
+      );
+      if (!mounted) return;
+      setState(() => _message = message);
+    } catch (_) {
+      // 실패를 삼키면 _generating이 영구 true로 남아 버튼이 먹통이 됐다
+      // (적대적 리뷰 A-2) — 에러 안내 후 버튼을 다시 쓸 수 있게 복구.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            biLines(
+              '메시지 생성에 실패했어요 — 잠시 후 다시 시도해 주세요',
+              'Tạo tin nhắn thất bại — hãy thử lại sau',
+              '生成消息失败——请稍后再试',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
   }
 
   /// 상황 칩 — 모국어(주) + 한국어(병기). [sub]가 없으면 단일 라벨(커스텀 상황).
@@ -273,7 +289,9 @@ class _MessageScreenState extends State<MessageScreen> {
     final picked = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: GaonColors.surface,
-      barrierColor: const Color(0x59011D14),
+      barrierColor: GaonColors.barrier,
+      // 교사가 많아도 시트가 넘치지 않게(적대적 리뷰 B-2) — 목록만 스크롤
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(GaonRadius.xxl),
@@ -318,78 +336,15 @@ class _MessageScreenState extends State<MessageScreen> {
                       koStyle: GaonType.caption,
                     ),
                   ),
-                for (final (i, t) in _teachers.indexed)
-                  ListTile(
-                    onTap: () => Navigator.of(context).pop(i),
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: i == _teacherIndex
-                            ? GaonColors.textPrimary
-                            : GaonColors.primaryLight,
-                      ),
-                      alignment: Alignment.center,
-                      child: i == _teacherIndex
-                          ? const Icon(
-                              Icons.check_rounded,
-                              size: 16,
-                              color: GaonColors.onPrimary,
-                            )
-                          : const Icon(
-                              Icons.person_rounded,
-                              size: 16,
-                              color: GaonColors.textSecondary,
-                            ),
-                    ),
-                    title: Text(
-                      t.name,
-                      style: GaonType.body.copyWith(
-                        fontWeight: i == _teacherIndex
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        color: GaonColors.textPrimary,
-                      ),
-                    ),
-                    subtitle: Text(
-                      t.role,
-                      style: GaonType.caption.copyWith(
-                        color: GaonColors.textSecondary,
-                      ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 수정(QA T-1)
-                        IconButton(
-                          icon: const Icon(
-                            Icons.edit_outlined,
-                            size: 18,
-                            color: GaonColors.textSecondary,
-                          ),
-                          onPressed: () =>
-                              _editTeacherDialog(setSheetState, editIndex: i),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline_rounded,
-                            size: 18,
-                            color: GaonColors.textSecondary,
-                          ),
-                          onPressed: () async {
-                            final child = _selectedChild;
-                            if (child == null) return;
-                            await TeacherStore.removeAt(child.childId, i);
-                            if (!context.mounted) return;
-                            setSheetState(() {});
-                            setState(() => _teacherIndex = 0);
-                          },
-                        ),
-                      ],
-                    ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final (i, t) in _teachers.indexed)
+                        _teacherTile(context, setSheetState, i, t),
+                    ],
                   ),
+                ),
                 // 받는 사람 추가 — 자녀별 기기 로컬 관리(팀 결정 2026-07-13)
                 TextButton.icon(
                   onPressed: () => _editTeacherDialog(setSheetState),
@@ -412,6 +367,81 @@ class _MessageScreenState extends State<MessageScreen> {
       ),
     );
     if (picked != null) setState(() => _teacherIndex = picked);
+  }
+
+  /// 받는 사람 시트의 교사 행 — 선택/수정/삭제(QA T-1).
+  Widget _teacherTile(
+    BuildContext context,
+    StateSetter setSheetState,
+    int i,
+    Teacher t,
+  ) {
+    return ListTile(
+      onTap: () => Navigator.of(context).pop(i),
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: i == _teacherIndex
+              ? GaonColors.textPrimary
+              : GaonColors.primaryLight,
+        ),
+        alignment: Alignment.center,
+        child: i == _teacherIndex
+            ? const Icon(
+                Icons.check_rounded,
+                size: 16,
+                color: GaonColors.onPrimary,
+              )
+            : const Icon(
+                Icons.person_rounded,
+                size: 16,
+                color: GaonColors.textSecondary,
+              ),
+      ),
+      title: Text(
+        t.name,
+        style: GaonType.body.copyWith(
+          fontWeight: i == _teacherIndex ? FontWeight.w700 : FontWeight.w400,
+          color: GaonColors.textPrimary,
+        ),
+      ),
+      subtitle: Text(
+        t.role,
+        style: GaonType.caption.copyWith(color: GaonColors.textSecondary),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 수정(QA T-1)
+          IconButton(
+            icon: const Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: GaonColors.textSecondary,
+            ),
+            onPressed: () => _editTeacherDialog(setSheetState, editIndex: i),
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              size: 18,
+              color: GaonColors.textSecondary,
+            ),
+            onPressed: () async {
+              final child = _selectedChild;
+              if (child == null) return;
+              await TeacherStore.removeAt(child.childId, i);
+              if (!context.mounted) return;
+              setSheetState(() {});
+              setState(() => _teacherIndex = 0);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   /// 받는 사람 추가/수정 다이얼로그(QA T-1) — 이름·직책 입력 후 자녀별 로컬 저장.

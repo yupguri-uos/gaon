@@ -18,3 +18,11 @@ void goToCalendar([DateTime? date]) {
   calendarFocus.value = date;
   mainTabIndex.value = 1;
 }
+
+/// 로그아웃·회원탈퇴 시 전역 내비 상태 초기화(적대적 리뷰 C-1) —
+/// 리셋하지 않으면 재로그인/신규 계정이 설정 탭·이전 계정의 월에서 시작한다.
+void resetAppNav() {
+  mainTabIndex.value = 0;
+  calendarFocus.value = null;
+  calendarLastMonth = null;
+}

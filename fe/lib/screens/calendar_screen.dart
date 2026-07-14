@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../data/app_nav.dart';
 import '../data/app_lang.dart';
 import '../data/locator.dart';
-import '../data/notification_service.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -133,7 +132,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: GaonColors.surface,
-      barrierColor: const Color(0x59011D14),
+      barrierColor: GaonColors.barrier,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -339,30 +338,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ],
                     ),
                   ),
-                const SizedBox(height: GaonSpace.md),
-                GaonButton(
-                  label: '🔔 ${bi('Đặt nhắc nhở', '设置提醒')}',
-                  subLabel: '리마인드 알림 예약',
-                  onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    Navigator.of(context).pop();
-                    // 마감 D-2·행사 전날 잠금화면 리마인드(F-PRO-2·3 로컬)
-                    await NotificationService.instance.scheduleEventReminders([
-                      event,
-                    ]);
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          biLines(
-                            '리마인드 알림을 예약했어요 🔔',
-                            'Đã đặt nhắc nhở 🔔',
-                            '已设置提醒 🔔',
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                // '리마인드 알림 예약' 버튼 제거(결정 #11) — 선제 알림 기능 전면
+                // 비활성. 마감 D-2 '표시'(달력 배지)는 Chain A 산출이라 유지.
               ],
             ),
           ),
