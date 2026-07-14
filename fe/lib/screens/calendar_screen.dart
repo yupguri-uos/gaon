@@ -73,7 +73,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// 다른 화면에서 저장한 일정('나중에' 선택·행동 카드 추가)이 반영되지 않았다(QA).
   void _onTabChanged() {
     if (mainTabIndex.value != 1 || !mounted) return;
-    setState(() => _future = _load());
+    setState(() { _future = _load(); });
   }
 
   /// 저장 직후 "확인" 등으로 특정 일정에 포커스 — 해당 월로 이동 + 목록 갱신.
@@ -366,7 +366,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 'Hãy kiểm tra mạng rồi thử lại',
                 '请检查网络后重试',
               ),
-              onRetry: () => setState(() => _future = _load()),
+              onRetry: () => setState(() { _future = _load(); }),
             );
           }
           if (!snap.hasData) {
@@ -384,7 +384,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 'Hãy phân tích thông báo và thêm vào lịch',
                 '请分析通知单并添加到日历',
               ),
-              onRetry: () => setState(() => _future = _load()),
+              onRetry: () => setState(() { _future = _load(); }),
             );
           }
           final eventsByDay = <int, List<CalendarEventView>>{};
