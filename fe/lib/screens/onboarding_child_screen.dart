@@ -460,11 +460,12 @@ class _ChildCard extends StatelessWidget {
             // 실명이 아닌 '구분용 이름'(별명 가능) — PII 최소화(결정 #7-PII)
             biLine('자녀를 구분할 이름', 'Tên để phân biệt con', '区分孩子的名称'),
             form.name,
-            biLine(
-              '별명도 좋아요 (예: 첫째, 다솜이)',
+            // 입력칸 안내는 모국어만(한국어 제거) — '…' 잘림 방지(요청).
+            bi(
               'Biệt danh cũng được (VD: bé lớn)',
               '昵称也可以（例：老大）',
             ),
+            maxLength: 5, // 자녀 이름 5글자 제한(넘으면 카운터·입력 차단으로 경고)
           ),
           const SizedBox(height: GaonSpace.xs),
           Text(
@@ -519,7 +520,12 @@ class _ChildCard extends StatelessWidget {
     );
   }
 
-  Widget _field(String label, TextEditingController controller, String hint) {
+  Widget _field(
+    String label,
+    TextEditingController controller,
+    String hint, {
+    int? maxLength, // 지정 시 최대 글자수 제한 + 'N/max' 카운터 표시
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -540,6 +546,7 @@ class _ChildCard extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
+            maxLength: maxLength, // null이면 제한 없음
             textInputAction: TextInputAction.done, // 완료로 키보드 닫기(QA T-4)
             style: GaonType.body.copyWith(color: GaonColors.textPrimary),
             decoration: InputDecoration(

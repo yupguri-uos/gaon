@@ -39,14 +39,23 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     childrenVersion.addListener(_reloadChildren);
+    // 알림장 탭(0)에 진입할 때마다 자녀 목록을 재조회한다 — childrenVersion 신호가
+    // 어떤 이유로 누락돼도, 설정에서 수정 후 이 탭으로 돌아오면 반드시 갱신된다
+    // (IndexedStack이라 탭 전환만으론 rebuild가 없음 — 캘린더 탭과 동일 패턴).
+    mainTabIndex.addListener(_onMainTabChanged);
     _reloadChildren();
   }
 
   @override
   void dispose() {
     childrenVersion.removeListener(_reloadChildren);
+    mainTabIndex.removeListener(_onMainTabChanged);
     _pollTimer?.cancel();
     super.dispose();
+  }
+
+  void _onMainTabChanged() {
+    if (mainTabIndex.value == 0 && mounted) _reloadChildren();
   }
 
   // 설정에서 자녀 정보가 바뀌면(childrenVersion) 이 탭도 다시 불러온다 —

@@ -145,11 +145,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               _sheetField(
                 biLine('자녀를 구분할 이름', 'Tên để phân biệt con', '区分孩子的名称'),
                 nameCtrl,
-                biLine(
-                  '별명도 좋아요 (예: 첫째, 다솜이)',
+                // 입력칸 안내는 모국어만(한국어 제거) — '…'으로 잘리지 않게(요청).
+                bi(
                   'Biệt danh cũng được (VD: bé lớn)',
                   '昵称也可以（例：老大）',
                 ),
+                maxLength: 5, // 자녀 이름 5글자 제한(넘으면 카운터·입력 차단으로 경고)
               ),
               const SizedBox(height: GaonSpace.sm),
               _sheetField(
@@ -305,8 +306,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Widget _sheetField(
     String label,
     TextEditingController controller,
-    String hint,
-  ) {
+    String hint, {
+    int? maxLength, // 지정 시 최대 글자수 제한 + 'N/max' 카운터 표시
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -327,6 +329,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
           child: TextField(
             controller: controller,
+            maxLength: maxLength, // null이면 제한 없음
             textInputAction: TextInputAction.done, // 완료로 키보드 닫기(QA T-4)
             style: GaonType.body.copyWith(color: GaonColors.textPrimary),
             decoration: InputDecoration(

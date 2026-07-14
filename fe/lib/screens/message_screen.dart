@@ -64,14 +64,22 @@ class _MessageScreenState extends State<MessageScreen> {
   void initState() {
     super.initState();
     childrenVersion.addListener(_reloadChildren);
+    // 문자 탭(2)에 진입할 때마다 자녀 목록 재조회 — childrenVersion 신호가 누락돼도
+    // 설정에서 수정 후 이 탭으로 오면 반드시 갱신된다(캘린더 탭과 동일 패턴).
+    mainTabIndex.addListener(_onMainTabChanged);
     _reloadChildren();
   }
 
   @override
   void dispose() {
     childrenVersion.removeListener(_reloadChildren);
+    mainTabIndex.removeListener(_onMainTabChanged);
     _inputController.dispose();
     super.dispose();
+  }
+
+  void _onMainTabChanged() {
+    if (mainTabIndex.value == 2 && mounted) _reloadChildren();
   }
 
   // 설정에서 자녀 정보가 바뀌면(childrenVersion) 이 탭도 다시 불러온다 —

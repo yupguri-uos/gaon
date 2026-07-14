@@ -431,14 +431,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          Text(
-                            bi(
-                              'Tháng ${_visibleMonth.month}, ${_visibleMonth.year}',
-                              '${_visibleMonth.year}年${_visibleMonth.month}月',
-                            ),
-                            textAlign: TextAlign.center,
-                            style: GaonType.h2.copyWith(
-                              color: GaonColors.textPrimary,
+                          // 월 제목은 무조건 한 줄 — 자녀 범례 폭과 무관하게(넘치면
+                          // 줄바꿈 대신 FittedBox로 축소). 두 줄로 깨지던 문제 해결(요청).
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              bi(
+                                'Tháng ${_visibleMonth.month}, ${_visibleMonth.year}',
+                                '${_visibleMonth.year}年${_visibleMonth.month}月',
+                              ),
+                              maxLines: 1,
+                              softWrap: false,
+                              textAlign: TextAlign.center,
+                              style: GaonType.h2.copyWith(
+                                color: GaonColors.textPrimary,
+                              ),
                             ),
                           ),
                           Text(
@@ -458,34 +465,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         color: GaonColors.textPrimary,
                       ),
                     ),
-                    for (final c in children)
-                      Padding(
-                        padding: const EdgeInsets.only(left: GaonSpace.xs),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _childColor(children, c.childId),
+                    // 자녀 범례 — 세로 나열 + 고정 폭(자녀 수·이름 길이에 따라 월 제목
+                    // 폭이 흔들리지 않게). 이름은 5글자 제한이라 84px 안에 들어온다.
+                    SizedBox(
+                      width: 84,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final c in children)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 1),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _childColor(children, c.childId),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      c.name ?? '자녀',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GaonType.micro.copyWith(
+                                        color: GaonColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              // 별명 전체 표시(요청). 과거 substring(1)은 실명에서 성씨를
-                              // 떼려던 것이었으나, 별명(첫째딸/둘째딸)의 첫 글자를 잘라
-                              // 둘 다 '째딸'로 보이게 했다 — 결정 #14(별명·비실명)에 맞춰 전체 표시.
-                              c.name ?? '자녀',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GaonType.micro.copyWith(
-                                color: GaonColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
               ),
