@@ -156,16 +156,25 @@ class GaonButton extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (icon != null) ...[icon!, const SizedBox(height: 2)],
-                    Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: GaonType.btn.copyWith(color: fg),
+                    // 좁은 버튼에서도 한 줄 유지 — 넘치면 줄바꿈("Bỏ/qua") 대신 살짝 축소.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: GaonType.btn.copyWith(color: fg),
+                      ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      subLabel!,
-                      textAlign: TextAlign.center,
-                      style: GaonType.micro.copyWith(color: subFg),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        subLabel!,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: GaonType.micro.copyWith(color: subFg),
+                      ),
                     ),
                   ],
                 ),
