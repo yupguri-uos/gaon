@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from typing import Literal
 from urllib.parse import urlencode
@@ -10,8 +11,9 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.db import get_db
-from app.models.common import User
+from app.models.common import Document, User
 from app.routers.common import OkResponse
 from app.security import create_access_token, get_current_user
 from app.services.kakao import (
@@ -20,6 +22,8 @@ from app.services.kakao import (
     fetch_kakao_user,
     KakaoAPIError,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 STATE_COOKIE_NAME = "kakao_oauth_state"
@@ -171,10 +175,26 @@ def delete_account(
     db: Session = Depends(get_db),
 ) -> OkResponse:
     """회원 탈퇴 — 본인 계정 삭제. users 한 줄만 지우면 자녀·문서·캘린더·활동로그·
-    메시지·알림·디바이스토큰이 FK ON DELETE CASCADE로 함께 삭제된다.
+    메시지·알림·디바이스토큰이 FK ON DELETE CASCADE로 함께 삭제된다(결정 #7-PII).
 
-    주: MinIO 이미지 오브젝트는 여기서 지우지 않는다(DB row만 삭제) — 고아 오브젝트
-    정리는 별도 배치 범위. stateless JWT라 토큰 폐기는 클라이언트가 담당한다."""
+    MinIO 이미지 오브젝트는 best-effort로 함께 정리한다(QA A-4) — 스토리지 실패가
+    계정 삭제를 막으면 안 되므로 오류는 로그만 남기고 진행한다.
+    stateless JWT라 토큰 폐기는 클라이언트가 담당한다."""
+    # 삭제 전에 이 사용자의 이미지 키를 모아 둔다(CASCADE로 rows가 사라지기 전)
+    image_keys = (
+        db.execute(select(Document.image_ref).where(Document.user_id == current_user.id))
+        .scalars()
+        .all()
+    )
+
     db.delete(current_user)
     db.commit()
+
+    for key in image_keys:
+        if not key:
+            continue
+        try:
+            storage.delete_image(key)
+        except Exception as exc:  # noqa: BLE001 — best-effort: 계정 삭제가 우선
+            logger.warning("탈퇴 이미지 정리 실패(무시): key=%s err=%s", key, exc)
     return OkResponse()
