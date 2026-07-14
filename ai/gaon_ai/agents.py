@@ -68,7 +68,10 @@ PARSING_SYSTEM = """당신은 한국 초등학교의 가정통신문·알림장 
 - doc_type: 일반 안내는 'notice', 회신/동의가 필요한 동의서는 'consent', 설문은 'survey'.
 - supplies: 준비물을 이미지의 한국어 원문 그대로. 추측·추가 금지.
 - dates: 문서의 날짜를 [{label, date}] 형태로(date는 YYYY-MM-DD).
-  '다음 주' 같은 상대 표현은 아래 제공되는 기준일(문서 수신일)로 계산해 절대 날짜로 변환한다.
+  '모레'·'다음 주' 같은 상대 표현의 기준일은 (1순위) 문서 이미지에 인쇄된 '문서 자체의 날짜'
+  (발행일·작성일, 또는 상단/하단에 적힌 'YYYY. M. D.'·'M월 D일' 형태의 문서 날짜)로 삼는다.
+  그 날짜를 찾으면 그것을 기준으로 상대 표현을 절대 날짜(YYYY-MM-DD)로 변환한다.
+  문서에 그런 날짜가 전혀 없을 때만, 아래 사용자 메시지로 제공되는 '대체 기준일'을 쓴다.
 - amounts: 금액을 [{label, value}]로(value는 원 단위 숫자).
 - deadline: 제출/회신 마감일이 있으면 그 날짜(YYYY-MM-DD), 없으면 null.
 - requires_reply: 회신·동의·제출이 필요하면 true.
@@ -86,8 +89,9 @@ class DocumentParsingAgent(Agent[DocParsingInput, ExtractedItem]):
 
     async def _run(self, data: DocParsingInput) -> ExtractedItem:
         user_msg = (
-            f"문서 수신일(기준일)은 {data.received_date.isoformat()}입니다. "
-            "'다음 주' 같은 상대 날짜 표현은 이 기준일로 계산해 절대 날짜(YYYY-MM-DD)로 변환하세요.\n"
+            "상대 날짜('모레'·'다음 주' 등)의 기준일은 먼저 문서 이미지에 인쇄된 '문서 자체의 날짜'"
+            "(발행일·작성일 등)를 찾아 그 날짜를 쓰세요. "
+            f"문서에 그런 날짜가 전혀 없을 때만 대체 기준일 {data.received_date.isoformat()}을(를) 쓰세요.\n"
             "이 학교 문서 이미지에서 정보를 추출해 스키마에 맞게 구조화하세요."
         )
         messages = [system(PARSING_SYSTEM), user_image_and_text(data.image_ref, user_msg)]
