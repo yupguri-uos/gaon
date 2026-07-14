@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/api_repository.dart';
 import '../data/app_lang.dart';
+import '../data/app_nav.dart';
 import '../data/locator.dart';
 import '../data/repository.dart';
 import '../models/display.dart';
@@ -71,6 +72,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     try {
       final fresh = await repository.getChildren();
       if (mounted) setState(() => _childrenOverride = fresh);
+      childrenVersion.value++; // 홈(챗봇)·문자 탭에 자녀 정보 변경을 알림
     } catch (_) {} // 실패 시 낙관적 상태 유지 — 다음 진입 때 재조회
   }
 

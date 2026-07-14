@@ -13,6 +13,11 @@ final calendarFocus = ValueNotifier<DateTime?>(null);
 /// 앱 재시작 시엔 null → 오늘 기준 월로 시작.
 DateTime? calendarLastMonth;
 
+/// 자녀 정보(이름·학년·반 등) 변경 신호 — 값 자체는 의미 없고 증가만 한다.
+/// 설정의 자녀 추가·수정·삭제가 끝나면 이걸 올려서, IndexedStack으로 계속
+/// 살아있는 홈(챗봇)·문자 탭이 캐시해 둔 자녀 목록을 다시 불러오게 한다.
+final childrenVersion = ValueNotifier<int>(0);
+
 /// 캘린더 탭으로 이동. [date]를 주면 해당 월·일로 포커스 + 목록 새로고침.
 void goToCalendar([DateTime? date]) {
   calendarFocus.value = date;

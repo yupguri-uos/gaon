@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/app_lang.dart';
+import '../data/app_nav.dart';
 import '../data/locator.dart';
 import '../data/teacher_store.dart';
 import '../models/display.dart';
@@ -60,19 +61,36 @@ class _MessageScreenState extends State<MessageScreen> {
   @override
   void initState() {
     super.initState();
-    repository.getChildren().then((children) {
-      if (!mounted) return;
-      setState(() {
-        _children = children;
-        _selectedChild = children.firstOrNull;
-      });
-    });
+    childrenVersion.addListener(_reloadChildren);
+    _reloadChildren();
   }
 
   @override
   void dispose() {
+    childrenVersion.removeListener(_reloadChildren);
     _inputController.dispose();
     super.dispose();
+  }
+
+  // 설정에서 자녀 정보가 바뀌면(childrenVersion) 이 탭도 다시 불러온다 —
+  // IndexedStack이 이 화면을 계속 살려두므로 initState는 앱 켤 때 한 번뿐이라
+  // 별도 신호 없이는 자녀 수정 결과가 반영되지 않는다.
+  void _reloadChildren() {
+    repository.getChildren().then((children) {
+      if (!mounted) return;
+      final currentId = _selectedChild?.childId;
+      Child? matched;
+      for (final c in children) {
+        if (c.childId == currentId) {
+          matched = c;
+          break;
+        }
+      }
+      setState(() {
+        _children = children;
+        _selectedChild = matched ?? children.firstOrNull;
+      });
+    });
   }
 
   String _childLabel(Child c) {
