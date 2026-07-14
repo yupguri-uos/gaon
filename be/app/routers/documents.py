@@ -16,6 +16,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.concurrency import run_in_threadpool
 from gaon_shared import ActionCard as ActionCardSchema
 from gaon_shared import AmountItem, CalendarEvent, Checkbox, ChildInfo, DateItem
 from gaon_shared import Document as DocumentSchema
@@ -219,7 +220,9 @@ async def upload_document(
         )
     mime, ext = sniffed
     key = object_key(str(current_user.id), f"notice.{ext}")
-    upload_image(key, data, mime)
+    # 블로킹 boto3 put을 이벤트 루프에서 직접 부르면 업로드 동안 루프가 멈춰
+    # 동시 요청(폴링 등)까지 밀린다 — 스레드풀로 오프로드한다.
+    await run_in_threadpool(upload_image, key, data, mime)
 
     document = Document(
         user_id=current_user.id, child_id=child_id, image_ref=key, status="uploaded"
