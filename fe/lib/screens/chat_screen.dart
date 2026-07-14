@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import '../data/app_lang.dart';
 import '../data/app_nav.dart';
 import '../data/locator.dart';
-import '../data/notification_service.dart';
 import '../data/picked_image_store.dart';
 import '../data/repository.dart';
 import '../models/schema.dart';
@@ -245,12 +244,10 @@ class _ChatScreenState extends State<ChatScreen> {
         }
         if (updated.status == DocStatus.done) {
           t.cancel();
-          final analysis = await repository.getDocumentAnalysis(doc.documentId);
-          if (!mounted) return;
-          setState(() {
-            _analysis = analysis;
-            _phase = _Phase.result;
-          });
+          // 타이머를 먼저 취소하므로 결과 조회 실패가 catch로 떨어지면 다음
+          // tick이 없어 분석 화면에 영구 고착됐다(적대적 리뷰 A-1) —
+          // 재시도·실패 안내가 있는 전용 경로로 처리해 반드시 벗어나게 한다.
+          await _loadAnalysisOrFail(doc.documentId);
         }
       } catch (e) {
         // 분석이 오래 걸리는 동안 한두 번 응답이 튀어도 바로 포기하지 않는다
@@ -265,6 +262,33 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
+  }
+
+  /// done 이후 결과 조회 — 일시 오류(네트워크·§18.4 결과 미준비 방어)를
+  /// 3회까지 1초 간격 재시도하고, 그래도 실패하면 _failBack으로 명시 안내.
+  /// (폴링 타이머는 이미 취소된 뒤라 여기서 스스로 탈출을 보장해야 한다.)
+  Future<void> _loadAnalysisOrFail(String documentId) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final analysis = await repository.getDocumentAnalysis(documentId);
+        if (!mounted) return;
+        setState(() {
+          _analysis = analysis;
+          _phase = _Phase.result;
+        });
+        return;
+      } catch (_) {
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+      }
+    }
+    _failBack(
+      biLines(
+        '분석 결과를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요',
+        'Không tải được kết quả — hãy thử lại sau',
+        '无法加载分析结果——请稍后再试',
+      ),
+    );
   }
 
   Future<void> _pickChild() async {
@@ -561,8 +585,7 @@ class _EmptyState extends StatelessWidget {
                           alignment: Alignment.center,
                           child: Text(
                             '${e.date.month}/${e.date.day}',
-                            style: TextStyle(
-                              fontSize: 9,
+                            style: GaonType.nano.copyWith(
                               fontWeight: FontWeight.w700,
                               color: e.type == CalendarEventType.deadline
                                   ? GaonColors.warning
@@ -954,7 +977,7 @@ class _ResultState extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: GaonColors.surface,
-      barrierColor: const Color(0x73011D14),
+      barrierColor: GaonColors.barrier,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(GaonRadius.xxl),
@@ -1050,7 +1073,7 @@ class _ResultState extends StatelessWidget {
   void _showSavedConfirm(BuildContext context, List<CalendarEvent> saved) {
     showDialog<void>(
       context: context,
-      barrierColor: const Color(0x73011D14),
+      barrierColor: GaonColors.barrier,
       builder: (dialogContext) => Dialog(
         backgroundColor: GaonColors.surface,
         shape: RoundedRectangleBorder(
@@ -1136,7 +1159,7 @@ class _ResultState extends StatelessWidget {
     var saving = false;
     showDialog<void>(
       context: context,
-      barrierColor: const Color(0x73011D14),
+      barrierColor: GaonColors.barrier,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => Dialog(
           backgroundColor: GaonColors.surface,
@@ -1181,18 +1204,29 @@ class _ResultState extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: GaonSpace.md),
-                for (final e in events) ...[
-                  _EventRow(
-                    event: e,
-                    selected: selected.contains(e),
-                    onTap: () => setDialogState(() {
-                      selected.contains(e)
-                          ? selected.remove(e)
-                          : selected.add(e);
-                    }),
+                // 일정이 많아도 다이얼로그가 넘치지 않게 목록만 스크롤
+                // (적대적 리뷰 B-1 — 하단 버튼 Row는 고정)
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final e in events) ...[
+                          _EventRow(
+                            event: e,
+                            selected: selected.contains(e),
+                            onTap: () => setDialogState(() {
+                              selected.contains(e)
+                                  ? selected.remove(e)
+                                  : selected.add(e);
+                            }),
+                          ),
+                          const SizedBox(height: GaonSpace.xs),
+                        ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: GaonSpace.xs),
-                ],
+                ),
                 const SizedBox(height: GaonSpace.xs),
                 Row(
                   children: [
@@ -1245,9 +1279,7 @@ class _ResultState extends StatelessWidget {
                                   }
                                   return;
                                 }
-                                // F-PRO-2·3: 마감 D-2·행사 전날 잠금화면 리마인드
-                                await NotificationService.instance
-                                    .scheduleEventReminders(saved);
+                                // 로컬 리마인드 예약 제거(결정 #11 — 선제 알림 비활성)
                                 if (dialogContext.mounted) {
                                   Navigator.of(dialogContext).pop();
                                 }

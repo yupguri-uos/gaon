@@ -162,7 +162,7 @@ class LoginScreen extends StatelessWidget {
                             const Icon(
                               Icons.chat_bubble,
                               size: 20,
-                              color: Color(0xFF1A1A1A),
+                              color: GaonColors.kakaoText,
                             ),
                             const SizedBox(width: GaonSpace.xs),
                             Column(
@@ -171,13 +171,13 @@ class LoginScreen extends StatelessWidget {
                                   bi('Bắt đầu với Kakao', '用Kakao开始'),
                                   style: GaonType.h3.copyWith(
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF1A1A1A),
+                                    color: GaonColors.kakaoText,
                                   ),
                                 ),
                                 Text(
                                   '카카오로 시작하기',
                                   style: GaonType.micro.copyWith(
-                                    color: const Color(0xB31A1A1A),
+                                    color: GaonColors.kakaoText,
                                   ),
                                 ),
                               ],

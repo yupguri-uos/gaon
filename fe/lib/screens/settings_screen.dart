@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../data/app_lang.dart';
+import '../data/app_nav.dart';
 import '../data/locator.dart';
-import '../data/notification_service.dart';
 import '../models/display.dart';
 import '../models/schema.dart';
-import '../models/schema.dart' as schema; // Notification이 material과 겹침
 import '../theme/tokens.dart';
 import '../widgets/common.dart';
 import 'login_screen.dart';
@@ -28,8 +27,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return (await user, await children);
   }
 
-  bool _pushEnabled = true;
-
   void _snack(String message) {
     ScaffoldMessenger.of(
       context,
@@ -40,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showDeleteDialog() {
     showDialog<void>(
       context: context,
-      barrierColor: const Color(0x80011D14),
+      barrierColor: GaonColors.barrier,
       builder: (context) => Dialog(
         backgroundColor: GaonColors.surface,
         shape: RoundedRectangleBorder(
@@ -158,6 +155,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
                           return;
                         }
+                        // 전역 내비 상태 리셋(C-1) — 새 계정이 설정 탭·이전
+                        // 월에서 시작하지 않게
+                        resetAppNav();
                         navigator.pushAndRemoveUntil(
                           MaterialPageRoute(
                             builder: (_) => const LoginScreen(),
@@ -230,7 +230,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           }
           final (user, children) = snap.data!;
-          final name = user.displayName ?? '';
+          // GET /me의 display_name(카카오 닉네임) 표시 — null이면 '학부모' 폴백(QA A-2)
+          final name = user.displayName;
           final child = children.firstOrNull;
           final childDesc = child == null
               ? ''
@@ -258,7 +259,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        name.isEmpty ? '?' : name[0].toUpperCase(),
+                        (name == null || name.isEmpty)
+                            ? '👪'
+                            : name[0].toUpperCase(),
                         style: GaonType.h1.copyWith(
                           color: GaonColors.textPrimary,
                         ),
@@ -269,7 +272,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '$name 님',
+                          (name == null || name.isEmpty)
+                              ? biLine('학부모', 'Phụ huynh', '家长')
+                              : '$name 님',
                           style: GaonType.h2.copyWith(
                             color: GaonColors.onPrimary,
                           ),
@@ -302,129 +307,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
-                      _row(
-                        icon: Icons.family_restroom_rounded,
-                        label: bi('Quản lý con', '子女管理'),
-                        sub: '자녀 관리',
-                        // 같은 화면이지만 자녀 섹션으로 바로 스크롤해 진입을 구분
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const ProfileEditScreen(focusChildren: true),
-                          ),
-                        ),
-                      ),
+                      // '자녀 관리' 행 제거(QA A-3) — 개인정보 수정과 같은 화면이라
+                      // 중복 진입점만 늘렸음. 자녀 관리는 개인정보 수정 안에서.
                     ]),
-                    _section(biLine('알림', 'Thông báo', '通知'), [
-                      // 시연용: 5초 후 로컬 알림 발화 → 기기를 잠그면 잠금화면에서 확인
-                      _row(
-                        icon: Icons.lock_clock_rounded,
-                        label: bi('Xem trước thông báo', '通知预览'),
-                        sub: '잠금화면 알림 미리보기',
-                        onTap: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          // GET /notifications는 실배선됐지만 Proactive 스캐너(배치)가
-                          // 아직 없어 목록이 비어 있을 수 있다 — 그때는 저장된 캘린더
-                          // 일정(마감 우선)으로 로컬 알림을 구성한다.
-                          var notification =
-                              (await repository.getNotifications()).firstOrNull;
-                          if (notification == null) {
-                            List<CalendarEvent> events = const [];
-                            try {
-                              events = await repository.getCalendarEvents();
-                            } catch (_) {} // 네트워크 실패해도 기본 문구로 진행
-                            // GET /calendar/events는 과거 포함 전체 — '마감 임박'
-                            // 미리보기는 오늘 이후 가장 가까운 마감(없으면 일정)만 쓴다.
-                            final now = repository.now();
-                            final today = DateTime(
-                              now.year,
-                              now.month,
-                              now.day,
-                            );
-                            final upcoming =
-                                events
-                                    .where((e) => !e.date.isBefore(today))
-                                    .toList()
-                                  ..sort((a, b) => a.date.compareTo(b.date));
-                            final target =
-                                upcoming
-                                    .where(
-                                      (e) =>
-                                          e.type == CalendarEventType.deadline,
-                                    )
-                                    .firstOrNull ??
-                                upcoming.firstOrNull;
-                            notification = schema.Notification(
-                              notificationId: 'preview',
-                              userId: '',
-                              type: NotificationType.deadlineD2,
-                              titleNative:
-                                  '⏰ ${biLine('마감 임박', 'Sắp đến hạn', '截止临近')}',
-                              bodyNative: target != null
-                                  ? bi(
-                                      '「${target.title}」 — hạn đến ${target.date.day}/${target.date.month}. Hãy chuẩn bị trước!',
-                                      '「${target.title}」——截止到${target.date.month}月${target.date.day}日，请提前准备！',
-                                    )
-                                  : bi(
-                                      'Sắp đến hạn trả lời thông báo của trường. Hãy kiểm tra trong ứng dụng!',
-                                      '家庭通知回复截止日临近，请在应用中确认！',
-                                    ),
-                              scheduledAt: repository.now(),
-                            );
-                          }
-                          await NotificationService.instance.schedulePreview(
-                            notification,
-                          );
-                          // OS 스케줄러(배터리 최적화 등)가 수 초 지연시킬 수 있어
-                          // '5초'를 약속하지 않는다(QA 2026-07-11)
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                biLines(
-                                  '잠시 후 알림이 와요 — 화면을 잠가보세요 🔒',
-                                  'Thông báo sẽ đến ngay — hãy khóa màn hình 🔒',
-                                  '通知马上就来——请锁屏查看 🔒',
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      _row(
-                        icon: Icons.notifications_none_rounded,
-                        label: bi('Thông báo đẩy', '推送通知'),
-                        sub: '푸시 알림',
-                        trailing: GestureDetector(
-                          onTap: () =>
-                              setState(() => _pushEnabled = !_pushEnabled),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            width: 42,
-                            height: 24,
-                            padding: const EdgeInsets.all(3),
-                            alignment: _pushEnabled
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              color: _pushEnabled
-                                  ? GaonColors.textPrimary
-                                  : GaonColors.border,
-                              borderRadius: BorderRadius.circular(
-                                GaonRadius.pill,
-                              ),
-                            ),
-                            child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: GaonColors.bg,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ]),
+                    // 알림 섹션 제거(결정 #11, 2026-07-12·13 확정) — 선제 알림(푸시·
+                    // 로컬 리마인드) 기능 전면 비활성. BE 라우터·테이블은 코드 잔존.
                     _section(biLine('계정', 'Tài khoản', '账号'), [
                       _row(
                         icon: Icons.logout_rounded,
@@ -437,6 +324,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             rootNavigator: true,
                           );
                           await repository.logout();
+                          resetAppNav(); // 전역 내비 상태 리셋(C-1)
                           navigator.pushAndRemoveUntil(
                             MaterialPageRoute(
                               builder: (_) => const LoginScreen(),

@@ -19,6 +19,18 @@ class DocumentAnalysis {
 /// 자녀별 캘린더 색 팔레트 — 등록 순서대로 순환 배정(§17.4 Child.color).
 const childColorPalette = ['#011D14', '#E05A2B', '#3D7A6E', '#5270E0'];
 
+/// 캘린더 일정 + 출처 문서 제목(QA D-5) — FE 로컬 뷰 모델.
+/// source_title은 GET /calendar/events의 엔드포인트 로컬 필드라
+/// shared CalendarEvent(models/schema.dart)에 필드를 추가하지 않고 여기서 묶는다.
+class CalendarEventView {
+  const CalendarEventView({required this.event, this.sourceTitle});
+
+  final CalendarEvent event;
+
+  /// 이 일정이 나온 알림장 문서 제목 — 없으면 null(출처 줄 생략).
+  final String? sourceTitle;
+}
+
 /// FE 데이터 접근 계약. 화면은 이 인터페이스만 안다.
 /// 구현은 ApiRepository 단일(locator.dart) — 테스트 대역은 test/fakes/FakeRepository.
 ///
@@ -97,6 +109,10 @@ abstract interface class GaonRepository {
   /// 캘린더 화면용 — 저장된 전체 일정.
   Future<List<CalendarEvent>> getCalendarEvents();
 
+  /// 캘린더 화면용 — 일정 + 출처 문서 제목(QA D-5).
+  /// getCalendarEvents와 같은 조회에 source_title(엔드포인트 로컬)을 얹은 뷰.
+  Future<List<CalendarEventView>> getCalendarEventViews();
+
   /// Chain B(F-TCH). 생성까지만 — 전송은 사용자 수동(결정 #2).
   /// child_info는 §8 계약상 필수 — ApiRepository가 [childId]로 Child를 찾아
   /// { grade, class_no?, name? }을 구성해 POST /teacher-message에 실어 보낸다.
@@ -109,6 +125,6 @@ abstract interface class GaonRepository {
   /// 월간 리포트(F-LOG).
   Future<ActivityLog> getActivityLog();
 
-  /// 능동 알림(F-PRO).
-  Future<List<Notification>> getNotifications();
+  // getNotifications 제거(결정 #11, 2026-07-12·13) — 선제 알림 기능 전면 비활성.
+  // BE GET /notifications 라우터·테이블은 코드 잔존(재활성화 시 이 메서드만 복원).
 }

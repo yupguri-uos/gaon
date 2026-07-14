@@ -34,3 +34,10 @@ def download_image(key: str) -> bytes:
     """버킷 키로 이미지 바이트를 내려받는다 — Chain A LLM 이미지 로더용(chain_deps 참조)."""
     response = _client.get_object(Bucket=settings.s3_bucket, Key=key)
     return response["Body"].read()
+
+
+def delete_image(key: str) -> None:
+    """이미지 오브젝트 삭제 — 회원탈퇴 시 best-effort 정리용(QA A-4).
+
+    실패는 호출자가 삼킨다(계정 삭제가 우선) — 여기서는 예외를 그대로 전파만 한다."""
+    _client.delete_object(Bucket=settings.s3_bucket, Key=key)

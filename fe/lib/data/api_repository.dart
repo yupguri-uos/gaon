@@ -440,15 +440,23 @@ class ApiRepository implements GaonRepository {
   }
 
   @override
-  Future<List<CalendarEvent>> getCalendarEvents() async {
+  Future<List<CalendarEvent>> getCalendarEvents() async =>
+      [for (final v in await getCalendarEventViews()) v.event];
+
+  @override
+  Future<List<CalendarEventView>> getCalendarEventViews() async {
     final json = await _get('/calendar/events') as Map<String, dynamic>;
     return [
       for (final e in json['events'] as List)
-        CalendarEvent(
-          title: (e as Map<String, dynamic>)['title'] as String,
-          date: DateTime.parse(e['date'] as String),
-          type: CalendarEventType.fromWire(e['type'] as String),
-          childId: e['child_id'] as String?,
+        CalendarEventView(
+          event: CalendarEvent(
+            title: (e as Map<String, dynamic>)['title'] as String,
+            date: DateTime.parse(e['date'] as String),
+            type: CalendarEventType.fromWire(e['type'] as String),
+            childId: e['child_id'] as String?,
+          ),
+          // 출처 문서 제목(QA D-5) — 엔드포인트 로컬 필드, shared 미러엔 없음
+          sourceTitle: e['source_title'] as String?,
         ),
     ];
   }
@@ -477,14 +485,5 @@ class ApiRepository implements GaonRepository {
     return ActivityLog.fromJson(json);
   }
 
-  // ── 알림 (F-PRO) ─────────────────────────────────────────────────
-  @override
-  Future<List<Notification>> getNotifications() async {
-    // GET /notifications — shared Notification[] 그대로(§11).
-    // 알림 '생성'은 Proactive 스캐너(배치) 몫이라 목록이 비어 있을 수 있음(정상).
-    final json = await _get('/notifications') as List;
-    return [
-      for (final e in json) Notification.fromJson(e as Map<String, dynamic>),
-    ];
-  }
+  // 알림(F-PRO) 소비부 제거(결정 #11) — BE GET /notifications는 코드 잔존.
 }

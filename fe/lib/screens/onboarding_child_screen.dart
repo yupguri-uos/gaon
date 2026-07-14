@@ -24,9 +24,17 @@ class OnboardingChildScreen extends StatefulWidget {
 class _ChildForm {
   final school = TextEditingController(); // 프리필 없음 — 힌트 텍스트로 안내
   final name = TextEditingController();
-  ChildGrade grade = ChildGrade.elem1; // 데모 잔재(2학년) 기본값 제거 — 1학년 기본
+  // 초기 미선택(QA A-1: '2학년' 등 기본 선택 금지) — 고르기 전엔 등록 불가.
+  ChildGrade? grade;
   // 자유 입력(숫자 반·순우리말 반 모두 지원, QA 2026-07-11). DB도 text라 그대로 저장.
   final classNo = TextEditingController();
+
+  /// 이름·학교·학년·반 모두 채워졌는가(QA A-1 필수화).
+  bool get complete =>
+      name.text.trim().isNotEmpty &&
+      school.text.trim().isNotEmpty &&
+      grade != null &&
+      classNo.text.trim().isNotEmpty;
 
   void dispose() {
     school.dispose();
@@ -38,6 +46,12 @@ class _ChildForm {
 class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
   static const _maxChildren = 5; // BE MAX_CHILDREN과 동일(자녀 수 상한, QA 2026-07-11)
   final _children = [_ChildForm()];
+
+  // 제출 중 재진입 가드(적대적 리뷰 C-2) — POST /onboarding·/children은
+  // 멱등이 아니라 더블 탭이 자녀 중복 등록을 만든다.
+  bool _submitting = false;
+
+  bool get _formsComplete => _children.every((f) => f.complete);
 
   @override
   void dispose() {
@@ -68,20 +82,30 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
               const SizedBox(height: GaonSpace.sm),
-              for (final g in ChildGrade.values)
-                ListTile(
-                  onTap: () => Navigator.of(context).pop(g),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(GaonRadius.md),
-                  ),
-                  tileColor: g == form.grade ? GaonColors.primaryLight : null,
-                  title: Text(
-                    g.label,
-                    style: GaonType.bodyLg.copyWith(
-                      color: GaonColors.textPrimary,
-                    ),
-                  ),
+              // 작은 화면(키보드 위 시트)에서도 넘치지 않게 목록만 스크롤(QA A-1)
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final g in ChildGrade.values)
+                      ListTile(
+                        onTap: () => Navigator.of(context).pop(g),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(GaonRadius.md),
+                        ),
+                        tileColor: g == form.grade
+                            ? GaonColors.primaryLight
+                            : null,
+                        title: Text(
+                          g.label,
+                          style: GaonType.bodyLg.copyWith(
+                            color: GaonColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
@@ -149,6 +173,9 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
             ),
             Expanded(
               child: ListView(
+                // 스크롤로 키보드 닫기(QA T-4 — iOS 공통 처리)
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(
                   GaonSpace.md,
                   GaonSpace.sm,
@@ -168,12 +195,13 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                     ),
                   ),
                   const SizedBox(height: GaonSpace.xs),
-                  // 학교가 한국어 문서로 소통하므로 이름·학교명은 한국어 표기 권장
+                  // 학교명만 한국어(학교 검색·소통용). 자녀 이름은 구분용 —
+                  // 실명 불필요(별명 가능, 결정 #7-PII 최소 수집, 2026-07-14).
                   Text(
                     biLine(
-                      '이름·학교명은 한국어로 적어 주세요',
-                      'Vui lòng viết tên và tên trường bằng tiếng Hàn',
-                      '姓名和学校名请用韩语填写',
+                      '학교명은 한국어로, 이름은 구분하기 쉬우면 돼요',
+                      'Tên trường bằng tiếng Hàn; tên con chỉ cần dễ phân biệt',
+                      '学校名请用韩语；孩子名称易区分即可',
                     ),
                     style: GaonType.caption.copyWith(
                       color: GaonColors.textSecondary,
@@ -237,120 +265,102 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                 GaonSpace.md,
                 GaonSpace.lg,
               ),
-              child: GaonButton(
-                label: '${bi('Bắt đầu', '开始')} →',
-                subLabel: '시작하기',
-                onTap: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  final navigator = Navigator.of(context);
-                  // 이름·학교 미입력이면 실수 방지 확인(QA) — 이름은 PII 선택
-                  // 입력(결정 #7)이라 막지는 않고 되묻기만 한다.
-                  final hasBlank = _children.any(
-                    (f) =>
-                        f.name.text.trim().isEmpty ||
-                        f.school.text.trim().isEmpty,
-                  );
-                  if (hasBlank) {
-                    final proceed = await showDialog<bool>(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        backgroundColor: GaonColors.surface,
-                        title: Text(
-                          biLines(
-                            '이름·학교명 없이 등록할까요?',
-                            'Đăng ký mà không có tên/trường?',
-                            '不填姓名/学校继续注册吗？',
-                          ),
-                          style: GaonType.h3.copyWith(
-                            color: GaonColors.textPrimary,
-                          ),
+              // 이름·학교·학년·반 필수(QA A-1) — 텍스트 변경에도 버튼 상태가
+              // 즉시 갱신되게 전 컨트롤러를 구독한다.
+              child: ListenableBuilder(
+                listenable: Listenable.merge([
+                  for (final f in _children) ...[f.name, f.school, f.classNo],
+                ]),
+                builder: (context, _) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!_formsComplete) ...[
+                      Text(
+                        biLine(
+                          '이름·학교·학년·반을 모두 입력하면 시작할 수 있어요',
+                          'Điền đủ tên, trường, lớp và số lớp để bắt đầu',
+                          '填写姓名、学校、年级和班级后即可开始',
                         ),
-                        content: Text(
-                          biLines(
-                            '나중에 설정 > 자녀 관리에서 채울 수 있어요',
-                            'Có thể bổ sung sau trong Cài đặt > Quản lý con',
-                            '之后可以在 设置 > 子女管理 中补填',
-                          ),
-                          style: GaonType.caption.copyWith(
-                            color: GaonColors.textSecondary,
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(false),
-                            child: Text(
-                              biLine('계속 입력', 'Nhập tiếp', '继续填写'),
-                              style: GaonType.body.copyWith(
-                                color: GaonColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.of(dialogContext).pop(true),
-                            child: Text(
-                              biLine('이대로 등록', 'Đăng ký luôn', '直接注册'),
-                              style: GaonType.body.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: GaonColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (proceed != true) return;
-                  }
-                  try {
-                    // 입력한 자녀들을 등록 → 이후 화면(챗봇·설정·캘린더)에 반영.
-                    // API 모드: 첫 자녀 = POST /onboarding(F-ON-1, 프로필+자녀 생성).
-                    final repo = repository;
-                    for (final (i, form) in _children.indexed) {
-                      final name = form.name.text.trim();
-                      final school = form.school.text.trim();
-                      final classNo = form.classNo.text.trim();
-                      if (i == 0 && repo is ApiRepository) {
-                        // 언어=국가 통합: 선택 언어에서 국가 자동 매핑(vi→VN, zh→CN)
-                        final lang = appLanguage.value;
-                        await repo.submitOnboarding(
-                          originCountry: lang == NativeLanguage.zh
-                              ? OriginCountry.cn
-                              : OriginCountry.vn,
-                          nativeLanguage: lang,
-                          childGrade: form.grade,
-                          childName: name.isEmpty ? null : name,
-                          childClassNo: classNo.isEmpty ? null : classNo,
-                          childSchoolName: school.isEmpty ? null : school,
-                        );
-                      } else {
-                        await repo.addChild(
-                          grade: form.grade,
-                          name: name.isEmpty ? null : name,
-                          classNo: classNo.isEmpty ? null : classNo,
-                          schoolName: school.isEmpty ? null : school,
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          biLines(
-                            '등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)',
-                            'Đăng ký thất bại — hãy kiểm tra mạng',
-                            '注册失败——请检查网络',
-                          ),
+                        textAlign: TextAlign.center,
+                        style: GaonType.micro.copyWith(
+                          color: GaonColors.textSecondary,
                         ),
                       ),
-                    );
-                    return;
-                  }
-                  navigator.pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainShell()),
-                    (route) => false,
-                  );
-                },
+                      const SizedBox(height: GaonSpace.xxs),
+                    ],
+                    GaonButton(
+                      label: _submitting
+                          ? biLine('등록 중...', 'Đang đăng ký...', '登记中…')
+                          : '${bi('Bắt đầu', '开始')} →',
+                      subLabel: _submitting ? null : '시작하기',
+                      // 미완성·제출 중이면 비활성(QA A-1·C-2) — 이전의
+                      // '이름 없이 등록' 확인 다이얼로그는 필수화로 폐기
+                      onTap: !_formsComplete || _submitting
+                          ? null
+                          : () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final navigator = Navigator.of(context);
+                              setState(() => _submitting = true);
+                              try {
+                                // 입력한 자녀들을 등록 → 이후 화면에 반영.
+                                // API 모드: 첫 자녀 = POST /onboarding(F-ON-1).
+                                final repo = repository;
+                                for (final (i, form) in _children.indexed) {
+                                  final name = form.name.text.trim();
+                                  final school = form.school.text.trim();
+                                  final classNo = form.classNo.text.trim();
+                                  if (i == 0 && repo is ApiRepository) {
+                                    // 언어=국가 통합: vi→VN, zh→CN 자동 매핑
+                                    final lang = appLanguage.value;
+                                    await repo.submitOnboarding(
+                                      originCountry:
+                                          lang == NativeLanguage.zh
+                                          ? OriginCountry.cn
+                                          : OriginCountry.vn,
+                                      nativeLanguage: lang,
+                                      childGrade: form.grade!,
+                                      childName: name,
+                                      childClassNo: classNo,
+                                      childSchoolName: school,
+                                    );
+                                  } else {
+                                    await repo.addChild(
+                                      grade: form.grade!,
+                                      name: name,
+                                      classNo: classNo,
+                                      schoolName: school,
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      biLines(
+                                        '등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)',
+                                        'Đăng ký thất bại — hãy kiểm tra mạng',
+                                        '登记失败——请检查网络',
+                                      ),
+                                    ),
+                                  ),
+                                );
+                                // 실패 시 버튼 복구 — 재시도 가능(C-2)
+                                if (mounted) {
+                                  setState(() => _submitting = false);
+                                }
+                                return;
+                              }
+                              navigator.pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => const MainShell(),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -447,13 +457,18 @@ class _ChildCard extends StatelessWidget {
           ),
           const SizedBox(height: GaonSpace.xs),
           _field(
-            biLine('이름', 'Tên con', '孩子姓名'),
+            // 실명이 아닌 '구분용 이름'(별명 가능) — PII 최소화(결정 #7-PII)
+            biLine('자녀를 구분할 이름', 'Tên để phân biệt con', '区分孩子的名称'),
             form.name,
-            biLine('자녀 이름(한국어)', 'Tên con (tiếng Hàn)', '孩子姓名（韩语）'),
+            biLine(
+              '별명도 좋아요 (예: 첫째, 다솜이)',
+              'Biệt danh cũng được (VD: bé lớn)',
+              '昵称也可以（例：老大）',
+            ),
           ),
           const SizedBox(height: GaonSpace.xs),
           Text(
-            biLine('학년·반', 'Lớp · Ban', '年级·班'),
+            biLine('학년·반', 'Lớp · Số lớp', '年级·班'),
             style: GaonType.micro.copyWith(
               fontWeight: FontWeight.w600,
               color: GaonColors.textSecondary,
@@ -462,7 +477,13 @@ class _ChildCard extends StatelessWidget {
           const SizedBox(height: 3),
           Row(
             children: [
-              Expanded(child: _darkSelector(form.grade.label, onPickGrade)),
+              Expanded(
+                child: _darkSelector(
+                  // 초기 미선택(QA A-1) — 고르기 전엔 플레이스홀더 표시
+                  form.grade?.label ?? biLine('학년 선택', 'Chọn lớp', '选择年级'),
+                  onPickGrade,
+                ),
+              ),
               const SizedBox(width: GaonSpace.xs),
               // 반은 자유 입력 — 숫자 반 외에 순우리말 반(예: 다솜)도 있다
               Expanded(
@@ -475,13 +496,14 @@ class _ChildCard extends StatelessWidget {
                   ),
                   child: TextField(
                     controller: form.classNo,
+                    textInputAction: TextInputAction.done, // QA T-4
                     style: GaonType.body.copyWith(
                       color: GaonColors.textPrimary,
                     ),
                     decoration: InputDecoration(
                       isDense: true,
                       border: InputBorder.none,
-                      hintText: biLine('반 (예: 3, 다솜)', 'Ban', '班'),
+                      hintText: biLine('반 (예: 3, 다솜)', 'Số lớp', '班'),
                       hintStyle: GaonType.body.copyWith(
                         color: GaonColors.textSecondary,
                       ),
@@ -518,6 +540,7 @@ class _ChildCard extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
+            textInputAction: TextInputAction.done, // 완료로 키보드 닫기(QA T-4)
             style: GaonType.body.copyWith(color: GaonColors.textPrimary),
             decoration: InputDecoration(
               isDense: true,

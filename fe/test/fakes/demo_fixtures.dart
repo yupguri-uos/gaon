@@ -169,18 +169,7 @@ final demoActivityLog = ActivityLog(
   ],
 );
 
-final demoNotifications = [
-  Notification(
-    notificationId: 'demo-noti-1',
-    userId: 'demo-user-1',
-    childId: 'demo-child-1',
-    type: NotificationType.deadlineD2,
-    titleNative: 'Sắp đến hạn (còn 2 ngày)',
-    bodyNative: 'Đơn đồng ý dã ngoại Công viên Lớn Seoul cần nộp trước 12/6.',
-    scheduledAt: DateTime(2025, 6, 10, 8, 30),
-    relatedDocumentId: 'demo-doc-1',
-  ),
-];
+// demoNotifications 제거(결정 #11) — 선제 알림 비활성.
 
 /// Chain B 상황별 데모 응답(F-TCH-2·3).
 TeacherMessage demoTeacherMessage({

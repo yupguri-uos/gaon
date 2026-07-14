@@ -88,7 +88,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     final schoolCtrl = TextEditingController(text: edit?.schoolName ?? '');
     // 반은 자유 입력 — 숫자 반 외에 순우리말 반(예: 다솜)도 있다(QA 2026-07-11)
     final classCtrl = TextEditingController(text: edit?.classNo ?? '');
-    var grade = edit?.grade ?? ChildGrade.elem1;
+    // 추가 모드는 초기 미선택(QA A-1 — '2학년' 기본값 금지), 수정 모드는 기존 값
+    ChildGrade? grade = edit?.grade;
+    bool complete() =>
+        nameCtrl.text.trim().isNotEmpty &&
+        schoolCtrl.text.trim().isNotEmpty &&
+        classCtrl.text.trim().isNotEmpty &&
+        grade != null;
 
     final submitted = await showModalBottomSheet<bool>(
       context: context,
@@ -100,7 +106,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
       ),
       builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setSheetState) => Padding(
+        // 작은 화면 + 키보드에서 시트가 넘치지 않게 스크롤 허용(QA A-1 overflow)
+        builder: (sheetContext, setSheetState) => SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.only(
             left: GaonSpace.lg,
             right: GaonSpace.lg,
@@ -118,11 +126,28 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     : biLine('자녀 수정', 'Sửa thông tin con', '修改子女信息'),
                 style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
               ),
-              const SizedBox(height: GaonSpace.md),
+              const SizedBox(height: GaonSpace.xxs),
+              // 학교명만 한국어(학교 검색용). 자녀 이름은 구분용 —
+              // 실명 불필요(별명 가능, 결정 #7-PII 최소 수집, 2026-07-14).
+              Text(
+                biLine(
+                  '학교명은 한국어로, 이름은 구분하기 쉬우면 돼요',
+                  'Tên trường bằng tiếng Hàn; tên con chỉ cần dễ phân biệt',
+                  '学校名请用韩语；孩子名称易区分即可',
+                ),
+                style: GaonType.micro.copyWith(
+                  color: GaonColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: GaonSpace.sm),
               _sheetField(
-                biLine('이름', 'Tên con', '孩子姓名'),
+                biLine('자녀를 구분할 이름', 'Tên để phân biệt con', '区分孩子的名称'),
                 nameCtrl,
-                biLine('자녀 이름(한국어)', 'Tên con (tiếng Hàn)', '孩子姓名（韩语）'),
+                biLine(
+                  '별명도 좋아요 (예: 첫째, 다솜이)',
+                  'Biệt danh cũng được (VD: bé lớn)',
+                  '昵称也可以（例：老大）',
+                ),
               ),
               const SizedBox(height: GaonSpace.sm),
               _sheetField(
@@ -153,16 +178,41 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
               const SizedBox(height: GaonSpace.sm),
               _sheetField(
-                biLine('반', 'Ban', '班'),
+                biLine('반', 'Số lớp', '班'),
                 classCtrl,
                 '${bi('VD', '例')}) 3 ${bi('hoặc', '或')} 다솜',
               ),
               const SizedBox(height: GaonSpace.lg),
-              GaonButton(
-                label: edit == null
-                    ? biLine('등록하기', 'Đăng ký', '注册')
-                    : biLine('저장하기', 'Lưu', '保存'),
-                onTap: () => Navigator.of(sheetContext).pop(true),
+              // 이름·학교·학년·반 필수(QA A-1) — 미완성이면 비활성 + 인라인 안내
+              ListenableBuilder(
+                listenable: Listenable.merge([nameCtrl, schoolCtrl, classCtrl]),
+                builder: (context, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!complete()) ...[
+                      Text(
+                        biLine(
+                          '이름·학교·학년·반을 모두 입력해 주세요',
+                          'Điền đủ tên, trường, lớp và số lớp',
+                          '请填写姓名、学校、年级和班级',
+                        ),
+                        textAlign: TextAlign.center,
+                        style: GaonType.micro.copyWith(
+                          color: GaonColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: GaonSpace.xxs),
+                    ],
+                    GaonButton(
+                      label: edit == null
+                          ? biLine('등록하기', 'Đăng ký', '登记')
+                          : biLine('저장하기', 'Lưu', '保存'),
+                      onTap: complete()
+                          ? () => Navigator.of(sheetContext).pop(true)
+                          : null,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -184,28 +234,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     try {
       if (edit == null) {
         await repository.addChild(
-          grade: grade,
-          name: name.isEmpty ? null : name,
-          classNo: classNo.isEmpty ? null : classNo,
-          schoolName: school.isEmpty ? null : school,
+          // 제출 버튼이 complete()일 때만 활성이라 여기선 항상 채워져 있다(QA A-1)
+          grade: grade!,
+          name: name,
+          classNo: classNo,
+          schoolName: school,
           // 색은 팔레트 순환 배정(§17.4) — 기존 자녀 수 기준
           color: childColorPalette[existingCount % childColorPalette.length],
         );
         if (!mounted) return;
-        _snack(
-          biLine(
-            '${name.isEmpty ? '자녀' : name} 등록 완료!',
-            'Đã đăng ký xong!',
-            '登记完成！',
-          ),
-        );
+        _snack(biLine('$name 등록 완료!', 'Đã đăng ký xong!', '登记完成！'));
       } else {
         await repository.updateChild(
           childId: edit.childId,
           grade: grade,
-          name: name.isEmpty ? null : name,
-          classNo: classNo.isEmpty ? null : classNo,
-          schoolName: school.isEmpty ? null : school,
+          name: name,
+          classNo: classNo,
+          schoolName: school,
         );
         if (!mounted) return;
         _snack(
@@ -280,6 +325,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
           child: TextField(
             controller: controller,
+            textInputAction: TextInputAction.done, // 완료로 키보드 닫기(QA T-4)
             style: GaonType.body.copyWith(color: GaonColors.textPrimary),
             decoration: InputDecoration(
               isDense: true,
@@ -484,6 +530,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   final children = _childrenOverride ?? loaded;
 
                   return ListView(
+                    // 스크롤로 키보드 닫기(QA T-4 — iOS 공통 처리)
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.all(GaonSpace.md),
                     children: [
                       Text(
