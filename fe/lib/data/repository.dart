@@ -17,7 +17,14 @@ class DocumentAnalysis {
 }
 
 /// 자녀별 캘린더 색 팔레트 — 등록 순서대로 순환 배정(§17.4 Child.color).
-const childColorPalette = ['#011D14', '#E05A2B', '#3D7A6E', '#5270E0'];
+/// 의미 색과 겹치지 않는 고유색만 쓴다(요청). 과거 팔레트는 의미 토큰을 재사용해
+/// [1]=warning(마감 주황)·[2]=textSecondary(보조 텍스트)와 충돌했다.
+///  - [0] #011D14 딥포레스트(≈검정, 중립) : 첫째
+///  - [1] #7B3FE4 보라                    : 둘째 (기존 주황=warning 대체)
+///  - [2] #E23E8C 로즈                    : 셋째 (기존 teal=textSecondary 대체)
+///  - [3] #2F6FED 블루                    : 넷째
+/// 초록(primary/success)·주황(warning)·노랑(kakao)과 모두 구분된다.
+const childColorPalette = ['#011D14', '#7B3FE4', '#E23E8C', '#2F6FED'];
 
 /// 캘린더 일정 + 출처 문서 제목(QA D-5) — FE 로컬 뷰 모델.
 /// source_title은 GET /calendar/events의 엔드포인트 로컬 필드라

@@ -108,10 +108,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Color(int.parse('FF${hex.replaceFirst('#', '')}', radix: 16));
   }
 
+  // 점 색 = 자녀 색(범례와 일치). 예전엔 마감을 항상 주황(warning)으로 칠했는데,
+  // 그 주황이 특정 자녀 색(예: 둘째딸)과 겹쳐 '누구 일정인지' 오해를 줬다(요청).
+  // 마감 여부는 상세 시트의 'D-0 · 마감' 배지로 표시하므로 점은 자녀만 구분한다.
   Color _dotColor(List<Child> children, CalendarEvent e) =>
-      e.type == CalendarEventType.deadline
-      ? GaonColors.warning
-      : _childColor(children, e.childId);
+      _childColor(children, e.childId);
 
   Future<void> _copyKeyword(String keyword) async {
     await Clipboard.setData(ClipboardData(text: keyword));

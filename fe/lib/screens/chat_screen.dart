@@ -154,7 +154,9 @@ class _ChatScreenState extends State<ChatScreen> {
         imageQuality: 80,
       );
       if (picked == null) return; // 사용자가 취소
-      imageRef = PickedImageStore.register(await picked.readAsBytes());
+      final bytes = await picked.readAsBytes();
+      debugPrint('[upload] 업로드 이미지 크기: ${(bytes.length / 1024).round()} KB');
+      imageRef = PickedImageStore.register(bytes);
     }
     if (!mounted) return;
     await _upload(imageRef);
@@ -508,19 +510,39 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.all(GaonSpace.xl),
       children: [
         const SizedBox(height: GaonSpace.lg),
+        // 중앙 원형 영역 자체가 업로드 버튼 — 하단 타원형 버튼은 제거.
+        // 88 → 120(약 36%↑)으로 확대해 터치가 쉽고(44pt 훨씬 상회), 민트 배경 +
+        // 다크그린 아이콘/텍스트로 기존 디자인 시스템을 유지한다.
         Center(
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: GaonColors.primary,
-              boxShadow: GaonShadow.dark,
-            ),
-            child: const Icon(
-              Icons.photo_camera_rounded,
-              size: 38,
-              color: GaonColors.textPrimary,
+          child: Semantics(
+            button: true,
+            label: biLine('사진 올리기', 'Tải ảnh lên', '上传照片'),
+            child: Container(
+              // 그림자는 바깥 Container, 채움·원형 잉크 리플은 안쪽 Material이 맡는다.
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: GaonShadow.dark,
+              ),
+              child: Material(
+                color: GaonColors.primary,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onUpload,
+                  child: const SizedBox(
+                    width: 120,
+                    height: 120,
+                    // 문구 제거(요청) — 카메라 아이콘만 원 정중앙에.
+                    child: Center(
+                      child: Icon(
+                        Icons.photo_camera_rounded,
+                        size: 44,
+                        color: GaonColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -546,17 +568,7 @@ class _EmptyState extends StatelessWidget {
           textAlign: TextAlign.center,
           style: GaonType.caption.copyWith(color: GaonColors.textSecondary),
         ),
-        const SizedBox(height: GaonSpace.md),
-        GaonButton(
-          label: bi('Tải ảnh lên', '上传照片'),
-          subLabel: '사진 올리기',
-          icon: const Icon(
-            Icons.upload_rounded,
-            size: 16,
-            color: GaonColors.onPrimary,
-          ),
-          onTap: onUpload,
-        ),
+        // 하단 진초록 타원형 '사진 올리기' 버튼 제거 — 위 원형 영역이 그 역할을 한다.
         const SizedBox(height: GaonSpace.lg),
         // 다가오는 일정 — 저장된 캘린더 요약(홈에서 바로 확인, 실패 시 숨김).
         // GET /calendar/events는 과거 포함 전체를 주므로(캘린더 탭 누적 조회용)
