@@ -35,7 +35,7 @@
 
 번역은 시작일 뿐입니다. GAON은 **알림장 사진 한 장에서 출발해, 그 문서가 요구하는 행동이 끝나는 지점까지** 학부모와 함께 갑니다.
 
-## ✨ 핵심 기능
+## 핵심 기능
 
 ### 1. 알림장 분석 — 사진 한 장으로 (Chain A)
 
@@ -147,7 +147,7 @@ flowchart LR
 | 인증 | Kakao OAuth + stateless JWT (HS256) |
 | 인프라 | Docker Compose, nginx, Cloudflare Tunnel (공개 HTTPS) |
 
-## 저장소 구조
+## 디렉토리 구조
 
 ```
 gaon/
