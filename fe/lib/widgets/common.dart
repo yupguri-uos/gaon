@@ -131,24 +131,44 @@ class GaonButton extends StatelessWidget {
                   border: Border.all(color: GaonColors.textPrimary, width: 1.2),
                 )
               : null,
-          child: Row(
-            mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[icon!, const SizedBox(width: GaonSpace.xs)],
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: GaonType.btn.copyWith(color: fg),
+          // subLabel(한국어 병기)이 있으면 세로 병기(모국어 위·한국어 아래)로 —
+          // 가로 배치는 좁은 버튼에서 모국어가 "..."로 잘려 뜻이 사라진다(QA).
+          child: subLabel == null
+              ? Row(
+                  mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (icon != null) ...[
+                      icon!,
+                      const SizedBox(width: GaonSpace.xs),
+                    ],
+                    Flexible(
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        style: GaonType.btn.copyWith(color: fg),
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[icon!, const SizedBox(height: 2)],
+                    Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: GaonType.btn.copyWith(color: fg),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subLabel!,
+                      textAlign: TextAlign.center,
+                      style: GaonType.micro.copyWith(color: subFg),
+                    ),
+                  ],
                 ),
-              ),
-              if (subLabel != null) ...[
-                const SizedBox(width: GaonSpace.xs),
-                Text(subLabel!, style: GaonType.micro.copyWith(color: subFg)),
-              ],
-            ],
-          ),
         ),
       ),
     );
