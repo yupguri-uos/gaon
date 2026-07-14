@@ -232,11 +232,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final (user, children) = snap.data!;
           // GET /me의 display_name(카카오 닉네임) 표시 — null이면 '학부모' 폴백(QA A-2)
           final name = user.displayName;
-          final child = children.firstOrNull;
-          final childDesc = child == null
-              ? ''
-              : ' · ${child.name ?? '자녀'} '
-                    '(${child.grade.wire.split('_').last}-${child.classNo ?? '?'})';
+          // 사용자 카드의 자녀 표시 제거(요청) — 자녀 한 명만 뜨는 건 의미 없음.
+          // (자녀 목록은 아래 '자녀 정보' 섹션에서 전체를 관리한다.)
 
           return Column(
             children: [
@@ -280,8 +277,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         Text(
+                          // 국기 + 모국어명만 — 한국어 병기·자녀 표시 제거(요청).
                           '${user.originCountry.label.split(' ').last} '
-                          '${user.nativeLanguage.label}$childDesc',
+                          '${user.nativeLanguage.label.split(' · ').first}',
                           style: GaonType.caption.copyWith(
                             color: GaonColors.primary,
                           ),

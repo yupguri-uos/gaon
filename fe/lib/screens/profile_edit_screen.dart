@@ -559,14 +559,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         ),
                         child: Column(
                           children: [
+                            // 출신국·모국어를 '언어' 하나로 통합(요청) — 온보딩과 동일.
+                            // 언어를 바꾸면 국가도 함께 도출된다(vi→VN, zh→CN).
                             _infoRow(
-                              biLine('출신국', 'Quốc gia', '国家'),
-                              user.originCountry.label,
-                              onEdit: () => _editCountry(user),
-                            ),
-                            const GaonDivider(),
-                            _infoRow(
-                              biLine('모국어', 'Ngôn ngữ', '语言'),
+                              biLine('언어', 'Ngôn ngữ', '语言'),
                               user.nativeLanguage.label,
                               onEdit: () => _editLanguage(user),
                             ),
@@ -731,10 +727,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  // ── F-ON-1: 프로필(출신국·모국어) 변경 — PATCH /profile ──
-  // 선택지는 shared-schema Literal 범위(VN/CN · vi/zh)로 한정한다.
-  // 온보딩 UI의 확장 5개국은 'schema보다 앞서간 UI'(SSOT 결정 대기) — 여기선 정본만.
-
+  // ── F-ON-1: 프로필(언어) 변경 — PATCH /profile ──
+  // 언어=국가 통합(요청): 언어 변경 시 국가도 도출(_editLanguage). 출신국 단독
+  // 변경(_editCountry)은 제거 — 복원 가능하도록 주석 처리.
+  /*
   Future<void> _editCountry(User user) async {
     final selected = await _pickOption<OriginCountry>(
       title: biLine('출신국 변경', 'Đổi quốc gia', '更改国家'),
@@ -759,6 +755,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       );
     }
   }
+  */
 
   Future<void> _editLanguage(User user) async {
     final selected = await _pickOption<NativeLanguage>(
@@ -769,7 +766,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
     if (selected == null || selected == user.nativeLanguage) return;
     try {
-      await repository.updateProfile(nativeLanguage: selected);
+      // 언어=국가 통합(요청) — 언어를 바꾸면 국가도 함께 도출(vi→VN, zh→CN).
+      await repository.updateProfile(
+        nativeLanguage: selected,
+        originCountry:
+            selected == NativeLanguage.zh ? OriginCountry.cn : OriginCountry.vn,
+      );
       await AppLangStore.save(selected); // 전 화면 표시 언어 즉시 갱신 + 로컬 저장
       if (!mounted) return;
       _snack(biLine('모국어를 변경했어요', 'Đã đổi ngôn ngữ', '已更改语言'));
