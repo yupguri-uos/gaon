@@ -516,7 +516,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         'Hãy kiểm tra mạng rồi thử lại',
                         '请检查网络后重试',
                       ),
-                      onRetry: () => setState(() => _future = _load()),
+                      onRetry: () => setState(() { _future = _load(); }),
                     );
                   }
                   if (!snap.hasData) {
@@ -742,7 +742,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       await repository.updateProfile(originCountry: selected);
       if (!mounted) return;
       _snack(biLine('출신국을 변경했어요', 'Đã đổi quốc gia', '已更改国家'));
-      setState(() => _future = _load());
+      setState(() { _future = _load(); });
     } catch (_) {
       if (!mounted) return;
       _snack(
@@ -768,7 +768,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       await AppLangStore.save(selected); // 전 화면 표시 언어 즉시 갱신 + 로컬 저장
       if (!mounted) return;
       _snack(biLine('모국어를 변경했어요', 'Đã đổi ngôn ngữ', '已更改语言'));
-      setState(() => _future = _load());
+      setState(() { _future = _load(); });
     } catch (_) {
       if (!mounted) return;
       _snack(

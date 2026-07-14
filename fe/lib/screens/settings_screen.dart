@@ -221,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Hãy kiểm tra mạng rồi thử lại',
                 '请检查网络后重试',
               ),
-              onRetry: () => setState(() => _future = _load()),
+              onRetry: () => setState(() { _future = _load(); }),
             );
           }
           if (!snap.hasData) {
