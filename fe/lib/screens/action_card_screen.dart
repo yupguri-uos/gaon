@@ -99,12 +99,15 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            biLine(
+            biLines(
               '일정 ${saved.length}개를 캘린더에 저장했어요',
               'Đã lưu ${saved.length} lịch',
               '已保存 ${saved.length} 个日程',
             ),
           ),
+          // 모국어·한국어를 두 줄로(biLines), 3초 뒤 자동으로 사라진다
+          // (액션을 안 눌러도) — 명시 duration이 없으면 오래 남아 답답하다는 피드백.
+          duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: biLine('캘린더 보기', 'Xem lịch', '查看日历'),
             textColor: GaonColors.primary,
