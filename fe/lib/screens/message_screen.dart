@@ -5,7 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../data/app_lang.dart';
 import '../data/app_nav.dart';
 import '../data/locator.dart';
-import '../data/teacher_store.dart';
+// import '../data/teacher_store.dart'; // 교사 선택 기능 제거(요청) — 관련 코드 주석 처리
 import '../models/display.dart';
 import '../models/schema.dart';
 import '../theme/tokens.dart';
@@ -24,10 +24,10 @@ class _MessageScreenState extends State<MessageScreen> {
   // 프리필 없음(QA: 처음부터 문장이 들어가 있음) — 예시는 힌트로만 보여준다.
   final _inputController = TextEditingController();
   MessageSituation _situation = MessageSituation.absence;
-  // 사용자가 직접 추가한 상황(custom 활용). 세션 한정 — 선택 시 wire=custom으로 보내고
-  // 라벨은 input_native 앞에 붙여 AI에 맥락 전달(스키마 변경 없음, QA 2026-07-11).
-  final List<String> _customSituations = [];
-  String? _selectedCustom; // 선택된 커스텀 라벨. null이면 프리셋 _situation 사용.
+  // '직접 추가'(커스텀 상황) 제거(요청) — 커스텀 상황에서 모국어 출력이 부실해
+  // 프리셋 상황만 남긴다. 관련 필드/메서드는 복원 가능하도록 주석 처리.
+  // final List<String> _customSituations = [];
+  String? _selectedCustom; // 커스텀 제거 후 항상 null(프리셋 _situation 사용).
 
   /// 상황별 모국어 예시문 — 상황 칩을 바꾸면 입력창 힌트가 함께 바뀐다.
   String _hintFor(MessageSituation s) => switch (s) {
@@ -45,18 +45,20 @@ class _MessageScreenState extends State<MessageScreen> {
     ),
     MessageSituation.custom => bi('Nhập bằng tiếng Việt...', '请用中文输入...'),
   };
-  // 받는 사람(교사) — 자녀별 로컬 목록(TeacherStore, 팀 결정 2026-07-13).
-  int _teacherIndex = 0;
+  // 받는 사람(교사) 선택 기능 제거(요청) — 아래 관련 코드는 주석 처리(복원 가능).
+  // int _teacherIndex = 0;
   List<Child> _children = const [];
   Child? _selectedChild; // Chain B child_info(§8) 필수 — 어느 자녀 건인지
   TeacherMessage? _message;
   bool _generating = false;
 
+  /* 교사 선택 제거(요청) — 복원 가능하도록 주석 처리.
   /// 선택된 자녀의 교사 목록 — 자녀 미선택이면 빈 목록.
   List<Teacher> get _teachers {
     final child = _selectedChild;
     return child == null ? const [] : TeacherStore.forChild(child.childId);
   }
+  */
 
   @override
   void initState() {
@@ -152,7 +154,7 @@ class _MessageScreenState extends State<MessageScreen> {
     if (picked != null) {
       setState(() {
         _selectedChild = picked;
-        _teacherIndex = 0; // 자녀가 바뀌면 그 자녀의 교사 목록으로 초기화
+        // _teacherIndex = 0; // 교사 선택 제거(요청)
       });
     }
   }
@@ -249,6 +251,7 @@ class _MessageScreenState extends State<MessageScreen> {
     );
   }
 
+  /* '직접 추가'(커스텀 상황) 제거(요청) — 다이얼로그 주석 처리(복원 가능).
   Future<void> _addCustomSituation() async {
     final controller = TextEditingController();
     final label = await showDialog<String>(
@@ -289,7 +292,9 @@ class _MessageScreenState extends State<MessageScreen> {
       _selectedCustom = label;
     });
   }
+  */
 
+  /* 복사 버튼 제거(요청) — 복사 메서드도 주석 처리(복원 가능).
   Future<void> _copyMessage() async {
     final message = _message;
     if (message == null) return;
@@ -299,7 +304,9 @@ class _MessageScreenState extends State<MessageScreen> {
       SnackBar(content: Text(biLine('메시지를 복사했어요', 'Đã sao chép', '已复制'))),
     );
   }
+  */
 
+  /* 교사 선택 기능 제거(요청) — 아래 시트/타일/편집 다이얼로그 전체 주석 처리(복원 가능).
   // ── S12: 받는 사람 선택 시트 ──
   // 교사 목록은 schema에 Teacher 엔티티가 없어(SSOT 대기) TeacherStore(기기 로컬)로
   // 관리한다 — 추가/삭제 가능(QA: 선생님 목록 수정).
@@ -549,14 +556,13 @@ class _MessageScreenState extends State<MessageScreen> {
       roleCtrl.dispose();
     });
   }
+  */
 
   @override
   Widget build(BuildContext context) {
-    final teachers = _teachers;
-    // 삭제 직후 인덱스가 목록 밖을 가리킬 수 있어 방어. 빈 목록이면 null.
-    final teacher = teachers.isEmpty
-        ? null
-        : teachers[_teacherIndex < teachers.length ? _teacherIndex : 0];
+    // 교사 선택 제거(요청) — 관련 로컬 주석 처리.
+    // final teachers = _teachers;
+    // final teacher = teachers.isEmpty ? null : teachers[...];
 
     return SafeArea(
       child: Column(
@@ -592,7 +598,8 @@ class _MessageScreenState extends State<MessageScreen> {
                     ],
                   ),
                 ),
-                // 받는 사람 — 선택된 자녀의 교사(없으면 추가 유도, QA T-1)
+                // 받는 사람(교사) 선택 칩 제거(요청) — 주석 처리(복원 가능).
+                /*
                 Material(
                   color: GaonColors.primaryLight,
                   borderRadius: BorderRadius.circular(GaonRadius.pill),
@@ -632,6 +639,7 @@ class _MessageScreenState extends State<MessageScreen> {
                     ),
                   ),
                 ),
+                */
               ],
             ),
           ),
@@ -714,20 +722,8 @@ class _MessageScreenState extends State<MessageScreen> {
                           _selectedCustom = null;
                         }),
                       ),
-                    // 사용자가 추가한 상황(custom) — 입력한 언어 그대로.
-                    for (final c in _customSituations)
-                      _situationChip(
-                        text: c,
-                        selected: _selectedCustom == c,
-                        onTap: () => setState(() => _selectedCustom = c),
-                      ),
-                    // 직접 추가.
-                    _situationChip(
-                      text: '+ ${bi('Thêm', '添加')}',
-                      sub: '직접 추가',
-                      selected: false,
-                      onTap: _addCustomSituation,
-                    ),
+                    // '직접 추가'(커스텀 상황) 및 커스텀 목록 제거(요청) —
+                    // 절차가 명확한 프리셋 상황만 남긴다.
                   ],
                 ),
                 const SizedBox(height: GaonSpace.md),
@@ -859,41 +855,23 @@ class _MessageScreenState extends State<MessageScreen> {
                   // 달라 오정보 위험(팀 결정 #13, 2026-07-13: F-TCH-4 기능 비활성).
                   // 필드·AI 출력·BE 저장은 유지(결정 #11·#12와 동일한 코드 잔존 방식).
                   const SizedBox(height: GaonSpace.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GaonButton(
-                          variant: GaonButtonVariant.ghost,
-                          label: bi('Sao chép', '复制'),
-                          subLabel: '복사',
-                          icon: const Icon(
-                            Icons.copy_rounded,
-                            size: 14,
-                            color: GaonColors.textPrimary,
-                          ),
-                          onTap: _copyMessage,
-                        ),
-                      ),
-                      const SizedBox(width: GaonSpace.xs),
-                      Expanded(
-                        child: GaonButton(
-                          label: bi('Chia sẻ', '分享'),
-                          subLabel: '카톡 공유',
-                          icon: const Icon(
-                            Icons.share_rounded,
-                            size: 14,
-                            color: GaonColors.onPrimary,
-                          ),
-                          onTap: () {
-                            // 직접 전송 금지(결정 #2) — OS 공유 시트를 열고
-                            // 카톡 선택·전송은 사용자가 직접 한다.
-                            SharePlus.instance.share(
-                              ShareParams(text: _message!.outputKo),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                  // 복사 버튼 제거(요청) — 카톡 공유를 전체 폭으로 크게.
+                  GaonButton(
+                    fullWidth: true,
+                    label: bi('Chia sẻ', '分享'),
+                    subLabel: '카톡 공유',
+                    icon: const Icon(
+                      Icons.share_rounded,
+                      size: 14,
+                      color: GaonColors.onPrimary,
+                    ),
+                    onTap: () {
+                      // 직접 전송 금지(결정 #2) — OS 공유 시트를 열고
+                      // 카톡 선택·전송은 사용자가 직접 한다.
+                      SharePlus.instance.share(
+                        ShareParams(text: _message!.outputKo),
+                      );
+                    },
                   ),
                 ],
               ],

@@ -23,6 +23,17 @@ class ActionCardScreen extends StatefulWidget {
 class _ActionCardScreenState extends State<ActionCardScreen> {
   late Future<DocumentAnalysis> _future = repository.getLatestAnalysis();
 
+  // 회신 초안은 사용자가 공유 전에 직접 수정할 수 있어야 한다(요청) — 편집 상태를
+  // 컨트롤러로 보유하고, 복사/공유는 원문이 아니라 편집된 내용을 사용한다.
+  final TextEditingController _replyController = TextEditingController();
+  bool _replySeeded = false;
+
+  @override
+  void dispose() {
+    _replyController.dispose();
+    super.dispose();
+  }
+
   void _snack(String message) {
     ScaffoldMessenger.of(
       context,
@@ -161,8 +172,11 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                   final analysis = snap.data!;
                   final card = analysis.actionCard;
                   final deadline = analysis.extractedItem.deadline;
-                  // 마감·행사 모두 표시(QA D-5) — 타입 배지로 구분한다
-                  final eventDates = card.calendarEvents.toList();
+                  // 회신 초안을 편집 컨트롤러에 한 번만 시딩(이후 사용자 편집 보존).
+                  if (card.replyDraftKo != null && !_replySeeded) {
+                    _replyController.text = card.replyDraftKo!;
+                    _replySeeded = true;
+                  }
                   var actionNo = 0;
 
                   return ListView(
@@ -228,19 +242,49 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      biLine('회신 초안', 'Bản nháp trả lời', '回复草稿'),
-                                      style: GaonType.micro.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: GaonColors.textSecondary,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          biLine(
+                                            '회신 초안',
+                                            'Bản nháp trả lời',
+                                            '回复草稿',
+                                          ),
+                                          style: GaonType.micro.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: GaonColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: GaonSpace.xs),
+                                        const Icon(
+                                          Icons.edit_rounded,
+                                          size: 11,
+                                          color: GaonColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          biLine('수정 가능', 'Có thể sửa', '可编辑'),
+                                          style: GaonType.nano.copyWith(
+                                            color: GaonColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: GaonSpace.xxs),
-                                    Text(
-                                      card.replyDraftKo!,
+                                    // 공유 전에 사용자가 직접 고칠 수 있는 편집 필드.
+                                    // 배경 박스에 녹아들도록 테두리 없이(카톡공유는 이 값 사용).
+                                    TextField(
+                                      controller: _replyController,
+                                      maxLines: null,
+                                      textInputAction: TextInputAction.newline,
                                       style: GaonType.caption.copyWith(
                                         color: GaonColors.textPrimary,
                                         height: 1.7,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.zero,
                                       ),
                                     ),
                                   ],
@@ -249,62 +293,6 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                               const SizedBox(height: GaonSpace.sm),
                               Row(
                                 children: [
-                                  if (deadline != null)
-                                    Expanded(
-                                      child: _MiniAction(
-                                        bg: GaonColors.warningLight,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              // 알림 기능 제거(결정 #11) 후 종
-                                              // 아이콘은 오해 소지 — 시계로 교체
-                                              Icons.schedule_rounded,
-                                              size: 12,
-                                              color: GaonColors.warning,
-                                            ),
-                                            const SizedBox(
-                                              width: GaonSpace.xxs,
-                                            ),
-                                            // 긴 라벨에서 넘치지 않게(B-3)
-                                            Flexible(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    '${bi('Hạn nộp', '截止')} ${deadline.month}/${deadline.day}',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: GaonType.micro
-                                                        .copyWith(
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: GaonColors
-                                                              .warning,
-                                                        ),
-                                                  ),
-                                                  Text(
-                                                    '마감',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: GaonType.nano
-                                                        .copyWith(
-                                                          color: GaonColors
-                                                              .textSecondary,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(width: GaonSpace.xs),
                                   Expanded(
                                     child: _MiniAction(
                                       bg: GaonColors.textPrimary,
@@ -327,29 +315,37 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  bi('Thêm vào lịch', '添加到日历'),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: GaonType.micro
-                                                      .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: GaonColors
-                                                            .onPrimary,
-                                                      ),
+                                                // 말줄임('...') 대신 한 줄 유지 + 넘치면 축소
+                                                FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    bi(
+                                                      'Thêm vào lịch',
+                                                      '添加到日历',
+                                                    ),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                    style: GaonType.micro
+                                                        .copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: GaonColors
+                                                              .onPrimary,
+                                                        ),
+                                                  ),
                                                 ),
-                                                Text(
-                                                  '캘린더 추가',
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: GaonType.nano
-                                                      .copyWith(
-                                                        color: GaonColors
-                                                            .onPrimaryDim,
-                                                      ),
+                                                FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    '캘린더 추가',
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                    style: GaonType.nano
+                                                        .copyWith(
+                                                          color: GaonColors
+                                                              .onPrimaryDim,
+                                                        ),
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -364,7 +360,8 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                       bg: GaonColors.kakao,
                                       // 공유 시트 — 전송은 사용자 수동(결정 #2)
                                       onTap: () => SharePlus.instance.share(
-                                        ShareParams(text: card.replyDraftKo!),
+                                        // 원문이 아니라 사용자가 편집한 회신을 공유.
+                                        ShareParams(text: _replyController.text),
                                       ),
                                       child: Row(
                                         mainAxisAlignment:
@@ -381,29 +378,33 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  bi('Chia sẻ', '分享'),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: GaonType.micro
-                                                      .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color: GaonColors
-                                                            .kakaoText,
-                                                      ),
+                                                FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    bi('Chia sẻ', '分享'),
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                    style: GaonType.micro
+                                                        .copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: GaonColors
+                                                              .kakaoText,
+                                                        ),
+                                                  ),
                                                 ),
-                                                Text(
-                                                  '카톡공유',
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: GaonType.nano
-                                                      .copyWith(
-                                                        color: GaonColors
-                                                            .textSecondary,
-                                                      ),
+                                                FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    '카톡공유',
+                                                    maxLines: 1,
+                                                    softWrap: false,
+                                                    style: GaonType.nano
+                                                        .copyWith(
+                                                          color: GaonColors
+                                                              .textSecondary,
+                                                        ),
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -587,81 +588,9 @@ class _ActionCardScreenState extends State<ActionCardScreen> {
                         ),
                       ],
 
-                      // ── 알림장에서 추출된 일정 (F-DOC-7·QA D-5) ──
-                      // 준비물 카드 안에 반복되던 것을 독립 섹션으로 분리 —
-                      // 날짜 + 제목 + 마감/행사 구분을 함께 표시하고, '추가'는
-                      // 해당 일정만 저장한다(QA D-4, 선택 저장).
-                      if (eventDates.isNotEmpty) ...[
-                        _sectionLabel(
-                          '📌 ${biLine('알림장에서 추출된 일정', 'Lịch từ thông báo', '来自通知单的日程')}',
-                          GaonColors.textSecondary,
-                        ),
-                        const SizedBox(height: GaonSpace.xs),
-                        SurfaceCard(
-                          margin: const EdgeInsets.only(bottom: GaonSpace.sm),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final (i, e) in eventDates.indexed) ...[
-                                if (i > 0) const GaonDivider(),
-                                Row(
-                                  children: [
-                                    GaonBadge(
-                                      label:
-                                          e.type == CalendarEventType.deadline
-                                          ? biLine('마감', 'Hạn chót', '截止')
-                                          : biLine('행사', 'Sự kiện', '活动'),
-                                      color:
-                                          e.type == CalendarEventType.deadline
-                                          ? GaonColors.warning
-                                          : GaonColors.textPrimary,
-                                      bg: e.type == CalendarEventType.deadline
-                                          ? GaonColors.warningLight
-                                          : GaonColors.primaryLight,
-                                    ),
-                                    const SizedBox(width: GaonSpace.xs),
-                                    Expanded(
-                                      child: Text(
-                                        '${e.date.month}/${e.date.day} — ${e.title}',
-                                        style: GaonType.caption.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: GaonColors.textPrimary,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: GaonSpace.xs),
-                                    _MiniAction(
-                                      bg: GaonColors.textPrimary,
-                                      onTap: () => _saveToCalendar(
-                                        analysis.document.documentId,
-                                        selected: [e],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            Icons.calendar_month_rounded,
-                                            size: 11,
-                                            color: GaonColors.onPrimary,
-                                          ),
-                                          const SizedBox(width: GaonSpace.xxs),
-                                          Text(
-                                            biLine('추가', 'Thêm', '添加'),
-                                            style: GaonType.micro.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: GaonColors.onPrimary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
+                      // '알림장에서 추출된 일정' 독립 섹션 제거(요청) — 위 행동 카드의
+                      // '캘린더 추가' 버튼이 문서의 모든 일정을 저장하므로 캘린더 추가
+                      // 버튼·정보가 중복이었다. 행동 카드 페이지는 행동 카드만 보인다.
                     ],
                   );
                 },

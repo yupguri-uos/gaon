@@ -312,7 +312,11 @@ class ApiRepository implements GaonRepository {
       );
     }
 
-    final streamed = await _client.send(request);
+    // 타임아웃 없이 send하면 서버/터널이 멈출 때 화면이 영구 대기했다 —
+    // 45초 후 명확히 실패시켜 상위 catch가 안내하도록 한다.
+    final streamed = await _client
+        .send(request)
+        .timeout(const Duration(seconds: 45));
     final json =
         _decode(await http.Response.fromStream(streamed))
             as Map<String, dynamic>;

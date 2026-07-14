@@ -147,8 +147,11 @@ class _ChatScreenState extends State<ChatScreen> {
     } else {
       final picked = await ImagePicker().pickImage(
         source: source == 'camera' ? ImageSource.camera : ImageSource.gallery,
-        maxWidth: 1600, // LLM 파싱에 충분 + 업로드 용량 절약
-        imageQuality: 85,
+        // 카메라 원본은 수 MB라 nginx client_max_body_size(기본 1MB)에 걸려
+        // 업로드가 413으로 즉시 실패했다 — 여기서 확실히 1MB 아래로 줄인다.
+        // (근본 해결은 서버 nginx 한도 상향. 그때 이 값은 다시 올릴 수 있다.)
+        maxWidth: 1280, // 손글씨 파싱에 충분 + 업로드 용량 안전
+        imageQuality: 80,
       );
       if (picked == null) return; // 사용자가 취소
       imageRef = PickedImageStore.register(await picked.readAsBytes());
@@ -230,12 +233,23 @@ class _ChatScreenState extends State<ChatScreen> {
         childId: _selectedChild?.childId,
       );
     } catch (e) {
+      // 원인을 터미널에 남긴다(413=사진 용량, SocketException=네트워크/서버).
+      debugPrint('[upload] 실패: $e');
+      // nginx client_max_body_size 초과(413)는 '네트워크'가 아니라 용량 문제 —
+      // 사용자에게 원인에 맞는 안내를 준다(ApiException.toString()='API 413: ...').
+      final tooLarge = e.toString().contains('413');
       _failBack(
-        biLines(
-          '업로드에 실패했어요 — 네트워크를 확인해 주세요',
-          'Tải lên thất bại — hãy kiểm tra mạng',
-          '上传失败——请检查网络',
-        ),
+        tooLarge
+            ? biLines(
+                '사진 용량이 너무 커요 — 다시 시도해 주세요',
+                'Ảnh quá lớn — hãy thử lại',
+                '照片太大——请重试',
+              )
+            : biLines(
+                '업로드에 실패했어요 — 네트워크를 확인해 주세요',
+                'Tải lên thất bại — hãy kiểm tra mạng',
+                '上传失败——请检查网络',
+              ),
       );
       return;
     }
@@ -1418,7 +1432,8 @@ class _ResultState extends StatelessWidget {
                       horizontal: 14,
                     ),
                     child: Text(
-                      '${term.termKo} ?',
+                      // 단어 뒤 ' ?' 리터럴 제거(요청) — 칩은 탭으로 해설을 연다.
+                      term.termKo,
                       style: GaonType.label.copyWith(
                         color: GaonColors.onPrimary,
                       ),

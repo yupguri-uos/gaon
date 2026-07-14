@@ -294,6 +294,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
+                          // 줄바꿈 시 위아래 칩이 붙어 겹쳐 보이던 문제 — 세로 간격 추가(요청).
+                          runSpacing: 6,
                           children: [
                             for (final s in analysis.actionCard.supplies)
                               if (s.ecommerceKeyword case final keyword?)
@@ -470,9 +472,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              (c.name ?? '자녀').length > 1
-                                  ? (c.name ?? '자녀').substring(1)
-                                  : c.name ?? '자녀',
+                              // 별명 전체 표시(요청). 과거 substring(1)은 실명에서 성씨를
+                              // 떼려던 것이었으나, 별명(첫째딸/둘째딸)의 첫 글자를 잘라
+                              // 둘 다 '째딸'로 보이게 했다 — 결정 #14(별명·비실명)에 맞춰 전체 표시.
+                              c.name ?? '자녀',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: GaonType.micro.copyWith(
                                 color: GaonColors.textSecondary,
                               ),
