@@ -43,6 +43,13 @@ class _ChildForm {
   }
 }
 
+/// '시작하기' 검증 팝업용 — 자녀 하나의 미입력 항목 묶음.
+class _MissingChild {
+  const _MissingChild(this.index, this.fields);
+  final int index; // 0-based (표시 시 +1)
+  final List<String> fields; // 병기 라벨(biLine)
+}
+
 class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
   static const _maxChildren = 5; // BE MAX_CHILDREN과 동일(자녀 수 상한, QA 2026-07-11)
   final _children = [_ChildForm()];
@@ -112,6 +119,166 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
       ),
     );
     if (picked != null) setState(() => form.grade = picked);
+  }
+
+  /// 미입력 항목을 자녀별로 모은다 — '시작하기' 검증용. 모두 채워졌으면 빈 리스트.
+  List<_MissingChild> _missingChildren() {
+    final result = <_MissingChild>[];
+    for (final (i, f) in _children.indexed) {
+      final fields = <String>[
+        if (f.name.text.trim().isEmpty) biLine('이름', 'Tên', '姓名'),
+        if (f.school.text.trim().isEmpty) biLine('학교명', 'Tên trường', '学校名称'),
+        if (f.grade == null) biLine('학년', 'Lớp', '年级'),
+        if (f.classNo.text.trim().isEmpty) biLine('반', 'Số lớp', '班级'),
+      ];
+      if (fields.isNotEmpty) result.add(_MissingChild(i, fields));
+    }
+    return result;
+  }
+
+  /// 어떤 정보가 비었는지 자녀별로 알려주는 팝업(요청) —
+  /// 비활성 버튼 대신, '시작하기'를 누르면 빠진 항목을 능동적으로 안내한다.
+  Future<void> _showMissingDialog(List<_MissingChild> missing) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: GaonColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(GaonRadius.xl),
+        ),
+        title: Text(
+          biLines(
+            '입력하지 않은 정보가 있어요',
+            'Còn thông tin chưa điền',
+            '还有信息未填写',
+          ),
+          style: GaonType.h3.copyWith(color: GaonColors.textPrimary),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final m in missing) ...[
+                Text(
+                  biLine(
+                    '자녀 ${m.index + 1}',
+                    'Con ${m.index + 1}',
+                    '孩子 ${m.index + 1}',
+                  ),
+                  style: GaonType.label.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: GaonColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: GaonSpace.xxs),
+                for (final field in m.fields)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: GaonSpace.xs,
+                      bottom: 2,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Icon(
+                            Icons.circle,
+                            size: 5,
+                            color: GaonColors.warning,
+                          ),
+                        ),
+                        const SizedBox(width: GaonSpace.xs),
+                        Expanded(
+                          child: Text(
+                            field,
+                            style: GaonType.caption.copyWith(
+                              color: GaonColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: GaonSpace.sm),
+              ],
+            ],
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          GaonSpace.md,
+          0,
+          GaonSpace.md,
+          GaonSpace.md,
+        ),
+        actions: [
+          GaonButton(
+            label: biLine('확인', 'Đã hiểu', '知道了'),
+            variant: GaonButtonVariant.ghost,
+            fullWidth: false,
+            onTap: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 입력한 자녀들을 등록하고 메인으로 진입(F-ON-1). 첫 자녀 = POST /onboarding.
+  /// 호출 전 필수 항목이 모두 채워졌음이 보장된다(_missingChildren 검증 통과).
+  Future<void> _submit() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _submitting = true);
+    try {
+      // API 모드: 첫 자녀 = POST /onboarding(프로필+자녀), 나머지는 POST /children.
+      final repo = repository;
+      for (final (i, form) in _children.indexed) {
+        final name = form.name.text.trim();
+        final school = form.school.text.trim();
+        final classNo = form.classNo.text.trim();
+        if (i == 0 && repo is ApiRepository) {
+          // 언어=국가 통합: vi→VN, zh→CN 자동 매핑
+          final lang = appLanguage.value;
+          await repo.submitOnboarding(
+            originCountry: lang == NativeLanguage.zh
+                ? OriginCountry.cn
+                : OriginCountry.vn,
+            nativeLanguage: lang,
+            childGrade: form.grade!,
+            childName: name,
+            childClassNo: classNo,
+            childSchoolName: school,
+          );
+        } else {
+          await repo.addChild(
+            grade: form.grade!,
+            name: name,
+            classNo: classNo,
+            schoolName: school,
+          );
+        }
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            biLines(
+              '등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)',
+              'Đăng ký thất bại — hãy kiểm tra mạng',
+              '登记失败——请检查网络',
+            ),
+          ),
+        ),
+      );
+      // 실패 시 버튼 복구 — 재시도 가능(C-2)
+      if (mounted) setState(() => _submitting = false);
+      return;
+    }
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MainShell()),
+      (route) => false,
+    );
   }
 
   @override
@@ -294,69 +461,17 @@ class _OnboardingChildScreenState extends State<OnboardingChildScreen> {
                           ? biLine('등록 중...', 'Đang đăng ký...', '登记中…')
                           : '${bi('Bắt đầu', '开始')} →',
                       subLabel: _submitting ? null : '시작하기',
-                      // 미완성·제출 중이면 비활성(QA A-1·C-2) — 이전의
-                      // '이름 없이 등록' 확인 다이얼로그는 필수화로 폐기
-                      onTap: !_formsComplete || _submitting
+                      // 미완성이어도 누를 수 있게 두고(제출 중만 비활성, C-2),
+                      // 누르면 빠진 항목을 자녀별 팝업으로 안내한다(요청) → 완성 시 등록.
+                      onTap: _submitting
                           ? null
                           : () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final navigator = Navigator.of(context);
-                              setState(() => _submitting = true);
-                              try {
-                                // 입력한 자녀들을 등록 → 이후 화면에 반영.
-                                // API 모드: 첫 자녀 = POST /onboarding(F-ON-1).
-                                final repo = repository;
-                                for (final (i, form) in _children.indexed) {
-                                  final name = form.name.text.trim();
-                                  final school = form.school.text.trim();
-                                  final classNo = form.classNo.text.trim();
-                                  if (i == 0 && repo is ApiRepository) {
-                                    // 언어=국가 통합: vi→VN, zh→CN 자동 매핑
-                                    final lang = appLanguage.value;
-                                    await repo.submitOnboarding(
-                                      originCountry:
-                                          lang == NativeLanguage.zh
-                                          ? OriginCountry.cn
-                                          : OriginCountry.vn,
-                                      nativeLanguage: lang,
-                                      childGrade: form.grade!,
-                                      childName: name,
-                                      childClassNo: classNo,
-                                      childSchoolName: school,
-                                    );
-                                  } else {
-                                    await repo.addChild(
-                                      grade: form.grade!,
-                                      name: name,
-                                      classNo: classNo,
-                                      schoolName: school,
-                                    );
-                                  }
-                                }
-                              } catch (e) {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      biLines(
-                                        '등록에 실패했어요 — 네트워크를 확인해 주세요 ($e)',
-                                        'Đăng ký thất bại — hãy kiểm tra mạng',
-                                        '登记失败——请检查网络',
-                                      ),
-                                    ),
-                                  ),
-                                );
-                                // 실패 시 버튼 복구 — 재시도 가능(C-2)
-                                if (mounted) {
-                                  setState(() => _submitting = false);
-                                }
+                              final missing = _missingChildren();
+                              if (missing.isNotEmpty) {
+                                await _showMissingDialog(missing);
                                 return;
                               }
-                              navigator.pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (_) => const MainShell(),
-                                ),
-                                (route) => false,
-                              );
+                              await _submit();
                             },
                     ),
                   ],
