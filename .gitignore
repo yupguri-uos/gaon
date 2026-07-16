@@ -18,6 +18,7 @@ fe/build/
 !.env.example
 *.key
 *.pem
+*.p8
 service-account*.json
 .ssh
 
@@ -27,6 +28,12 @@ service-account*.json
 .DS_Store
 .personal/
 .pre*
+
+# 로컬 잡파일 (커밋 금지)
+api.rb
+reservation.json
+upload_screenshots.sh
+jpg/
 
 # 로컬 데이터 / 업로드 / 결과물
 /infra/data/
