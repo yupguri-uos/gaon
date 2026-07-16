@@ -6,6 +6,7 @@ import '../data/api_repository.dart';
 import '../data/app_lang.dart';
 import '../data/auth_store.dart';
 import '../data/locator.dart';
+import '../data/session_router.dart';
 import '../theme/tokens.dart';
 import 'main_shell.dart';
 import 'onboarding_child_screen.dart';
@@ -35,21 +36,18 @@ class LoginScreen extends StatelessWidget {
       return;
     }
 
-    // 토큰 보유(재실행·개발 토큰): /me로 상태 확인 후 바로 라우팅(§13 ⓪)
+    // 토큰 보유(재실행·개발 토큰): /me로 상태 확인 후 바로 라우팅(§13 ⓪).
+    // 시작 복구(main.dart)와 동일한 판정을 쓰도록 session_router로 로직을 공유한다.
     if (AuthStore.hasToken) {
       try {
-        final me = await repo.fetchMe();
-        if (me != null) {
-          // 서버 프로필 언어 우선 — 로컬 선택과 다르면 서버 값을 따르고 저장
-          await AppLangStore.save(me.nativeLanguage);
-          navigator.pushReplacement(
-            MaterialPageRoute(builder: (_) => const MainShell()),
-          );
-        } else {
-          navigator.pushReplacement(
-            MaterialPageRoute(builder: (_) => const OnboardingChildScreen()),
-          );
-        }
+        final dest = await resolvePostLoginDestination(repo);
+        navigator.pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => dest == PostLoginDestination.main
+                ? const MainShell()
+                : const OnboardingChildScreen(),
+          ),
+        );
         return;
       } on AuthRequiredException {
         await AuthStore.clear(); // 만료 토큰 폐기 → 아래 OAuth로 재로그인
