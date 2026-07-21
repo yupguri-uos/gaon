@@ -1,8 +1,8 @@
 # infra — 배포 · 네트워크 · DB
 
-미니PC 기반 배포. 자세한 운영 노트는 노션 "개발" 페이지 인프라 섹션.
+미니PC 기반 배포.
 
-- **위치/운영**: 미니PC = 이태권 집 → 손수빈 100% 원격, 이태권 remote hands
+- **위치/운영**: 온프레미스 미니PC 1대 상시 호스팅 → 100% 원격 운영 + 현장 remote hands 병행
 - **네트워크**: 팀 접속 = Tailscale(비공개) / 공개 백엔드 = Cloudflare Tunnel. 둘 다 아웃바운드(포트포워딩 불필요).
 - **스토리지/DB**: 이미지 MinIO(S3 호환), PostgreSQL + pgvector, 마이그레이션 Alembic
 - **푸시**: FCM
@@ -48,6 +48,6 @@ sudo ss -tlnp | grep -E '5432|8000|9000|9001'   # tailnet IP 바인딩 확인
 ### 주의
 - **컨테이너 내부 호스트명**: DATABASE_URL host=`postgres`, S3_ENDPOINT=`http://minio:9000` (localhost 아님).
 - **env_file은 ${} 확장 안 함** → `.env`의 DATABASE_URL·S3 키는 실제 값을 직접 적고 POSTGRES_*/MINIO_* 와 수기 일치.
-- **포트는 tailnet IP 전용** 바인딩. 공개 노출은 본가 cloudflared 담당.
+- **포트는 tailnet IP 전용** 바인딩. 공개 노출은 cloudflared 터널이 담당.
 - **migrate는 app보다 먼저·1회만**(`service_completed_successfully`). 실패 시 app 안 뜸(의도).
 - **LLM_API_KEY 비어도 배포는 뜸** — auth·업로드·DB는 동작, AI 체인만 미동작(결정 #4 대기).

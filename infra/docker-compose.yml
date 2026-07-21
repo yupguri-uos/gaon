@@ -91,7 +91,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${TAILNET_IP}:8000:8000"          # 지금은 tailnet 전용, 공개 노출은 본가 cloudflared
+      - "${TAILNET_IP}:8000:8000"          # 지금은 tailnet 전용, 공개 노출은 cloudflared 터널
     init: true
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     tty: true
